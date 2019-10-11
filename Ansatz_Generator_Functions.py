@@ -27,9 +27,9 @@ def Get_Occupied_and_Unoccupied_sites(HF_State):
 
     for i in range(len(HF_State)):
 
-        bit = HF_State[-1::-1][i]  # note this slice reverses order!
+        bit = HF_State[-1::-1][i]  # note this slice reverses order! (QM indexing)
 
-        if i % 2 == 0 and bit == 1:
+        if i % 2 == 0 and bit == 1: #modulo two checks if spin up or spin down... bit is if occupied or not
             up_occ.append(i)
 
         elif bit == 1:
@@ -40,6 +40,11 @@ def Get_Occupied_and_Unoccupied_sites(HF_State):
 
         elif bit == 0:
             down_unocc.append(i)
+
+        if bit != 0 and bit != 1:
+            raise ValueError('HF state: {} not in correct format. bit at index {} is /'
+                             'not 0 or 1 but {}'.format(HF_State,i, bit))
+
 
     return up_occ, down_occ, up_unocc, down_unocc
 
@@ -71,7 +76,7 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
     :rtype: list
     """
 
-
+    # SINGLE electron: spin UP transition
     ia_terms = np.zeros((1, 3))
     for i in up_occ:
         for alpha in up_unocc:
@@ -82,7 +87,16 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
                 array = np.array([alpha, i, 0.25])
                 ia_terms = np.vstack((ia_terms, array))
 
-    ## two spin up
+    # SINGLE electron: spin DOWN transition
+    for i in down_occ:
+        for alpha in down_unocc:
+            if ia_terms.any() == np.zeros((1, 3)).any():
+                ia_terms = np.array([alpha, i, 0.25])
+            else:
+                array = np.array([alpha, i, 0.25])
+                ia_terms = np.vstack((ia_terms, array))
+
+    ## DOUBLE electron: two spin UP transition
     ijab_terms = np.zeros((1, 5))
     for i in up_occ:
         for j in up_occ:
@@ -96,15 +110,45 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
                                 array = np.array([alpha, beta, i, j, 0.25])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
-    # spin up and spin down
+
+    ## DOUBLE electron: two spin DOWN transition
+    for i in down_occ:
+        for j in down_occ:
+            if i > j:
+                for alpha in down_unocc:
+                    for beta in down_unocc:
+                        if alpha > beta:
+                            if ijab_terms.any() == np.zeros((1, 5)).any():
+                                ijab_terms = np.array([beta, alpha, j, i, 0.25])
+                            else:
+                                array = np.array([alpha, beta, i, j, 0.25])
+                                ijab_terms = np.vstack((ijab_terms, array))
+
+    ## DOUBLE electron: one spin UP and one spin DOWN transition
     for i in up_occ:
         for j in down_occ:
             if i > j:
                 for alpha in up_unocc:
                     for beta in down_unocc:
                         if alpha > beta:
-                            array = np.array([beta, alpha, j, i, 0.25])
-                            ijab_terms = np.vstack((ijab_terms, array))
+                            if ijab_terms.any() == np.zeros((1, 5)).any():
+                                ijab_terms = np.array([beta, alpha, j, i, 0.25])
+                            else:
+                                array = np.array([alpha, beta, i, j, 0.25])
+                                ijab_terms = np.vstack((ijab_terms, array))
+
+    ## DOUBLE electron: one spin DOWN and one spin UP transition
+    for i in down_occ:
+        for j in up_occ:
+            if i > j:
+                for alpha in down_unocc:
+                    for beta in up_unocc:
+                        if alpha > beta:
+                            if ijab_terms.any() == np.zeros((1, 5)).any():
+                                ijab_terms = np.array([beta, alpha, j, i, 0.25])
+                            else:
+                                array = np.array([alpha, beta, i, j, 0.25])
+                                ijab_terms = np.vstack((ijab_terms, array))
 
     return ia_terms, ijab_terms
 
