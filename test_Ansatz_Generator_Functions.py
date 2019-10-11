@@ -74,7 +74,8 @@ def test_Get_ia_and_ijab_terms_H2():
 
     ia_terms, ijab_terms = Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc)
 
-    assert (ia_terms_true.all(), ijab_terms_true.all()) == (ia_terms.all(), ijab_terms.all()) # NEED TO CHECK THIS AND MAKE SURE IT IS WORKING PROPERLY!
+    assert np.array_equal(ia_terms_true, ia_terms) and np.array_equal(ijab_terms_true, ijab_terms)
+
 
 def test_Get_ia_and_ijab_terms_4_sites():
 
@@ -123,7 +124,7 @@ def test_Get_ia_and_ijab_terms_4_sites():
 
     ia_terms, ijab_terms = Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc)
 
-    assert (ia_terms_true.all(), ijab_terms_true.all()) == (ia_terms.all(), ijab_terms.all()) # NEED TO CHECK THIS AND MAKE SURE IT IS WORKING PROPERLY!
+    assert np.array_equal(ia_terms_true, ia_terms) and np.array_equal(ijab_terms_true, ijab_terms)
 
 
 # HF_State = [0,0,0,0,1,1,1,1]
