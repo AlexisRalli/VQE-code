@@ -49,7 +49,7 @@ def Get_Occupied_and_Unoccupied_sites(HF_State):
     return up_occ, down_occ, up_unocc, down_unocc
 
 
-def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
+def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
 
     """
     Input is lists of occupied and unoccupied sites
@@ -69,6 +69,9 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
     :param down_unocc: sites that are spin down and UN-occupied
     :type down_unocc: list, (numpy.array, tuple)
 
+    :param const: Constant factor to times operator
+    :type const: float
+
     ...
     :raises [ErrorType]: [ErrorDescription]
     ...
@@ -81,19 +84,19 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
     for i in up_occ:
         for alpha in up_unocc:
             if ia_terms.any() == np.zeros((1, 3)).any():
-                ia_terms = np.array([alpha, i, 0.25])
+                ia_terms = np.array([alpha, i, const])
                 # ia_terms = np.vstack((ia_terms, array))
             else:
-                array = np.array([alpha, i, 0.25])
+                array = np.array([alpha, i, const])
                 ia_terms = np.vstack((ia_terms, array))
 
     # SINGLE electron: spin DOWN transition
     for i in down_occ:
         for alpha in down_unocc:
             if ia_terms.any() == np.zeros((1, 3)).any():
-                ia_terms = np.array([alpha, i, 0.25])
+                ia_terms = np.array([alpha, i, const])
             else:
-                array = np.array([alpha, i, 0.25])
+                array = np.array([alpha, i, const])
                 ia_terms = np.vstack((ia_terms, array))
 
     ## DOUBLE electron: two spin UP transition
@@ -105,9 +108,9 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
                     for beta in up_unocc:
                         if alpha > beta:
                             if ijab_terms.any() == np.zeros((1, 5)).any():
-                                ijab_terms = np.array([beta, alpha, j, i, 0.25])
+                                ijab_terms = np.array([beta, alpha, j, i, const])
                             else:
-                                array = np.array([alpha, beta, i, j, 0.25])
+                                array = np.array([alpha, beta, i, j, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
 
@@ -119,9 +122,9 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
                     for beta in down_unocc:
                         if alpha > beta:
                             if ijab_terms.any() == np.zeros((1, 5)).any():
-                                ijab_terms = np.array([beta, alpha, j, i, 0.25])
+                                ijab_terms = np.array([beta, alpha, j, i, const])
                             else:
-                                array = np.array([alpha, beta, i, j, 0.25])
+                                array = np.array([alpha, beta, i, j, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
     ## DOUBLE electron: one spin UP and one spin DOWN transition
@@ -132,9 +135,9 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
                     for beta in down_unocc:
                         if alpha > beta:
                             if ijab_terms.any() == np.zeros((1, 5)).any():
-                                ijab_terms = np.array([beta, alpha, j, i, 0.25])
+                                ijab_terms = np.array([beta, alpha, j, i, const])
                             else:
-                                array = np.array([alpha, beta, i, j, 0.25])
+                                array = np.array([alpha, beta, i, j, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
     ## DOUBLE electron: one spin DOWN and one spin UP transition
@@ -145,9 +148,9 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
                     for beta in up_unocc:
                         if alpha > beta:
                             if ijab_terms.any() == np.zeros((1, 5)).any():
-                                ijab_terms = np.array([beta, alpha, j, i, 0.25])
+                                ijab_terms = np.array([beta, alpha, j, i, const])
                             else:
-                                array = np.array([alpha, beta, i, j, 0.25])
+                                array = np.array([alpha, beta, i, j, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
     return ia_terms, ijab_terms
@@ -155,7 +158,16 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc):
 
 def Get_T1_terms_list(ia_terms):
     """
-    dsf
+    Gives list of T1 terms from defined ia_terms.
+
+    :param ia_terms: sites that are spin UP and occupied
+    :type ia_terms: list, (numpy.array, tuple)
+
+    ...
+    :raises [ErrorType]: [ErrorDescription]
+    ...
+    :return: List of T1 Terms, each is a object in list is a FermiOperator (OpemFermion)
+    :rtype: list
     """
     from openfermion.ops import FermionOperator
 
@@ -164,17 +176,23 @@ def Get_T1_terms_list(ia_terms):
         i = int(ia_terms[x][0])
         alph = int(ia_terms[x][1])
         t_ia = float(ia_terms[x][2])
-
         term = FermionOperator('{}^ {}'.format(i, alph), t_ia)
-        # print(term.terms) # correct!
-
         T1_terms.append(term)
     return T1_terms
 
 
 def Get_T2_terms_list(ijab_terms):
     """
-    ds
+    Gives list of T2 terms from defined ia_terms.
+
+    :param ijab_terms: list of ijab
+    :type ijab_terms: list, (numpy.array, tuple)
+
+    ...
+    :raises [ErrorType]: [ErrorDescription]
+    ...
+    :return: List of T2 Terms, each is a object in list is a FermiOperator (OpemFermion)
+    :rtype: list
     """
     from openfermion.ops import FermionOperator
 
@@ -193,33 +211,49 @@ def Get_T2_terms_list(ijab_terms):
 
 def daggar_T_list(T_list):
     """
-    Args:
-        T_list: Lists of Fermionic operators
-                Desired input is: T1_terms_list // T2_terms_list funcitons
+     Input T1 or T2 list, returns T1 dagger or T2 dagger (complex transpose)
 
+    :param T_list: list of Fermionic Operators
+    :type T_list: list
 
-    Returns:
-        A list containing the complex transpose of Fermionic operators
+    ...
+    :raises [ErrorType]: [ErrorDescription]
+    ...
+    :return: List of T dagger Terms (complex transpose), each is a object in list is a FermiOperator (OpenFermion)
+    :rtype: list
+
     """
     from openfermion.utils import hermitian_conjugated
+
     dagger_terms_list = []
     for term in T_list:
         dagger_terms_list.append(hermitian_conjugated(term))
     return dagger_terms_list
 
 
-def JW_transform(T_Term, T_dagger_terms):
+def JW_transform(T_Terms, T_dagger_terms):
     """
-    Arg:
-        T_Term = A list containing Fermionic operators for each T term
-        T_dagger_terms =  A list containing Fermionic operators for each T dagger term
-    Returns:
-        A list containing Pauli operators for each T term. Each term in list is a QubitOperator!
+     Input T1 or T2 list, returns T1 dagger or T2 dagger (complex transpose)
+
+    :param T_Terms: A list containing Fermionic operators for each T term
+    :type T_Terms: list
+
+    :param T_dagger_terms: A list containing Fermionic operators for each T term that is complex conjugated. Note order
+                           is important
+    :type T_dagger_terms: list
+
+    ...
+    :raises [ErrorType]: [ErrorDescription]
+    ...
+    :return: A list containing Pauli Operators for each term. Note each object in list is a QubitOperator (openfermion)
+    :rtype: list
+
+
     """
     from openfermion import jordan_wigner
     T_Term_pauli = []
-    for i in range(len(T_Term)):
-        T_Term_pauli.append(jordan_wigner(T_Term[i] - T_dagger_terms[i]))
+    for i in range(len(T_Terms)):
+        T_Term_pauli.append(jordan_wigner(T_Terms[i] - T_dagger_terms[i]))
     return T_Term_pauli
 
 

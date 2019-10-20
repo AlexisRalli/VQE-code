@@ -3,6 +3,11 @@ import pytest
 # in terminal type: py.test -v
 
 def test_Get_Occupied_and_Unoccupied_sites_H2():
+
+    """
+    Test to make sure standard use works [H2 example]
+    """
+
     HF_State = [0,0,1,1]
 
     up_occ_true = [0]  # spin up
@@ -17,6 +22,10 @@ def test_Get_Occupied_and_Unoccupied_sites_H2():
 
 def test_Get_Occupied_and_Unoccupied_sites_H2O():
 
+    """
+    Test to make sure standard use works [H2O example]
+    """
+
     HF_State = [0,0,0,0,1,1,1,1,1,1,1,1,1,1]
 
     up_occ_true = [0,2,4,6,8] # spin up
@@ -30,6 +39,10 @@ def test_Get_Occupied_and_Unoccupied_sites_H2O():
     assert (up_occ, down_occ, up_unocc, down_unocc) == (up_occ_true, down_occ_true, up_unocc_true, down_unocc_true)
 
 def test_Get_Occupied_and_Unoccupied_sites_DIFFERENT_ORDERING():
+
+    """
+    Test to see if function deals with different ordering of states (not only lowest energy levels filled)
+    """
 
     HF_State = [0,0,1,0,1,0,0,1,0,1]
 
@@ -59,7 +72,12 @@ def test_Get_Occupied_and_Unoccupied_sites_WRONG_NOTATION():
 
 def test_Get_ia_and_ijab_terms_H2():
 
-    # H2 HF_state = [0,0,1,1]
+    """
+    Test to make sure standard use works [H2 example]
+
+    note: H2 HF_state = [0,0,1,1]
+
+    """
 
     up_occ = [0]
     down_occ = [1]
@@ -77,9 +95,17 @@ def test_Get_ia_and_ijab_terms_H2():
     assert np.array_equal(ia_terms_true, ia_terms) and np.array_equal(ijab_terms_true, ijab_terms)
 
 
-def test_Get_ia_and_ijab_terms_4_sites():
+def test_Get_ia_and_ijab_terms_8_sites():
 
     # HF_State = [0,0,0,0,1,1,1,1]
+
+    """
+    Test to make sure standard use works [8 sites],
+    4 Sites occupied and 4 sites unoccupied
+
+    note: HF_state = [0,0,0,0,1,1,1,1]
+
+    """
 
     up_occ = [0,2]
     down_occ = [1,3]
