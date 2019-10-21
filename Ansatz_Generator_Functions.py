@@ -77,13 +77,17 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
     ...
     :return: Two lists of ia and ijab terms
     :rtype: list
+
+    notes:
+    https://iopscience.iop.org/article/10.1088/2058-9565/aad3e4/pdf
+
     """
 
     # SINGLE electron: spin UP transition
     ia_terms = np.zeros((1, 3))
     for i in up_occ:
         for alpha in up_unocc:
-            if ia_terms.any() == np.zeros((1, 3)).any():
+            if np.array_equal(ia_terms, np.zeros((1, 3))):
                 ia_terms = np.array([alpha, i, const])
                 # ia_terms = np.vstack((ia_terms, array))
             else:
@@ -93,7 +97,7 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
     # SINGLE electron: spin DOWN transition
     for i in down_occ:
         for alpha in down_unocc:
-            if ia_terms.any() == np.zeros((1, 3)).any():
+            if np.array_equal(ia_terms, np.zeros((1, 3))):
                 ia_terms = np.array([alpha, i, const])
             else:
                 array = np.array([alpha, i, const])
@@ -107,10 +111,10 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
                 for alpha in up_unocc:
                     for beta in up_unocc:
                         if alpha > beta:
-                            if ijab_terms.any() == np.zeros((1, 5)).any():
+                            if np.array_equal(ijab_terms, np.zeros((1, 5))):
                                 ijab_terms = np.array([beta, alpha, j, i, const])
                             else:
-                                array = np.array([alpha, beta, i, j, const])
+                                array = np.array([beta, alpha, j, i, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
 
@@ -121,10 +125,10 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
                 for alpha in down_unocc:
                     for beta in down_unocc:
                         if alpha > beta:
-                            if ijab_terms.any() == np.zeros((1, 5)).any():
+                            if np.array_equal(ijab_terms, np.zeros((1, 5))):
                                 ijab_terms = np.array([beta, alpha, j, i, const])
                             else:
-                                array = np.array([alpha, beta, i, j, const])
+                                array = np.array([beta, alpha, j, i, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
     ## DOUBLE electron: one spin UP and one spin DOWN transition
@@ -134,10 +138,10 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
                 for alpha in up_unocc:
                     for beta in down_unocc:
                         if alpha > beta:
-                            if ijab_terms.any() == np.zeros((1, 5)).any():
+                            if np.array_equal(ijab_terms, np.zeros((1, 5))):
                                 ijab_terms = np.array([beta, alpha, j, i, const])
                             else:
-                                array = np.array([alpha, beta, i, j, const])
+                                array = np.array([beta, alpha, j, i, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
     ## DOUBLE electron: one spin DOWN and one spin UP transition
@@ -147,10 +151,10 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
                 for alpha in down_unocc:
                     for beta in up_unocc:
                         if alpha > beta:
-                            if ijab_terms.any() == np.zeros((1, 5)).any():
+                            if np.array_equal(ijab_terms, np.zeros((1, 5))):
                                 ijab_terms = np.array([beta, alpha, j, i, const])
                             else:
-                                array = np.array([alpha, beta, i, j, const])
+                                array = np.array([beta, alpha, j, i, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
     # this makes sure we have array of arrays! (not the case if only have one entry... this corrects for this)

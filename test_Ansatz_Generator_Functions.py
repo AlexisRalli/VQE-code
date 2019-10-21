@@ -86,10 +86,10 @@ def test_Get_ia_and_ijab_terms_H2():
     down_unocc = [3]
 
 
-    ia_terms_true = np.array([[2,0,0.25],
+    ia_terms_true = np.array([[2, 0,0.25],
                               [3, 1, 0.25]])
 
-    ijab_terms_true = np.array([2, 3, 0,1, 0.25])
+    ijab_terms_true = np.array([np.array([2, 3, 0, 1, 0.25])])
 
     ia_terms, ijab_terms = Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc)
 
@@ -115,7 +115,7 @@ def test_Get_ia_and_ijab_terms_8_sites():
 
 
     ia_terms_true = np.array([
-                              [4,0,0.25],
+                              [4, 0, 0.25],
                               [6, 0, 0.25],
 
                               [4, 2, 0.25],
@@ -125,26 +125,40 @@ def test_Get_ia_and_ijab_terms_8_sites():
                               [7, 1, 0.25],
 
                               [5, 3, 0.25],
-                              [7, 4, 0.25]
+                              [7, 3, 0.25]
                               ])
 
-    ijab_terms_true = np.array([                         # need to finish WRITING THIS ARRAY OUT!!!!
+    # note ordering in function
+    # First is double spin up
+    # second is double spin down
+    # third is spin up and spin down
+    # final is spin down and spin up
+
+    # where i >j and alpha > beta       <-- THIS IS VERY IMPORTANT
+    # ordering is : [beta, alpha, j, i]
+
+    ijab_terms_true = np.array([
+                                # up-up
                                 [4, 6, 0, 2, 0.25],
-                                #[6, 4, 0, 2, 0.25],
 
-                                #[5, 7, 1, 3, 0.25],
-                                [7, 5, 1, 3, 0.25],
+                                # down-down
+                                [5, 7, 1, 3, 0.25],
 
-                                [6, 5, 2, 1, 0.25],
-                                [6, 7, 0, 1, 0.25],
-                                [4, 5, 2, 3, 0.25],
-                                [6, 7, 2, 3, 0.25],
+                                # up-down
+                                [5, 6, 1, 2, 0.25],
 
+                                # down-up
                                 [4, 5, 0, 1, 0.25],
+                                [4, 7, 0, 1, 0.25],
                                 [6, 7, 0, 1, 0.25],
-                                [4, 5, 2, 3, 0.25],
-                                [6, 7, 2, 3, 0.25],
 
+                                [4, 5, 0, 3, 0.25],
+                                [4, 7, 0, 3, 0.25],
+                                [6, 7, 0, 3, 0.25],
+
+                                [4, 5, 2, 3, 0.25],
+                                [4, 7, 2, 3, 0.25],
+                                [6, 7, 2, 3, 0.25],
     ])
 
 
