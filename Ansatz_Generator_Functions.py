@@ -265,7 +265,44 @@ def JW_transform(T_Terms, T_dagger_terms):
     return T_Term_paulis
 
 
+def Reformat_Pauli_terms(T_Term_Paulis):
+    """
+     Input is list of T Pauli QubitOperators. Output is list of lists to turn into quantum circuit.
 
+     e.g.
+     input (type = QubitOperator)
+     [-0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2], -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]]
+
+     output (type = list of lists, where inner list is (operation, constant))
+     [
+        [(((0, 'Y'), (1, 'Z'), (2, 'X')), 0.125j),
+        (((0, 'X'), (1, 'Z'), (2, 'Y')), -0.125j)],
+
+        [(((1, 'Y'), (2, 'Z'), (3, 'X')), 0.125j),
+        (((1, 'X'), (2, 'Z'), (3, 'Y')), -0.125j)]
+    ]
+
+    :param T_Term_Paulis: A list containing QubitOperator (OpenFermion) for each T term
+    :type T_Term_Paulis: list
+
+
+    ...
+    :raises [ErrorType]: [ErrorDescription]
+    ...
+    :return: A list containing Pauli Operators for each term.
+    :rtype: list
+
+
+    """
+    Complete_Operation_list = []
+
+    for sub_term in T_Term_Paulis:
+        sub_instance_list = []
+        for qubitNoOp, sign in sub_term.terms.items():
+            sub_instance_list.append((qubitNoOp, sign))
+        Complete_Operation_list.append(sub_instance_list)
+
+    return Complete_Operation_list
 
 class UCC_Terms():
 
@@ -300,30 +337,90 @@ class UCC_Terms():
         self.T1_Term_paulis = JW_transform(T1_terms, T1_dagger_terms)
         self.T2_Term_paulis = JW_transform(T2_terms, T2_dagger_terms)
 
-
-def Reformat_Pauli_terms(T_Term_Paulis):
-
-    Complete_Operation_list = []
-    for Pauli_term in T_Term_Paulis:
-        Qubit_Operators = [key for key in Pauli_term.terms]
-        Complete_Operation_list.append(Qubit_Operators)
-    return Complete_Operation_list
+        self.T1_formatted = Reformat_Pauli_terms(self.T1_Term_paulis)
+        self.T2_formatted = Reformat_Pauli_terms(self.T2_Term_paulis)
 
 
-class TO_DO_Trotterisation(UCC_Terms):
-    # TODO
+
+
+
+
+def Trotter_ordering(T_Terms,
+                     trotter_number=1,
+                     trotter_order=1,
+                     term_ordering=None,
+                     k_exp=1.0):
 
     """
-    Lie-Trotter-Suzuki approximation:
-    U = exp[-iHt] =APPROX= Product_i(  exp[-i(h_i)t/p] )^p
-    where H = Sum( h_i  )
+    https: // github.com / quantumlib / OpenFermion / blob / master / src / openfermion / utils / _trotter_exp_to_qgates.py
+
+    Trotter-decomposes operators into groups without exponentiating
+
+    :param T_Terms: ... Note list of QubitOperators
+    :type T_Terms:
+
+    :param trotter_number: optional number of trotter steps
+    :type trotter_number: int
+
+    :param trotter_order: optional order of trotterization
+    :type trotter_order:
+
+    :param term_ordering:
+    :type term_ordering:
+
+    :param k_exp:
+    :type k_exp:
+
+    ...
+    :raises [ErrorType]: [ErrorDescription]
+    ...
+    :yield: A list containing Pauli Operators for each term. Note each object in list is a QubitOperator (openfermion)
+    :rtype: list
+
+    Note:
+        The default term_ordering is simply the ordered keys of
+        the QubitOperators.terms dict.
+
     """
 
-    def __init__(self, trot_order):
-        self.trot_order = trot_order
+    #TODO
 
-    def get_trotterisation(self):
-        blah =1
+
+
+def Trotterisation(T_Terms,
+                     trotter_number=1,
+                     trotter_order=1):
+
+    """
+    Trotter-decomposes operators into groups without exponentiating
+
+    :param T_Terms: ... Note list of QubitOperators
+    :type T_Terms:
+
+    :param trotter_number: optional number of trotter steps
+    :type trotter_number: int
+
+    :param trotter_order: optional order of trotterization
+    :type trotter_order:
+
+    :param term_ordering:
+    :type term_ordering:
+
+    ...
+    :raises [ErrorType]: [ErrorDescription]
+    ...
+    :return: A list containing Pauli Operators for each term. Note each object in list is a QubitOperator (openfermion)
+    :rtype: list
+
+
+    """
+
+    trotter = []
+    for group in T_Terms:
+        l = [(key, value, trotter_order) for key, value in group.terms.items()]
+        trotter.append(l)
+    return trotter
+
 
 
 
@@ -337,5 +434,7 @@ if __name__ == '__main__':
     print(UCC.ijab_terms)
     print(UCC.T1_Term_paulis)
     print(UCC.T2_Term_paulis)
+    print(UCC.T1_Term_paulis[1].terms)
+    print(Reformat_Pauli_terms(UCC.T1_Term_paulis))
 
 

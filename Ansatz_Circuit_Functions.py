@@ -1,5 +1,5 @@
 import cirq
-
+for Ansatz_Generator_Functions import *
 
 class State_Prep(cirq.Gate):
 
@@ -66,3 +66,59 @@ if __name__ == '__main__':
     print(cirq.Circuit.from_ops((initial_state(*cirq.LineQubit.range(initial_state.num_qubits())))))
     print(
         cirq.Circuit.from_ops(cirq.decompose_once((initial_state(*cirq.LineQubit.range(initial_state.num_qubits()))))))
+
+
+
+class Ansatz_basis_change_initial(cirq.Gate):
+    def __init__(self, Qubit_NoOp_const_term):
+
+        self.Qubit_NoOp_const_term = Qubit_NoOp_const_term
+        self.num_qubits = len(Qubit_NoOp_const_term)
+        #self.Num_line_qubits =
+
+    def _decompose_(self, qubits):
+
+        for qubitNo, qubitOp in self.Qubit_NoOp_const_term[0]:
+            if qubitOp == 'X':
+                yield cirq.H(qubits[qubitNo])
+            elif qubitOp == 'Y':
+                yield cirq.Rx(math.pi / 2)(qubits[qubitNo])
+            elif qubitOp == 'Z':
+                continue
+            else:
+                raise ValueError("Qubit Operation {} on qubit {} isn't a Pauli operation".format(qubitOp, qubitNo))
+
+
+
+    def _circuit_diagram_info_(self, args):
+
+        Ansatz_basis_change_list = []
+        for i in range(self.Num_line_qubits()):
+                Ansatz_basis_change_list.append('Ansatz_basis_change')
+
+        return Ansatz_basis_change_list
+
+    def num_qubits(self):
+        return self.qubitNo
+
+    def Num_line_qubits(self):
+
+        indexes = [qubitNo for qubitNo, qubitOp in self.Qubit_NoOp_const_term[0]]
+        highest_index = max(indexes)
+
+        return highest_index + 1
+
+
+
+if __name__ == '__main__':
+    HF_initial_state = [0, 0, 1, 1]
+    UCC = UCC_Terms(HF_initial_state)
+
+    test_term = UCC.T1_formatted[0][0]
+
+    circuit = Ansatz_basis_change_initial(test_term)
+
+    print(cirq.Circuit.from_ops((circuit(*cirq.LineQubit.range(circuit.Num_line_qubits())))))
+    print(
+        cirq.Circuit.from_ops(cirq.decompose_once((circuit(*cirq.LineQubit.range(circuit.Num_line_qubits()))))))
+    print(test_term)
