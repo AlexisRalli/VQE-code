@@ -1,6 +1,7 @@
 from Ansatz_Generator_Functions import *
 import pytest
-# in terminal type: py.test -v
+# in Terminal run (LINUX!):
+# py.test /home/alexisr/Documents/PhD/Code/PhD\ Code/test_Ansatz_Circuit_Functions.py
 
 def test_Get_Occupied_and_Unoccupied_sites_H2():
 
