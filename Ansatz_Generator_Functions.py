@@ -153,6 +153,14 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
                                 array = np.array([alpha, beta, i, j, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
+    # this makes sure we have array of arrays! (not the case if only have one entry... this corrects for this)
+    if len(ia_terms.shape) == 1:
+        ia_terms = np.array([ia_terms])
+
+    if len(ijab_terms.shape) == 1:
+        ijab_terms = np.array([ijab_terms])
+
+
     return ia_terms, ijab_terms
 
 
@@ -251,10 +259,10 @@ def JW_transform(T_Terms, T_dagger_terms):
 
     """
     from openfermion import jordan_wigner
-    T_Term_pauli = []
+    T_Term_paulis = []
     for i in range(len(T_Terms)):
-        T_Term_pauli.append(jordan_wigner(T_Terms[i] - T_dagger_terms[i]))
-    return T_Term_pauli
+        T_Term_paulis.append(jordan_wigner(T_Terms[i] - T_dagger_terms[i]))
+    return T_Term_paulis
 
 
 
@@ -289,15 +297,30 @@ class UCC_Terms():
         T2_dagger_terms = daggar_T_list(T2_terms)
         self.T2_dagger_terms = T2_dagger_terms
 
-        self.T1_Term_pauli = JW_transform(T1_terms, T1_dagger_terms)
-        self.T2_Term_pauli = JW_transform(T2_terms, T2_dagger_terms)
+        self.T1_Term_paulis = JW_transform(T1_terms, T1_dagger_terms)
+        self.T2_Term_paulis = JW_transform(T2_terms, T2_dagger_terms)
 
+
+def Reformat_Pauli_terms(T_Term_Paulis):
+
+    Complete_Operation_list = []
+    for Pauli_term in T_Term_Paulis:
+        Qubit_Operators = [key for key in Pauli_term.terms]
+        Complete_Operation_list.append(Qubit_Operators)
+    return Complete_Operation_list
 
 
 class TO_DO_Trotterisation(UCC_Terms):
     # TODO
+
+    """
+    Lie-Trotter-Suzuki approximation:
+    U = exp[-iHt] =APPROX= Product_i(  exp[-i(h_i)t/p] )^p
+    where H = Sum( h_i  )
+    """
+
     def __init__(self, trot_order):
-        self.trot_order = order
+        self.trot_order = trot_order
 
     def get_trotterisation(self):
         blah =1
@@ -306,12 +329,13 @@ class TO_DO_Trotterisation(UCC_Terms):
 
 # Test
 if __name__ == '__main__':
-    HF_initial_state = [0, 0, 0, 0, 1, 1, 1, 1]
+    #HF_initial_state = [0, 0, 0, 0, 1, 1, 1, 1]
+    HF_initial_state = [0, 0, 1, 1]
     UCC = UCC_Terms(HF_initial_state)
 
     print(UCC.ia_terms)
     print(UCC.ijab_terms)
-    print(UCC.T1_Term_pauli)
-    print(UCC.T2_Term_pauli)
+    print(UCC.T1_Term_paulis)
+    print(UCC.T2_Term_paulis)
 
 
