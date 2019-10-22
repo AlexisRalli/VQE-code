@@ -234,15 +234,6 @@ def test_dagger_T_list_T2_terms():
     assert T2_dagger == T2_hermitian_conjugate_True
 
 
-def test_dagger_T_list_commutation():
-    from openfermion.utils import commutator
-
-    T2_terms = [FermionOperator('3^ 2^ 1 0', const),
-                FermionOperator('6^ 4^ 3 1', const)]
-
-    T2_dagger = dagger_T_list(T2_terms)
-
-
 
 def test_JW_transform_T1():
     from openfermion.ops import FermionOperator
@@ -327,8 +318,10 @@ def test_commutation():
 
     from openfermion.utils import anticommutator
     from openfermion.utils import commutator
-
+    from openfermion.ops._qubit_operator import QubitOperator
     from openfermion.utils import hermitian_conjugated
+
+    constant = 0.25
 
     x = QubitOperator('X0 X1 X2 Y3', constant)
     y = hermitian_conjugated(x)
