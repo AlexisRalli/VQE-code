@@ -3,18 +3,7 @@ import openfermioncirq
 import cirq
 
 
-# MoleculeName = 'H2'
-#
-# def Get_Geometry(MoleculeName):
-#
-#     from openfermion.utils import geometry_from_pubchem
-#     geometry = geometry_from_pubchem(MoleculeName)
-#
-#    return  geometry
-
-
 class Hamiltonian():
-
 
     def __init__(self, MoleculeName,
                  run_scf = 1, run_mp2 = 1, run_cisd = 0, run_ccsd = 0, run_fci = 1,
@@ -49,9 +38,7 @@ class Hamiltonian():
 
 
         if self.geometry == None:
-            from openfermion.utils import geometry_from_pubchem
-            self.geometry = geometry_from_pubchem(self.MoleculeName)
-
+            self.Get_Geometry()
 
 
         # input
@@ -97,6 +84,13 @@ class Hamiltonian():
         for key, value in self.QubitHamiltonian.terms.items():
             self.QubitHamiltonianTerms.append((key, value))
 
+    def Get_Geometry(self):
+
+        from openfermion.utils import geometry_from_pubchem
+        geometry = geometry_from_pubchem(self.MoleculeName)
+
+        self.geometry = geometry
+
 
 if __name__ == '__main__':
     X = Hamiltonian('H2')
@@ -105,6 +99,10 @@ if __name__ == '__main__':
     X.Get_Qubit_Hamiltonian_Terms()
     print(X.QubitHamiltonianTerms)
 
+
+    print(X.QubitHamiltonianTerms)
+
+
 ### Note maybe add:
 # No_qubits = molecule.n_qubits
 # line = list(range(0, No_qubits))
@@ -112,4 +110,79 @@ if __name__ == '__main__':
 
 
 
+Constants_list = [X.QubitHamiltonian.terms[operations] for operations in X.QubitHamiltonian.terms]
+qubitOpandNo_list = [operations for operations in X.QubitHamiltonian.terms]
 
+Q_list = [i for i in range(num_qubits)]
+full_list=[]
+for i in range(len(Constants_list)):
+    constant = Constants_list[i]
+    Operations = qubitOpandNo_list[i]
+
+    if len(Operations) == 0:
+        constant_addition = constant
+        continue
+    else:
+
+        #sorted([('abc', 121), ('abc', 231), ('abc', 148), ('abc', 221)], key=lambda x: x[1])
+
+        qubitNo_INSTANCE = [qubitNo for qubitNo,qubitOp in Operations]
+        standard_list = [qubitOp for qubitNo, qubitOp in Operations]
+
+        Not_indexed_qubits = [(qubit, 'I') for qubit in Q_list if qubit not in qubitNo_INSTANCE]
+        #print(Not_indexed_qubits)
+
+        combined_terms_instance = [*Operations, *Not_indexed_qubits]
+
+        #sort by qubit number... (first part of tuple!)
+        full_list.append(sorted(combined_terms_instance, key=lambda x: x[0]))
+
+# checking!
+print(qubitOpandNo_list)
+
+
+
+############
+"""
+Note full_list variable from above contains qubitNo. and operations 
+e.g. [
+        [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
+        [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
+        [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')]
+    ]
+
+
+NEXT need to take Kronecker product
+"""
+
+############
+
+import numpy as np
+OperatorsKeys = {
+    'X': np.array([[0, 1],
+                   [1, 0]]),
+    'Y': np.array([[0, -1j],
+                   [1j, 0]]),
+    'Z': np.array([[1, 0],
+                   [0, -1]]),
+    'I': np.array([[1, 0],
+                  [0, 1]]),
+}
+
+full_op_list=[]
+for term in full_list:
+    temp_list=[]
+    for qubitNo, qubitOp in term:
+        temp_list.append(OperatorsKeys[qubitOp])
+    full_op_list.append(temp_list)
+
+
+tensored = []
+for oper in full_op_list:
+    for i in range(len(oper)):
+
+        if i == 0:
+            TT =  np.kron(1, oper[i])
+        else:
+            TT =  np.kron(TT, oper[i])
+    tensored.append(TT)

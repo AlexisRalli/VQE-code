@@ -275,7 +275,10 @@ def Reformat_Pauli_terms(T_Term_Paulis):
 
      e.g.
      input (type = QubitOperator)
-     [-0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2], -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]]
+     [
+        -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
+        -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
+     ]
 
      output (type = list of lists, where inner list is (operation, constant))
      [
