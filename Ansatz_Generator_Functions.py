@@ -76,7 +76,7 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
     :raises [ErrorType]: [ErrorDescription]
     ...
     :return: Two lists of ia and ijab terms
-    :rtype: list
+    :rtype: np.array
 
     notes:
     https://iopscience.iop.org/article/10.1088/2058-9565/aad3e4/pdf
@@ -112,9 +112,9 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
                     for beta in up_unocc:
                         if alpha > beta:
                             if np.array_equal(ijab_terms, np.zeros((1, 5))):
-                                ijab_terms = np.array([beta, alpha, j, i, const])
+                                ijab_terms = np.array([alpha, beta, i, j, const])
                             else:
-                                array = np.array([beta, alpha, j, i, const])
+                                array = np.array([alpha, beta, i, j, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
 
@@ -126,9 +126,9 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
                     for beta in down_unocc:
                         if alpha > beta:
                             if np.array_equal(ijab_terms, np.zeros((1, 5))):
-                                ijab_terms = np.array([beta, alpha, j, i, const])
+                                ijab_terms = np.array([alpha, beta, i, j, const])
                             else:
-                                array = np.array([beta, alpha, j, i, const])
+                                array = np.array([alpha, beta, i, j, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
     ## DOUBLE electron: one spin UP and one spin DOWN transition
@@ -139,9 +139,9 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
                     for beta in down_unocc:
                         if alpha > beta:
                             if np.array_equal(ijab_terms, np.zeros((1, 5))):
-                                ijab_terms = np.array([beta, alpha, j, i, const])
+                                ijab_terms = np.array([alpha, beta, i, j, const])
                             else:
-                                array = np.array([beta, alpha, j, i, const])
+                                array = np.array([alpha, beta, i, j, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
     ## DOUBLE electron: one spin DOWN and one spin UP transition
@@ -152,9 +152,9 @@ def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
                     for beta in up_unocc:
                         if alpha > beta:
                             if np.array_equal(ijab_terms, np.zeros((1, 5))):
-                                ijab_terms = np.array([beta, alpha, j, i, const])
+                                ijab_terms = np.array([alpha, beta, i, j, const])
                             else:
-                                array = np.array([beta, alpha, j, i, const])
+                                array = np.array([alpha, beta, i, j, const])
                                 ijab_terms = np.vstack((ijab_terms, array))
 
     # this makes sure we have array of arrays! (not the case if only have one entry... this corrects for this)
@@ -221,7 +221,7 @@ def Get_T2_terms_list(ijab_terms):
 
     return T2_terms
 
-def daggar_T_list(T_list):
+def dagger_T_list(T_list):
     """
      Input T1 or T2 list, returns T1 dagger or T2 dagger (complex transpose)
 
@@ -332,10 +332,10 @@ class UCC_Terms():
         T2_terms = Get_T2_terms_list(ijab_terms)
         self.T2_terms = T2_terms
 
-        T1_dagger_terms= daggar_T_list(T1_terms)
+        T1_dagger_terms= dagger_T_list(T1_terms)
         self.T1_dagger_terms = T1_dagger_terms
 
-        T2_dagger_terms = daggar_T_list(T2_terms)
+        T2_dagger_terms = dagger_T_list(T2_terms)
         self.T2_dagger_terms = T2_dagger_terms
 
         self.T1_Term_paulis = JW_transform(T1_terms, T1_dagger_terms)

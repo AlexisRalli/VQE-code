@@ -89,7 +89,7 @@ def test_Get_ia_and_ijab_terms_H2():
     ia_terms_true = np.array([[2, 0,0.25],
                               [3, 1, 0.25]])
 
-    ijab_terms_true = np.array([np.array([2, 3, 0, 1, 0.25])])
+    ijab_terms_true = np.array([np.array([3, 2, 1, 0, 0.25])])
 
     ia_terms, ijab_terms = Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc)
 
@@ -139,26 +139,26 @@ def test_Get_ia_and_ijab_terms_8_sites():
 
     ijab_terms_true = np.array([
                                 # up-up
-                                [4, 6, 0, 2, 0.25],
+                                [6, 4, 2, 0, 0.25],
 
                                 # down-down
-                                [5, 7, 1, 3, 0.25],
+                                [7, 5, 3, 1, 0.25],
 
                                 # up-down
-                                [5, 6, 1, 2, 0.25],
+                                [6, 5, 2, 1, 0.25],
 
                                 # down-up
-                                [4, 5, 0, 1, 0.25],
-                                [4, 7, 0, 1, 0.25],
-                                [6, 7, 0, 1, 0.25],
+                                [5, 4, 1, 0, 0.25],
+                                [7, 4, 1, 0, 0.25],
+                                [7, 6, 1, 0, 0.25],
 
-                                [4, 5, 0, 3, 0.25],
-                                [4, 7, 0, 3, 0.25],
-                                [6, 7, 0, 3, 0.25],
+                                [5, 4, 3, 0, 0.25],
+                                [7, 4, 3, 0, 0.25],
+                                [7, 6, 3, 0, 0.25],
 
-                                [4, 5, 2, 3, 0.25],
-                                [4, 7, 2, 3, 0.25],
-                                [6, 7, 2, 3, 0.25],
+                                [5, 4, 3, 2, 0.25],
+                                [7, 4, 3, 2, 0.25],
+                                [7, 6, 3, 2, 0.25],
     ])
 
 
@@ -168,6 +168,173 @@ def test_Get_ia_and_ijab_terms_8_sites():
     assert np.array_equal(ia_terms_true, ia_terms) and np.array_equal(ijab_terms_true, ijab_terms)
 
 
-# HF_State = [0,0,0,0,1,1,1,1]
-# up_occ, down_occ, up_unocc, down_unocc = Get_Occupied_and_Unoccupied_sites(HF_State)
-# ia, ijab = Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc)
+def test_Get_T1_terms_list():
+    from openfermion.ops import FermionOperator
+
+    const = 0.25
+
+    ia_terms = np.array([[2, 0, const],
+                         [3, 1, const]])
+
+    T1_terms = Get_T1_terms_list(ia_terms)
+
+    True_T1_terms = [FermionOperator('2^ 0', const),
+                     FermionOperator('3^ 1', const)]
+
+    assert T1_terms == True_T1_terms
+
+
+
+def test_Get_T2_terms_list():
+    from openfermion.ops import FermionOperator
+
+    const = 0.25
+
+    ijab_terms = np.array([[3, 2, 1, 0, const],
+                         [6, 4, 3, 1, const]])
+
+
+
+    T2_terms = Get_T2_terms_list(ijab_terms)
+
+    True_T2_terms = [FermionOperator('3^ 2^ 1 0', const),
+                     FermionOperator('6^ 4^ 3 1', const)]
+
+    assert T2_terms == True_T2_terms
+
+
+def test_dagger_T_list_T1_terms():
+    from openfermion.ops import FermionOperator
+
+    const = 0.25
+
+    T1_terms = [FermionOperator('2^ 0', const),
+                FermionOperator('3^ 1', const)]
+
+    T1_hermitian_conjugate_True = [FermionOperator('0^ 2', const),
+                                  FermionOperator('1^ 3', const)]
+
+    T1_dagger = dagger_T_list(T1_terms)
+
+    assert T1_hermitian_conjugate_True == T1_dagger
+
+def test_dagger_T_list_T2_terms():
+    from openfermion.ops import FermionOperator
+
+    const = 0.25
+
+    T2_terms = [FermionOperator('3^ 2^ 1 0', const),
+               FermionOperator('6^ 4^ 3 1', const)]
+
+    T2_hermitian_conjugate_True = [FermionOperator('0^ 1^ 2 3', const),
+                                   FermionOperator('1^ 3^ 4 6', const)]
+
+    T2_dagger = dagger_T_list(T2_terms)
+
+    assert T2_dagger == T2_hermitian_conjugate_True
+
+
+def test_dagger_T_list_commutation():
+    from openfermion.utils import commutator
+
+    T2_terms = [FermionOperator('3^ 2^ 1 0', const),
+                FermionOperator('6^ 4^ 3 1', const)]
+
+    T2_dagger = dagger_T_list(T2_terms)
+
+
+
+def test_JW_transform_T1():
+    from openfermion.ops import FermionOperator
+
+    const = 0.25
+
+    T1_terms = [FermionOperator('2^ 0', const),
+                FermionOperator('3^ 1', const)]
+
+    T1_hermitian_conjugate = [FermionOperator('0^ 2', const),
+                              FermionOperator('1^ 3', const)]
+
+    T1_Term_paulis = JW_transform(T1_terms, T1_hermitian_conjugate)
+
+    from openfermion.ops._qubit_operator import QubitOperator
+
+    constant = 0.125j
+
+
+    # arXiv 1808.10402v2 page 34
+    T1_paulis_True = [
+        (
+            - QubitOperator('X0 Z1 Y2', constant) +
+              QubitOperator('Y0 Z1 X2', constant)
+    ),
+
+        (
+            - QubitOperator('X1 Z2 Y3', constant) +
+              QubitOperator('Y1 Z2 X3', constant)
+    )
+
+    ]
+
+    assert T1_paulis_True == T1_Term_paulis
+
+
+def test_JW_transform_T2():
+    from openfermion.ops import FermionOperator
+
+    const = 0.25
+
+    T2_terms = [FermionOperator('3^ 2^ 1 0', const)]
+
+    T2_hermitian_conjugate = [FermionOperator('0^ 1^ 2 3', const)]
+
+    T2_Term_paulis = JW_transform(T2_terms, T2_hermitian_conjugate)
+
+    from openfermion.ops._qubit_operator import QubitOperator
+
+    constant = 0.03125j
+
+
+    # arXiv 1808.10402v2 page 34
+    T2_paulis_True = [(
+            QubitOperator('X0 X1 X2 Y3', constant) +
+            QubitOperator('X0 X1 Y2 X3', constant) -
+            QubitOperator('X0 Y1 X2 X3', constant) +
+            QubitOperator('X0 Y1 Y2 Y3', constant) -
+            QubitOperator('Y0 X1 X2 X3', constant) +
+            QubitOperator('Y0 X1 Y2 Y3', constant) -
+            QubitOperator('Y0 Y1 X2 Y3', constant) -
+            QubitOperator('X3 Y2 Y1 Y0', constant)
+    )]
+
+    assert T2_paulis_True == T2_Term_paulis
+
+
+
+def test_commutation():
+
+    """
+    note:
+
+    commutator:      [a,b] = ab - ba
+
+    anti-commutator: {a,b} = ab + ba
+
+    TODO
+    need to think how to use!
+
+    """
+
+    from openfermion.utils import anticommutator
+    from openfermion.utils import commutator
+
+    from openfermion.utils import hermitian_conjugated
+
+    x = QubitOperator('X0 X1 X2 Y3', constant)
+    y = hermitian_conjugated(x)
+
+    ww = anticommutator(x,y)
+    zz = commutator(x,y)
+
+    print('anti-Commutation: ', ww)
+    print('Commutation: ', zz)
