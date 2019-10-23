@@ -280,15 +280,11 @@ def Reformat_Pauli_terms(T_Term_Paulis):
         -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
      ]
 
-     output (type = list of lists, where inner list is (operation, constant))
-     [
-        [(((0, 'Y'), (1, 'Z'), (2, 'X')), 0.125j),
-        (((0, 'X'), (1, 'Z'), (2, 'Y')), -0.125j)],
-
-        [(((1, 'Y'), (2, 'Z'), (3, 'X')), 0.125j),
-        (((1, 'X'), (2, 'Z'), (3, 'Y')), -0.125j)]
+     output (type = list of lists, where inner list is QubitOperator)
+    [
+         [0.125j [Y0 Z1 X2], -0.125j [X0 Z1 Y2]],
+         [0.125j [Y1 Z2 X3], -0.125j [X1 Z2 Y3]]
     ]
-
     :param T_Term_Paulis: A list containing QubitOperator (OpenFermion) for each T term
     :type T_Term_Paulis: list
 
@@ -301,14 +297,12 @@ def Reformat_Pauli_terms(T_Term_Paulis):
 
 
     """
+
     Complete_Operation_list = []
-
-    for sub_term in T_Term_Paulis:
-        sub_instance_list = []
-        for qubitNoOp, sign in sub_term.terms.items():
-            sub_instance_list.append((qubitNoOp, sign))
-        Complete_Operation_list.append(sub_instance_list)
-
+    for term in T_Term_Paulis:
+        sub_term_list = list(term)
+        QubitOperatorSubList = [sub_term for sub_term in sub_term_list]
+        Complete_Operation_list.append(QubitOperatorSubList)
     return Complete_Operation_list
 
 class UCC_Terms():
@@ -352,81 +346,81 @@ class UCC_Terms():
 
 
 
-def Trotter_ordering(T_Terms,
-                     trotter_number=1,
-                     trotter_order=1,
-                     term_ordering=None,
-                     k_exp=1.0):
-
-    """
-    https: // github.com / quantumlib / OpenFermion / blob / master / src / openfermion / utils / _trotter_exp_to_qgates.py
-
-    Trotter-decomposes operators into groups without exponentiating
-
-    :param T_Terms: ... Note list of QubitOperators
-    :type T_Terms:
-
-    :param trotter_number: optional number of trotter steps
-    :type trotter_number: int
-
-    :param trotter_order: optional order of trotterization
-    :type trotter_order:
-
-    :param term_ordering:
-    :type term_ordering:
-
-    :param k_exp:
-    :type k_exp:
-
-    ...
-    :raises [ErrorType]: [ErrorDescription]
-    ...
-    :yield: A list containing Pauli Operators for each term. Note each object in list is a QubitOperator (openfermion)
-    :rtype: list
-
-    Note:
-        The default term_ordering is simply the ordered keys of
-        the QubitOperators.terms dict.
-
-    """
-
-    #TODO
-
-
-
-def Trotterisation(T_Terms,
-                     trotter_number=1,
-                     trotter_order=1):
-
-    """
-    Trotter-decomposes operators into groups without exponentiating
-
-    :param T_Terms: ... Note list of QubitOperators
-    :type T_Terms:
-
-    :param trotter_number: optional number of trotter steps
-    :type trotter_number: int
-
-    :param trotter_order: optional order of trotterization
-    :type trotter_order:
-
-    :param term_ordering:
-    :type term_ordering:
-
-    ...
-    :raises [ErrorType]: [ErrorDescription]
-    ...
-    :return: A list containing Pauli Operators for each term. Note each object in list is a QubitOperator (openfermion)
-    :rtype: list
-
-
-    """
-
-    trotter = []
-    for group in T_Terms:
-        l = [(key, value, trotter_order) for key, value in group.terms.items()]
-        trotter.append(l)
-    return trotter
+# def Trotter_ordering(T_Terms,
+#                      trotter_number=1,
+#                      trotter_order=1,
+#                      term_ordering=None,
+#                      k_exp=1.0):
+#
+#     """
+#     https: // github.com / quantumlib / OpenFermion / blob / master / src / openfermion / utils / _trotter_exp_to_qgates.py
+#
+#     Trotter-decomposes operators into groups without exponentiating
+#
+#     :param T_Terms: ... Note list of QubitOperators
+#     :type T_Terms:
+#
+#     :param trotter_number: optional number of trotter steps
+#     :type trotter_number: int
+#
+#     :param trotter_order: optional order of trotterization
+#     :type trotter_order:
+#
+#     :param term_ordering:
+#     :type term_ordering:
+#
+#     :param k_exp:
+#     :type k_exp:
+#
+#     ...
+#     :raises [ErrorType]: [ErrorDescription]
+#     ...
+#     :yield: A list containing Pauli Operators for each term. Note each object in list is a QubitOperator (openfermion)
+#     :rtype: list
+#
+#     Note:
+#         The default term_ordering is simply the ordered keys of
+#         the QubitOperators.terms dict.
+#
+#     """
+#
+#     #TODO
+#
+#
+#
+# def Trotterisation(T_Terms,
+#                      trotter_number=1,
+#                      trotter_order=1):
+#
+#     """
+#     Trotter-decomposes operators into groups without exponentiating
+#
+#     :param T_Terms: ... Note list of QubitOperators
+#     :type T_Terms:
+#
+#     :param trotter_number: optional number of trotter steps
+#     :type trotter_number: int
+#
+#     :param trotter_order: optional order of trotterization
+#     :type trotter_order:
+#
+#     :param term_ordering:
+#     :type term_ordering:
+#
+#     ...
+#     :raises [ErrorType]: [ErrorDescription]
+#     ...
+#     :return: A list containing Pauli Operators for each term. Note each object in list is a QubitOperator (openfermion)
+#     :rtype: list
+#
+#
+#     """
+#
+#     trotter = []
+#     for group in T_Terms:
+#         l = [(key, value, trotter_order) for key, value in group.terms.items()]
+#         trotter.append(l)
+#     return trotter
 
 
 
