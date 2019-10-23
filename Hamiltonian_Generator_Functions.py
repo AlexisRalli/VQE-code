@@ -187,23 +187,38 @@ OperatorsKeys = {
                   [0, 1]]),
 }
 
-full_op_list=[]
-for term in full_list:
-    temp_list=[]
-    for qubitNo, qubitOp in term:
-        temp_list.append(OperatorsKeys[qubitOp])
-    full_op_list.append(temp_list)
+PauliWord_list_matrices = []
+for PauliWord in filled_list:
+    PauliWord_matrix_instance = []
+    for qubitNo, qubitOp in PauliWord:
+        PauliWord_matrix_instance.append(OperatorsKeys[qubitOp])
+    PauliWord_list_matrices.append(PauliWord_matrix_instance)
+
 
 
 tensored = []
-for oper in full_op_list:
-    for i in range(len(oper)):
+from functools import reduce
+for PauliWord_matrix in PauliWord_list_matrices:
+    result1 = reduce((lambda single_QubitMatrix_FIRST, single_QubitMatrix_SECOND: np.kron(single_QubitMatrix_FIRST,
+                                                                                          single_QubitMatrix_SECOND)),
+                     PauliWord_matrix)
+    tensored.append(result1)
 
-        if i == 0:
-            TT =  np.kron(1, oper[i])
-        else:
-            TT =  np.kron(TT, oper[i])
-    tensored.append(TT)
+WHOLE_OPERATOR = reduce((lambda x, y: x + y), tensored)
+
+
+### notes for using reduce and lambda!
+# from functools import reduce
+# list1 = [4, 2, 3]
+# result = reduce((lambda x, y: (2*x) + y), list1)
+# print(result)
+
+
+
+WHOLE_OPERATOR_diagonalised = np.diag(WHOLE_OPERATOR)
+from numpy import linalg
+eigen_value, eigen_vector = linalg.eig(WHOLE_OPERATOR_diagonalised)
+
 
 
 ##### TASK 2
