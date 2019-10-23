@@ -292,7 +292,7 @@ def Reformat_Pauli_terms(T_Term_Paulis):
     ...
     :raises [ErrorType]: [ErrorDescription]
     ...
-    :return: A list containing Pauli Operators for each term.
+    :return: A list of lists, where each term in list is QubitOperator (openfermion)
     :rtype: list
 
 
@@ -304,6 +304,22 @@ def Reformat_Pauli_terms(T_Term_Paulis):
         QubitOperatorSubList = [sub_term for sub_term in sub_term_list]
         Complete_Operation_list.append(QubitOperatorSubList)
     return Complete_Operation_list
+
+
+
+## currently WRONG
+# def Get_QubitWise_Commuting_groups(Reformat_T_Pauli_terms):
+#     flat_list = [PauliString for sublist in Reformat_T_Pauli_terms for PauliString in sublist]
+#
+#     Pauli_Word_list = []
+#     for PauliString in flat_list:
+#         x = [key for key in PauliString.terms]
+#         Pauli_Word_list.append(*x)
+#     print(Pauli_Word_list)
+
+
+
+
 
 class UCC_Terms():
 
@@ -340,8 +356,6 @@ class UCC_Terms():
 
         self.T1_formatted = Reformat_Pauli_terms(self.T1_Term_paulis)
         self.T2_formatted = Reformat_Pauli_terms(self.T2_Term_paulis)
-
-
 
 
 
@@ -437,5 +451,4 @@ if __name__ == '__main__':
     print(UCC.T2_Term_paulis)
     print(UCC.T1_Term_paulis[1].terms)
     print(Reformat_Pauli_terms(UCC.T1_Term_paulis))
-
 

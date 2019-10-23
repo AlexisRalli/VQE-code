@@ -109,42 +109,60 @@ if __name__ == '__main__':
 # line = cirq.LineQubit.range(No_qubits)
 
 
+###### Note:
+#   X.QubitHamiltonian # This is QUBIT OPERATOR!
+#   X.QubitHamiltonianTerms is a LIST!
+
+
 
 Constants_list = [X.QubitHamiltonian.terms[operations] for operations in X.QubitHamiltonian.terms]
 qubitOpandNo_list = [operations for operations in X.QubitHamiltonian.terms]
 
+num_qubits = X.MolecularHamiltonian.n_qubits
 Q_list = [i for i in range(num_qubits)]
-full_list=[]
-for i in range(len(Constants_list)):
-    constant = Constants_list[i]
-    Operations = qubitOpandNo_list[i]
 
-    if len(Operations) == 0:
-        constant_addition = constant
-        continue
+filled_list = []
+
+for PauliWord, constant in X.QubitHamiltonian.terms.items():
+
+    if len(PauliWord) == 0:
+        constant_adder = constant
+        #filled_list.append(constant_adder)     <-- may add... but need to change future funcitions
     else:
+        qubits_indexed = [qubitNo for qubitNo, qubitOp in PauliWord]
 
-        #sorted([('abc', 121), ('abc', 231), ('abc', 148), ('abc', 221)], key=lambda x: x[1])
+        Not_indexed_qubits = [(qubit, 'I') for qubit in Q_list if qubit not in qubits_indexed]
 
-        qubitNo_INSTANCE = [qubitNo for qubitNo,qubitOp in Operations]
-        standard_list = [qubitOp for qubitNo, qubitOp in Operations]
+        # Not in order (needs sorting)
+        combined_terms_instance = [*PauliWord, *Not_indexed_qubits]
 
-        Not_indexed_qubits = [(qubit, 'I') for qubit in Q_list if qubit not in qubitNo_INSTANCE]
-        #print(Not_indexed_qubits)
-
-        combined_terms_instance = [*Operations, *Not_indexed_qubits]
-
-        #sort by qubit number... (first part of tuple!)
-        full_list.append(sorted(combined_terms_instance, key=lambda x: x[0]))
+        filled_list.append(sorted(combined_terms_instance, key=lambda x: x[0]))
 
 # checking!
-print(qubitOpandNo_list)
+print(filled_list)
+print(constant_adder)
 
-
-
-############
+########
 """
-Note full_list variable from above contains qubitNo. and operations 
+From here can do TWO Things:
+
+1. Get Qubit Hamiltonian MATRIX
+   diagonalise it and obtain the HF energy!!!!
+   
+   
+2. Get the QubitWise commiting GROUPS of the Hamiltonian
+
+"""
+
+
+
+##### TASK 1
+
+
+# NOTE NEED TO CHECK THIS!!!!
+
+"""
+Note full_list variable from above contains qubitNo. and operations
 e.g. [
         [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
         [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
@@ -186,3 +204,11 @@ for oper in full_op_list:
         else:
             TT =  np.kron(TT, oper[i])
     tensored.append(TT)
+
+
+##### TASK 2
+'''
+Note Pauli Operators only commute with themselves and the identity and otherwise anti-commute!
+
+'''
+
