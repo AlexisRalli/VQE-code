@@ -114,6 +114,139 @@ if __name__ == '__main__':
 #   X.QubitHamiltonianTerms is a LIST!
 
 
+def Get_Qubit_Hamiltonian_matrix(Hamiltonian_class):
+
+    num_qubits = Hamiltonian_class.MolecularHamiltonian.n_qubits
+    Q_list = [i for i in range(num_qubits)]
+
+    ### this section adds Identity opertion on all qubits not operated on
+
+    """
+    (note Pauliword in loop is one instance of:)
+    PauliWords = 
+        [
+            (),
+            ((0, 'Z'),),
+            ((1, 'Z'),),
+            ((2, 'Z'),),
+            ((0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')),
+        ]
+    """
+
+    Operator_list_on_all_qubits = []
+    for PauliWord, constant in Hamiltonian_class.QubitHamiltonian.terms.items():
+
+        if len(PauliWord) == 0:
+
+            identity_on_all = [(qubit, 'I') for qubit in Q_list]
+            Operator_list_on_all_qubits.append(identity_on_all)
+
+        else:
+            qubits_indexed = [qubitNo for qubitNo, qubitOp in PauliWord]
+
+            Not_indexed_qubits = [(qubit, 'I') for qubit in Q_list if qubit not in qubits_indexed]
+
+            # Not in order (needs sorting)
+            combined_terms_instance = [*PauliWord, *Not_indexed_qubits]
+
+            Operator_list_on_all_qubits.append(sorted(combined_terms_instance, key=lambda x: x[0]))
+
+    #print(Operator_list_on_all_qubits)
+    """
+    e.g.
+    Operator_list_on_all_qubits = 
+    
+        [
+            [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
+            [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
+            [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')],
+            [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
+        ]
+    """
+
+    import numpy as np
+
+    OperatorsKeys = {
+        'X': np.array([[0, 1],
+                       [1, 0]]),
+        'Y': np.array([[0, -1j],
+                       [1j, 0]]),
+        'Z': np.array([[1, 0],
+                       [0, -1]]),
+        'I': np.array([[1, 0],
+                       [0, 1]]),
+        }
+
+
+    # Next change make list of pauli matrices (not stings...)
+    PauliWord_list_matrices = []
+    for PauliWord in Operator_list_on_all_qubits:
+        PauliWord_matrix_instance = []
+        for qubitNo, qubitOp in PauliWord:
+            PauliWord_matrix_instance.append(OperatorsKeys[qubitOp])
+        PauliWord_list_matrices.append(PauliWord_matrix_instance)
+
+    """
+    e.g.
+    Operator_list_on_all_qubits = 
+         [
+        
+            [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
+            [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
+        ]
+        
+    becomes:
+    PauliWord_list_matrices = 
+    
+        [
+            [ array([[1, 0],     array([[1, 0],    array([[1, 0],     array([[1, 0],
+                     [0, 1]]),          [0, -1]]),         [0, 1]]),          [0, 1]]) ],
+                     
+            [ array([[0, -1j],     array([[0, 1],    array([[0, 1],     array([[0, -1j],
+                     [1j, 0]]),           [1, 0]]),         [1, 0]]),          [1j, 0]]) ]
+        ]            
+
+    """
+
+    # Next tensor together row...:
+    from functools import reduce
+
+    tensored_terms = []
+    for PauliWord_matrix in PauliWord_list_matrices:
+        result1 = reduce((lambda single_QubitMatrix_FIRST, single_QubitMatrix_SECOND: np.kron(single_QubitMatrix_FIRST,
+                                                                                              single_QubitMatrix_SECOND)),
+                         PauliWord_matrix)
+        tensored_terms.append(result1)
+
+
+    # then multiply each matrix by constant
+    Constants_list = [Constant for PauliWord, Constant in Hamiltonian_class.QubitHamiltonian.terms.items()]
+    full_tensored_list = []
+    for i in range(len(tensored)):
+        constant_factor = Constants_list[i]
+        matrix_instance = tensored[i]
+        full_tensored_list.append(constant_factor * matrix_instance)
+
+
+    # Now find full Qubit Matrix
+    QubitOperator = reduce((lambda first_matrix, second_matrix: first_matrix + second_matrix), full_tensored_list)
+
+
+    eig_values, eig_vectors = np.linalg.eig(QubitOperator)
+
+    FCI_Energy = min(eig_values)
+
+    # print('FCI energy: ', FCI_Energy)
+    # print(Hamiltonian_class.FCI_Energy)
+
+    if FCI_Energy != Hamiltonian_class.FCI_Energy:
+        raise ValueError('Calculated FCI energy from Qubit Operator not equivalent to PSI4 calculation')
+
+    return FCI_Energy, QubitOperator
+
+
+
+
 
 Constants_list = [X.QubitHamiltonian.terms[operations] for operations in X.QubitHamiltonian.terms]
 qubitOpandNo_list = [operations for operations in X.QubitHamiltonian.terms]
@@ -126,6 +259,10 @@ filled_list = []
 for PauliWord, constant in X.QubitHamiltonian.terms.items():
 
     if len(PauliWord) == 0:
+
+        identity_on_all = [(qubit, 'I') for qubit in Q_list]
+        filled_list.append(identity_on_all)
+
         constant_adder = constant
         #filled_list.append(constant_adder)     <-- may add... but need to change future funcitions
     else:
@@ -140,7 +277,6 @@ for PauliWord, constant in X.QubitHamiltonian.terms.items():
 
 # checking!
 print(filled_list)
-print(constant_adder)
 
 ########
 """
@@ -161,17 +297,7 @@ From here can do TWO Things:
 
 # NOTE NEED TO CHECK THIS!!!!
 
-"""
-Note full_list variable from above contains qubitNo. and operations
-e.g. [
-        [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
-        [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
-        [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')]
-    ]
 
-
-NEXT need to take Kronecker product
-"""
 
 ############
 
@@ -204,7 +330,16 @@ for PauliWord_matrix in PauliWord_list_matrices:
                      PauliWord_matrix)
     tensored.append(result1)
 
-WHOLE_OPERATOR = reduce((lambda x, y: x + y), tensored)
+
+# need to times each term by constant!
+full_tensored_list=[]
+for i in range(len(tensored)):
+    constant_factor = Constants_list[i]
+    matrix_instance = tensored[i]
+    full_tensored_list.append(constant_factor*matrix_instance)
+
+
+WHOLE_OPERATOR = reduce((lambda first_matrix, second_matrix: first_matrix + second_matrix), full_tensored_list)
 
 
 ### notes for using reduce and lambda!
@@ -214,10 +349,16 @@ WHOLE_OPERATOR = reduce((lambda x, y: x + y), tensored)
 # print(result)
 
 
+eig_values, eig_vectors = np.linalg.eig(WHOLE_OPERATOR)
 
-WHOLE_OPERATOR_diagonalised = np.diag(WHOLE_OPERATOR)
-from numpy import linalg
-eigen_value, eigen_vector = linalg.eig(WHOLE_OPERATOR_diagonalised)
+print('FCI energy: ', min(eig_values))
+print(X.FCI_Energy)
+
+
+
+# WHOLE_OPERATOR_diagonalised = np.diag(WHOLE_OPERATOR)
+# from numpy import linalg
+# eigen_value, eigen_vector = linalg.eig(WHOLE_OPERATOR_diagonalised)
 
 
 
