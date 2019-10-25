@@ -305,169 +305,73 @@ def QWC_Pauli_Operators(Hamiltonian_class):
             combined_terms_instance = [*PauliWord, *Not_indexed_qubits]
 
             Operator_list_on_all_qubits.append(sorted(combined_terms_instance, key=lambda x: x[0]))
-    return Operator_list_on_all_qubits
 
 
 
-complete_list = QWC_Pauli_Operators(X)
-num_qubits = 4
-Q_list = [i for i in range(num_qubits)]
 
+    """
 
-index_of_commuting_terms=[]
+    Operator_list_on_all_qubits = 
+        [
+            [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
+            [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
+            [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')],
+            [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
+        ]
+        
+    Returns a List of Tuples that have index and index of terms it commutes with
+    
+    [
+         (0, [1, 2]),
+         (1, [0, 2]),
+         (2, [0, 1]),
+         (3, [])  
+    ]
+    """
 
+    index_of_commuting_terms=[]
 
-for i in range(len(complete_list)):
-    index_list_for_selected_P_word=[]
-    Selected_PauliWord = complete_list[i]
+    for i in range(len(Operator_list_on_all_qubits)):
+        index_list_for_selected_P_word=[]
+        Selected_PauliWord = Operator_list_on_all_qubits[i]
 
-    Complete_index_list = [index for index in range(len(complete_list)) if index != i] #all indexes except selected Pauli Word
+        Complete_index_list = [index for index in range(len(Operator_list_on_all_qubits)) if index != i] #all indexes except selected Pauli Word
 
-    QWC_indexes =[]
-    for j in Complete_index_list:
-        j_list=[]
-        Comparison_PauliWord = complete_list[j]
+        QWC_indexes =[]
+        for j in Complete_index_list:
+            j_list=[]
+            Comparison_PauliWord = Operator_list_on_all_qubits[j]
 
-        checker = [0 for i in range(len(Selected_PauliWord))]
-        for k in range(len(Selected_PauliWord)):
+            checker = [0 for i in range(len(Selected_PauliWord))]
+            for k in range(len(Selected_PauliWord)):
 
-            #compare tuples
-            if Selected_PauliWord[k] == Comparison_PauliWord[k]:
-                #print('SAME Pauli STRING')
-                checker[k]=1
-                #print(Selected_PauliWord, 'the SAME as: ', Comparison_PauliWord)
+                #compare tuples
+                if Selected_PauliWord[k] == Comparison_PauliWord[k]:
+                    #print('SAME Pauli STRING')
+                    checker[k]=1
+                    #print(Selected_PauliWord, 'the SAME as: ', Comparison_PauliWord)
 
-            #compare if identity present AND also in comparison Pauli
-            elif Selected_PauliWord[k][1] == 'I' or Comparison_PauliWord[k][1] == 'I':
-               checker[k]=1
-               #print(Selected_PauliWord, 'COMMUTES WITH: ', Comparison_PauliWord)
+                #compare if identity present AND also in comparison Pauli
+                elif Selected_PauliWord[k][1] == 'I' or Comparison_PauliWord[k][1] == 'I':
+                   checker[k]=1
+                   #print(Selected_PauliWord, 'COMMUTES WITH: ', Comparison_PauliWord)
 
-        if sum(checker) == num_qubits:
-            j_list.append(j)
+            if sum(checker) == num_qubits:
+                j_list.append(j)
 
-        if j_list != []:
-            QWC_indexes.append(*j_list)
-        else:
-            QWC_indexes.append(j_list)
+            if j_list != []:
+                QWC_indexes.append(*j_list)
+            else:
+                QWC_indexes.append(j_list)
 
 
-    x = (i, QWC_indexes)
+        commuting_Terms_indices = (i, QWC_indexes)
 
-    index_of_commuting_terms.append(x)
+        index_of_commuting_terms.append(commuting_Terms_indices)
 
+    return index_of_commuting_terms #, Operator_list_on_all_qubits
 
-        #print(index_list_forComparision_P_word)
-    #
-    #     if len(index_list_forComparision_P_word) == num_qubits:
-    #         index_list_for_selected_P_word.append(index_list_forComparision_P_word)
-    #         print(index_list_for_selected_P_word)
-    #
-    #     # print('selected:', Selected_PauliWord, 'comparison:', Selected_PauliWord)
-    #     # if sum(checker) == num_qubits:
-    #     #     print('QWC!')
-    # index_of_commuting_terms.append(index_list_for_selected_P_word)
 
 
+indices = QWC_Pauli_Operators(X)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-complete_list = QWC_Pauli_Operators(X)
-num_qubits = 4
-reverse_column_index = [column_i for column_i in range(len(complete_list))][::-1]
-
-
-commuting_Pauli_words=[]
-for column_i in reverse_column_index:
-
-    commuting_Pauli_word_set=[]
-
-    complete_list = QWC_Pauli_Operators(X)
-    Selected_PauliWord = np.array(complete_list.pop(column_i))
-
-    commuting_Pauli_word_set.append(Selected_PauliWord)
-
-    #complete_list no longer complete!
-
-    for ID in range(len(complete_list)):
-
-        commuting_parts = []
-
-        PauliWord = np.array(complete_list[ID])
-
-        for qubit_index in range(num_qubits):
-            # comutes with itself
-            if np.array_equal(PauliWord[qubit_index], Selected_PauliWord[qubit_index]):
-                #print('selected PauliWord: ', Selected_PauliWord[qubit_index], 'is equiv to: ', PauliWord[qubit_index])
-
-                commuting_parts.append(PauliWord[qubit_index])
-
-                #commuting_parts.append(PauliWord[qubit_index])
-            elif np.array_equal(PauliWord[qubit_index], np.array(['{}'.format(qubit_index), 'I'])) and bool(np.array(['{}'.format(qubit_index), 'I']) in PauliWord[qubit_index]):
-                #print('selected PauliWord: ', Selected_PauliWord[qubit_index], 'COMMUTES WITH: ',
-                #      PauliWord[qubit_index])
-                commuting_parts.append(PauliWord[qubit_index])
-
-        if len(commuting_parts) == num_qubits:
-            commuting_Pauli_word_set.append(commuting_parts)
-
-            print(commuting_Pauli_word_set)
-    commuting_Pauli_words.append(commuting_Pauli_word_set)
-
-
-index_list=[]
-complete_list = QWC_Pauli_Operators(X)
-num_qubits = 4
-
-for i in range(len(complete_list)):
-    Selected_PauliWord = complete_list[i]
-
-    indexes=[]
-    for j in range(i + 1, len(complete_list)):
-        Comparison_PauliWord = complete_list[j]
-
-        QWC_qubits=[]
-        for qubit_index in range(num_qubits):
-            if Selected_PauliWord[qubit_index] == Comparison_PauliWord[qubit_index]:
-                QWC_qubits.append(j)
-                print(Selected_PauliWord[qubit_index], 'IS', Comparison_PauliWord[qubit_index])
-
-            if Selected_PauliWord[qubit_index] == (qubit_index, 'I') and bool((qubit_index, 'I') in [string for P_word in complete_list for string in P_word]):
-                QWC_qubits.append(j)
-                print(Selected_PauliWord[qubit_index], 'COMMUTES', Comparison_PauliWord[qubit_index])
-
-        index_list.append([i, j])
-
-
-
-
-# complete_list = ['cat', 'dog', 'goat', 'cat', 'bat', 'dog', 'wolf']
-# for i in range(len(complete_list)):
-#     for j in range(i + 1, len(complete_list)):
-#         if complete_list[i] == complete_list[j]:
-#             print(complete_list[i])
-#
-# counter = 0
-# complete_list = ['cat', 'dog', 'goat', 'cat', 'bat', 'dog', 'wolf']
-# for i in range(len(complete_list)):
-#     for j in range(i + 1, len(complete_list)):
-#         print(complete_list[i], complete_list[j])
-#         counter+=1
-# print(counter)
