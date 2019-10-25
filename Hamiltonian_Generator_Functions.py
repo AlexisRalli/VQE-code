@@ -161,8 +161,6 @@ def Get_Qubit_Hamiltonian_matrix(Hamiltonian_class):
 
             Operator_list_on_all_qubits.append(sorted(combined_terms_instance, key=lambda x: x[0]))
 
-    #print(Operator_list_on_all_qubits)
-
 
 
     # Next change make list of pauli matrices (not stings...)
@@ -313,26 +311,30 @@ def QWC_Pauli_Operators(Hamiltonian_class):
 
     Operator_list_on_all_qubits = 
         [
-            [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
-            [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
-            [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')],
-            [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
-        ]
+             [(0, 'I'), (1, 'I'), (2, 'I'), (3, 'I')],
+             [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
+             [(0, 'X'), (1, 'Y'), (2, 'Y'), (3, 'X')],
+             [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'Z')]
+         ]
         
-    Returns a List of Tuples that have index and index of terms it commutes with
+
+        
+    Returns a List of Tuples that have index of PauliWord and index of terms in the Hamiltonian that it commutes with
     
-    [
-         (0, [1, 2]),
-         (1, [0, 2]),
-         (2, [0, 1]),
-         (3, [])  
-    ]
+    index_of_commuting_terms = 
+    
+        [
+            (0, [1, 2, 3]),
+            (1, [0, [], 3]),
+            (2, [0, [], []]),
+            (3, [0, 1, []])
+        ]
+
     """
 
     index_of_commuting_terms=[]
 
     for i in range(len(Operator_list_on_all_qubits)):
-        index_list_for_selected_P_word=[]
         Selected_PauliWord = Operator_list_on_all_qubits[i]
 
         Complete_index_list = [index for index in range(len(Operator_list_on_all_qubits)) if index != i] #all indexes except selected Pauli Word
@@ -347,14 +349,11 @@ def QWC_Pauli_Operators(Hamiltonian_class):
 
                 #compare tuples
                 if Selected_PauliWord[k] == Comparison_PauliWord[k]:
-                    #print('SAME Pauli STRING')
                     checker[k]=1
-                    #print(Selected_PauliWord, 'the SAME as: ', Comparison_PauliWord)
 
                 #compare if identity present AND also in comparison Pauli
                 elif Selected_PauliWord[k][1] == 'I' or Comparison_PauliWord[k][1] == 'I':
                    checker[k]=1
-                   #print(Selected_PauliWord, 'COMMUTES WITH: ', Comparison_PauliWord)
 
             if sum(checker) == num_qubits:
                 j_list.append(j)
@@ -369,9 +368,11 @@ def QWC_Pauli_Operators(Hamiltonian_class):
 
         index_of_commuting_terms.append(commuting_Terms_indices)
 
-    return index_of_commuting_terms #, Operator_list_on_all_qubits
+    return index_of_commuting_terms , Operator_list_on_all_qubits
 
 
 
-indices = QWC_Pauli_Operators(X)
+indices, PauliWords = QWC_Pauli_Operators(X)
+
+
 
