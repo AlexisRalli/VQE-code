@@ -309,6 +309,85 @@ def QWC_Pauli_Operators(Hamiltonian_class):
 
 
 
+complete_list = QWC_Pauli_Operators(X)
+num_qubits = 4
+Q_list = [i for i in range(num_qubits)]
+
+
+index_of_commuting_terms=[]
+
+
+for i in range(len(complete_list)):
+    index_list_for_selected_P_word=[]
+    Selected_PauliWord = complete_list[i]
+
+    Complete_index_list = [index for index in range(len(complete_list)) if index != i] #all indexes except selected Pauli Word
+
+    QWC_indexes =[]
+    for j in Complete_index_list:
+        j_list=[]
+        Comparison_PauliWord = complete_list[j]
+
+        checker = [0 for i in range(len(Selected_PauliWord))]
+        for k in range(len(Selected_PauliWord)):
+
+            #compare tuples
+            if Selected_PauliWord[k] == Comparison_PauliWord[k]:
+                #print('SAME Pauli STRING')
+                checker[k]=1
+                #print(Selected_PauliWord, 'the SAME as: ', Comparison_PauliWord)
+
+            #compare if identity present AND also in comparison Pauli
+            elif Selected_PauliWord[k][1] == 'I' or Comparison_PauliWord[k][1] == 'I':
+               checker[k]=1
+               #print(Selected_PauliWord, 'COMMUTES WITH: ', Comparison_PauliWord)
+
+        if sum(checker) == num_qubits:
+            j_list.append(j)
+
+        if j_list != []:
+            QWC_indexes.append(*j_list)
+        else:
+            QWC_indexes.append(j_list)
+
+
+    x = (i, QWC_indexes)
+
+    index_of_commuting_terms.append(x)
+
+
+        #print(index_list_forComparision_P_word)
+    #
+    #     if len(index_list_forComparision_P_word) == num_qubits:
+    #         index_list_for_selected_P_word.append(index_list_forComparision_P_word)
+    #         print(index_list_for_selected_P_word)
+    #
+    #     # print('selected:', Selected_PauliWord, 'comparison:', Selected_PauliWord)
+    #     # if sum(checker) == num_qubits:
+    #     #     print('QWC!')
+    # index_of_commuting_terms.append(index_list_for_selected_P_word)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 complete_list = QWC_Pauli_Operators(X)
 num_qubits = 4
@@ -379,16 +458,16 @@ for i in range(len(complete_list)):
 
 
 
-complete_list = ['cat', 'dog', 'goat', 'cat', 'bat', 'dog', 'wolf']
-for i in range(len(complete_list)):
-    for j in range(i + 1, len(complete_list)):
-        if complete_list[i] == complete_list[j]:
-            print(complete_list[i])
-
-counter = 0
-complete_list = ['cat', 'dog', 'goat', 'cat', 'bat', 'dog', 'wolf']
-for i in range(len(complete_list)):
-    for j in range(i + 1, len(complete_list)):
-        print(complete_list[i], complete_list[j])
-        counter+=1
-print(counter)
+# complete_list = ['cat', 'dog', 'goat', 'cat', 'bat', 'dog', 'wolf']
+# for i in range(len(complete_list)):
+#     for j in range(i + 1, len(complete_list)):
+#         if complete_list[i] == complete_list[j]:
+#             print(complete_list[i])
+#
+# counter = 0
+# complete_list = ['cat', 'dog', 'goat', 'cat', 'bat', 'dog', 'wolf']
+# for i in range(len(complete_list)):
+#     for j in range(i + 1, len(complete_list)):
+#         print(complete_list[i], complete_list[j])
+#         counter+=1
+# print(counter)
