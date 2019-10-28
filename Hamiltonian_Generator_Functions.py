@@ -1,7 +1,7 @@
 import openfermion
 import openfermioncirq
 import cirq
-
+import numpy as np
 
 class Hamiltonian():
 
@@ -28,7 +28,12 @@ class Hamiltonian():
         self.HF_Energy = None
         self.FCI_Energy = None
 
-        self.QubitHamiltonianTerms = []
+        self.QubitHamiltonianCompleteTerms = None
+        self.QubitOperator = np.zeros(1)
+        self.full_CI_energy = None
+        self.eig_values = None
+        self.eig_vectors = None
+        self.QWC_indices = None
 
     def Get_Molecular_Hamiltonian(self):
         from openfermion.hamiltonians import MolecularData
@@ -57,12 +62,12 @@ class Hamiltonian():
                             run_fci=self.run_fci)
 
         self.molecule = molecule
-        self.MolecularHamiltonian =  molecule.get_molecular_hamiltonian()
+        self.MolecularHamiltonian = molecule.get_molecular_hamiltonian()
 
         self.HF_Energy = molecule.hf_energy
         self.FCI_Energy = molecule.fci_energy
 
-    def Get_Qubit_Hamiltonian(self):
+    def Get_Qubit_Hamiltonian_Openfermion(self):
 
         if self.MolecularHamiltonian == None:
             self.Get_Molecular_Hamiltonian()
@@ -76,13 +81,6 @@ class Hamiltonian():
         self.QubitHamiltonian = jordan_wigner(fermionic_hamiltonian)
 
 
-    def Get_Qubit_Hamiltonian_Terms(self):
-
-        if self.QubitHamiltonian == None:
-            self.Get_Qubit_Hamiltonian()
-
-        for key, value in self.QubitHamiltonian.terms.items():
-            self.QubitHamiltonianTerms.append((key, value))
 
     def Get_Geometry(self):
 
@@ -91,288 +89,257 @@ class Hamiltonian():
 
         self.geometry = geometry
 
-
-if __name__ == '__main__':
-    X = Hamiltonian('H2')
-    # X.Get_Qubit_Hamiltonian()
-    # print(X.QubitHamiltonian)
-    X.Get_Qubit_Hamiltonian_Terms()
-    print(X.QubitHamiltonianTerms)
+    def Get_Qubit_Hamiltonian_terms(self):
+        """
+        Function fills in identity terms in Qubit Hamiltonian
 
 
-    print(X.QubitHamiltonianTerms)
+        (  [PauliWord, constant in self.QubitHamiltonian.terms.items()]   )
+
+        PauliWords =
+          [
+              (),
+              ((0, 'Z'),),
+              ((1, 'Z'),),
+              ((2, 'Z'),),
+              ((0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')),
+          ]
+
+        becomes:
+
+        Operator_list_on_all_qubits =
+          [
+              [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
+              [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
+              [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')],
+              [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
+          ]
+
+        :/param initial_state: A dictionary of Pauli words... keys are PauliWord and constant term is value
+        :/type dict
+
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: A filled Operation list, with operation on each qubit
+        :rtype: class
+        """
+        num_qubits = self.MolecularHamiltonian.n_qubits
+        Q_list = [i for i in range(num_qubits)]
 
 
-### Note maybe add:
-# No_qubits = molecule.n_qubits
-# line = list(range(0, No_qubits))
-# line = cirq.LineQubit.range(No_qubits)
+        Operator_list_on_all_qubits = []
+        for PauliWord, constant in self.QubitHamiltonian.terms.items():
+
+            if len(PauliWord) == 0:
+                identity_on_all = [(qubit, 'I') for qubit in Q_list]
+                Operator_list_on_all_qubits.append(identity_on_all)
+
+            else:
+                qubits_indexed = [qubitNo for qubitNo, qubitOp in PauliWord]
+
+                Not_indexed_qubits = [(qubit, 'I') for qubit in Q_list if qubit not in qubits_indexed]
+
+                # Not in order (needs sorting)
+                combined_terms_instance = [*PauliWord, *Not_indexed_qubits]
+
+                Operator_list_on_all_qubits.append(sorted(combined_terms_instance, key=lambda x: x[0]))
+
+        self.QubitHamiltonianCompleteTerms = Operator_list_on_all_qubits
 
 
-###### Note:
-#   X.QubitHamiltonian # This is QUBIT OPERATOR!
-#   X.QubitHamiltonianTerms is a LIST!
+    def Get_qubit_Hamiltonian_matrix(self):
+        """
+        e.g.
+
+        Function turns Pauli letter list into SINGLE paulimatrix list... For example
+
+        self.QubitHamiltonianCompleteTerms =
+             [
+
+                [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
+                [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
+            ]
+
+        becomes:
+
+        PauliWord_list_matrices =
+
+            [
+                [ array([[1, 0],     array([[1, 0],    array([[1, 0],     array([[1, 0],
+                         [0, 1]]),          [0, -1]]),         [0, 1]]),          [0, 1]]) ],
+
+                [ array([[0, -1j],     array([[0, 1],    array([[0, 1],     array([[0, -1j],
+                         [1j, 0]]),           [1, 0]]),         [1, 0]]),          [1j, 0]]) ]
+            ]
+
+        :/param initial_state: List Pauliwords (where each Pauliword is a list of tuples)
+        :/type list
+
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: A list of Pauliwords, where each pauliword is a a list of numpy matrices
+        :rtype: list
+        """
+
+        if self.QubitHamiltonianCompleteTerms == None:
+            self.Get_Qubit_Hamiltonian_terms()
 
 
-def Get_Qubit_Hamiltonian_matrix(Hamiltonian_class):
-
-    num_qubits = Hamiltonian_class.MolecularHamiltonian.n_qubits
-    Q_list = [i for i in range(num_qubits)]
-
-    ### this section adds Identity opertion on all qubits not operated on
-    """
-    (note Pauliword in loop is one instance of:)
-    PauliWords = 
-        [
-            (),
-            ((0, 'Z'),),
-            ((1, 'Z'),),
-            ((2, 'Z'),),
-            ((0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')),
-        ]
-        
-    becomes:
-    
-    Operator_list_on_all_qubits = 
-        [
-            [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
-            [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
-            [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')],
-            [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
-        ]
-    
-    """
-
-    Operator_list_on_all_qubits = []
-    for PauliWord, constant in Hamiltonian_class.QubitHamiltonian.terms.items():
-
-        if len(PauliWord) == 0:
-
-            identity_on_all = [(qubit, 'I') for qubit in Q_list]
-            Operator_list_on_all_qubits.append(identity_on_all)
-
-        else:
-            qubits_indexed = [qubitNo for qubitNo, qubitOp in PauliWord]
-
-            Not_indexed_qubits = [(qubit, 'I') for qubit in Q_list if qubit not in qubits_indexed]
-
-            # Not in order (needs sorting)
-            combined_terms_instance = [*PauliWord, *Not_indexed_qubits]
-
-            Operator_list_on_all_qubits.append(sorted(combined_terms_instance, key=lambda x: x[0]))
-
-
-
-    # Next change make list of pauli matrices (not stings...)
-
-    """
-    e.g.
-    Operator_list_on_all_qubits = 
-         [
-
-            [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
-            [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
-        ]
-
-    becomes:
-    PauliWord_list_matrices = 
-
-        [
-            [ array([[1, 0],     array([[1, 0],    array([[1, 0],     array([[1, 0],
-                     [0, 1]]),          [0, -1]]),         [0, 1]]),          [0, 1]]) ],
-
-            [ array([[0, -1j],     array([[0, 1],    array([[0, 1],     array([[0, -1j],
-                     [1j, 0]]),           [1, 0]]),         [1, 0]]),          [1j, 0]]) ]
-        ]            
-
-    """
-
-    import numpy as np
-
-    OperatorsKeys = {
-        'X': np.array([[0, 1],
-                       [1, 0]]),
-        'Y': np.array([[0, -1j],
-                       [1j, 0]]),
-        'Z': np.array([[1, 0],
-                       [0, -1]]),
-        'I': np.array([[1, 0],
-                       [0, 1]]),
+        OperatorsKeys = {
+            'X': np.array([[0, 1],
+                           [1, 0]]),
+            'Y': np.array([[0, -1j],
+                           [1j, 0]]),
+            'Z': np.array([[1, 0],
+                           [0, -1]]),
+            'I': np.array([[1, 0],
+                           [0, 1]]),
         }
 
+        PauliWord_list_matrices = []
+        for PauliWord in self.QubitHamiltonianCompleteTerms:
+            PauliWord_matrix_instance = []
+            for qubitNo, qubitOp in PauliWord:
+                PauliWord_matrix_instance.append(OperatorsKeys[qubitOp])
+            PauliWord_list_matrices.append(PauliWord_matrix_instance)
+
+        # Next tensor together each row...:
+        from functools import reduce
+
+        tensored_terms = []
+        for PauliWord_matrix in PauliWord_list_matrices:
+            result1 = reduce((lambda single_QubitMatrix_FIRST, single_QubitMatrix_SECOND: np.kron(single_QubitMatrix_FIRST,
+                                                                                                  single_QubitMatrix_SECOND)),
+                                                                                                    PauliWord_matrix)
+            tensored_terms.append(result1)
+
+        # then multiply each matrix by constant
+        Constants_list = [Constant for PauliWord, Constant in self.QubitHamiltonian.terms.items()]
+        full_tensored_list = []
+        for i in range(len(tensored_terms)):
+            constant_factor = Constants_list[i]
+            matrix_instance = tensored_terms[i]
+            full_tensored_list.append(constant_factor * matrix_instance)
 
 
-    PauliWord_list_matrices = []
-    for PauliWord in Operator_list_on_all_qubits:
-        PauliWord_matrix_instance = []
-        for qubitNo, qubitOp in PauliWord:
-            PauliWord_matrix_instance.append(OperatorsKeys[qubitOp])
-        PauliWord_list_matrices.append(PauliWord_matrix_instance)
+        QubitOperator = reduce((lambda first_matrix, second_matrix: first_matrix + second_matrix), full_tensored_list)
+
+        self.QubitOperator = QubitOperator
+
+    def Get_FCI_Energy(self):
+
+        if np.array_equal(self.QubitOperator, np.zeros(1)):
+            self.Get_qubit_Hamiltonian_matrix()
+
+        eig_values, eig_vectors = np.linalg.eig(self.QubitOperator)
+
+        FCI_Energy = min(eig_values)
 
 
+        if FCI_Energy != self.FCI_Energy:
+            # note self.FCI_Energy is PSI4 result!
+            raise ValueError('Calculated FCI energy from Qubit Operator not equivalent to PSI4 calculation')
 
-    # Next tensor together each row...:
-    from functools import reduce
+        self.full_CI_energy = FCI_Energy
+        self.eig_values = eig_values
+        self.eig_vectors = eig_vectors
 
-    tensored_terms = []
-    for PauliWord_matrix in PauliWord_list_matrices:
-        result1 = reduce((lambda single_QubitMatrix_FIRST, single_QubitMatrix_SECOND: np.kron(single_QubitMatrix_FIRST,
-                                                                                              single_QubitMatrix_SECOND)),
-                         PauliWord_matrix)
-        tensored_terms.append(result1)
-
-
-    # then multiply each matrix by constant
-    Constants_list = [Constant for PauliWord, Constant in Hamiltonian_class.QubitHamiltonian.terms.items()]
-    full_tensored_list = []
-    for i in range(len(tensored_terms)):
-        constant_factor = Constants_list[i]
-        matrix_instance = tensored_terms[i]
-        full_tensored_list.append(constant_factor * matrix_instance)
+    def Get_QWC_terms(self):
+        """
+        Function ... TODO
 
 
-    # Now find full Qubit Matrix
-    QubitOperator = reduce((lambda first_matrix, second_matrix: first_matrix + second_matrix), full_tensored_list)
+        self.QubitHamiltonianCompleteTerms =
 
-
-    eig_values, eig_vectors = np.linalg.eig(QubitOperator)
-
-    FCI_Energy = min(eig_values)
-
-    # print('FCI energy: ', FCI_Energy)
-    # print(Hamiltonian_class.FCI_Energy)
-
-    if FCI_Energy != Hamiltonian_class.FCI_Energy:
-        raise ValueError('Calculated FCI energy from Qubit Operator not equivalent to PSI4 calculation')
-
-    return FCI_Energy, QubitOperator
-
-
-
-
-
-##### TASK 2
-'''
-Note Pauli Operators only commute with themselves and the identity and otherwise anti-commute!
-
-'''
-
-
-def QWC_Pauli_Operators(Hamiltonian_class):
-    num_qubits = Hamiltonian_class.MolecularHamiltonian.n_qubits
-    Q_list = [i for i in range(num_qubits)]
-
-    ### this section adds Identity opertion on all qubits not operated on
-    """
-    (note Pauliword in loop is one instance of:)
-    PauliWords = 
-        [
-            (),
-            ((0, 'Z'),),
-            ((1, 'Z'),),
-            ((2, 'Z'),),
-            ((0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')),
-        ]
-
-    becomes:
-
-    Operator_list_on_all_qubits = 
-        [
-            [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
-            [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
-            [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')],
-            [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
-        ]
-
-    """
-
-    Operator_list_on_all_qubits = []
-    for PauliWord, constant in Hamiltonian_class.QubitHamiltonian.terms.items():
-
-        if len(PauliWord) == 0:
-
-            identity_on_all = [(qubit, 'I') for qubit in Q_list]
-            Operator_list_on_all_qubits.append(identity_on_all)
-
-        else:
-            qubits_indexed = [qubitNo for qubitNo, qubitOp in PauliWord]
-
-            Not_indexed_qubits = [(qubit, 'I') for qubit in Q_list if qubit not in qubits_indexed]
-
-            # Not in order (needs sorting)
-            combined_terms_instance = [*PauliWord, *Not_indexed_qubits]
-
-            Operator_list_on_all_qubits.append(sorted(combined_terms_instance, key=lambda x: x[0]))
+            [
+                 [(0, 'I'), (1, 'I'), (2, 'I'), (3, 'I')],
+                 [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
+                 [(0, 'X'), (1, 'Y'), (2, 'Y'), (3, 'X')],
+                 [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'Z')]
+             ]
 
 
 
+        Returns a List of Tuples that have index of PauliWord and index of terms in the Hamiltonian that it commutes with
 
-    """
+        index_of_commuting_terms =
 
-    Operator_list_on_all_qubits = 
-        [
-             [(0, 'I'), (1, 'I'), (2, 'I'), (3, 'I')],
-             [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
-             [(0, 'X'), (1, 'Y'), (2, 'Y'), (3, 'X')],
-             [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'Z')]
-         ]
-        
+            [
+                (0, [1, 2, 3]),
+                (1, [0, [], 3]),
+                (2, [0, [], []]),
+                (3, [0, 1, []])
+            ]
 
-        
-    Returns a List of Tuples that have index of PauliWord and index of terms in the Hamiltonian that it commutes with
-    
-    index_of_commuting_terms = 
-    
-        [
-            (0, [1, 2, 3]),
-            (1, [0, [], 3]),
-            (2, [0, [], []]),
-            (3, [0, 1, []])
-        ]
+        """
 
-    """
-
-    index_of_commuting_terms=[]
-
-    for i in range(len(Operator_list_on_all_qubits)):
-        Selected_PauliWord = Operator_list_on_all_qubits[i]
-
-        Complete_index_list = [index for index in range(len(Operator_list_on_all_qubits)) if index != i] #all indexes except selected Pauli Word
-
-        QWC_indexes =[]
-        for j in Complete_index_list:
-            j_list=[]
-            Comparison_PauliWord = Operator_list_on_all_qubits[j]
-
-            checker = [0 for i in range(len(Selected_PauliWord))]
-            for k in range(len(Selected_PauliWord)):
-
-                #compare tuples
-                if Selected_PauliWord[k] == Comparison_PauliWord[k]:
-                    checker[k]=1
-
-                #compare if identity present in selected P word OR of I present in comparison Pauli
-                elif Selected_PauliWord[k][1] == 'I' or Comparison_PauliWord[k][1] == 'I':
-                   checker[k]=1
-
-            if sum(checker) == num_qubits:
-                j_list.append(j)
-
-            if j_list != []:
-                QWC_indexes.append(*j_list)
-            else:
-                QWC_indexes.append(j_list)
-
-
-        commuting_Terms_indices = (i, QWC_indexes)
-
-        index_of_commuting_terms.append(commuting_Terms_indices)
-
-    return index_of_commuting_terms , Operator_list_on_all_qubits
+        if self.QubitHamiltonianCompleteTerms == None:
+            self.Get_Qubit_Hamiltonian_terms()
 
 
 
-indices, PauliWords = QWC_Pauli_Operators(X)
+        index_of_commuting_terms = []
+        for i in range(len(self.QubitHamiltonianCompleteTerms)):
+            Selected_PauliWord = self.QubitHamiltonianCompleteTerms[i]
+
+            Complete_index_list = [index for index in range(len(self.QubitHamiltonianCompleteTerms)) if
+                                   index != i]  # all indexes except selected Pauli Word
+
+            QWC_indexes = []
+            for j in Complete_index_list:
+                j_list = []
+                Comparison_PauliWord = self.QubitHamiltonianCompleteTerms[j]
+
+                checker = [0 for i in range(len(Selected_PauliWord))]
+                for k in range(len(Selected_PauliWord)):
+
+                    # compare tuples
+                    if Selected_PauliWord[k] == Comparison_PauliWord[k]:
+                        checker[k] = 1
+
+                    # compare if identity present in selected P word OR of I present in comparison Pauli
+                    elif Selected_PauliWord[k][1] == 'I' or Comparison_PauliWord[k][1] == 'I':
+                        checker[k] = 1
+
+                if sum(checker) == self.MolecularHamiltonian.n_qubits:
+                    j_list.append(j)
+
+                if j_list != []:
+                    QWC_indexes.append(*j_list)
+                else:
+                    QWC_indexes.append(j_list)
+
+            commuting_Terms_indices = (i, QWC_indexes)
+
+            index_of_commuting_terms.append(commuting_Terms_indices)
+
+        self.QWC_indices = index_of_commuting_terms
+
+    def Get_all_info(self):
+        self.Get_Qubit_Hamiltonian_Openfermion()
+        self.Get_qubit_Hamiltonian_matrix()
+        self.Get_FCI_Energy()
+        self.Get_QWC_terms()
+
+
+
+
+if __name__ == '__main__':
+    # X = Hamiltonian('H2')
+    # X.Get_Qubit_Hamiltonian_Openfermion()
+    # X.Get_qubit_Hamiltonian_matrix()
+    # X.Get_FCI_Energy()
+    # print(X.full_CI_energy)
+    # X.Get_QWC_terms()
+    # print(X.QWC_indices)
+
+    Y = Hamiltonian('BeH2')
+    Y.Get_Qubit_Hamiltonian_Openfermion()
+    Y.Get_QWC_terms()
+    print(Y.QWC_indices)
+
 
 
 
