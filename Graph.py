@@ -18,8 +18,6 @@ class BuildGraph():
 
 
 
-
-
     def Get_nodes_terms_as_indices(self):
         node_index_set = [index for index, commuting_indices in self.indices]
         self.node_index_set = node_index_set
@@ -192,8 +190,5 @@ if __name__ == '__main__':
 
     #Y.plot_graph_with_strings(Y.G)
     Y.Get_coloured_keys_index(plot_graph=True, string_graph=True)
-
-
-
-
+    print(Y.colour_key_for_nodes_index)
 
