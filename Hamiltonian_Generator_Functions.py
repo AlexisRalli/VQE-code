@@ -233,7 +233,7 @@ class Hamiltonian():
 
         Constants_list = [Constant for PauliWord, Constant in self.QubitHamiltonian.terms.items()]
         from scipy.sparse import kron
-        for i in tqdm(range(len(PauliWord_list_matrices))):
+        for i in tqdm(range(len(PauliWord_list_matrices)), ascii=True, desc='Getting QubitOperator MATRIX'):
             PauliWord_matrix = PauliWord_list_matrices[i]
 
 
