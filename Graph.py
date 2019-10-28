@@ -10,30 +10,14 @@ class BuildGraph():
         self.PauliWords = PauliWords
         self.indices = indices
 
-
-        self.G_string = nx.Graph() # undirected graph
-        self.node_string_set = None
-        self.G_string_comp = None
-        self.greedy_string = None
-        self.colour_key_for_nodes_string = None
-
-        self.G_index = nx.Graph()
+        self.G = nx.Graph()
         self.node_index_set = None
-        self.G_index_comp = None
+        self.index_string_dict = None
+        self.G_comp = None
         self.greedy_index = None
 
 
-    def Get_node_terms_as_strings(self):
 
-        node_string_set = []
-        for index, commuting_indices in self.indices:
-            PauliWord = self.PauliWords[index]
-            PauliStrings = ['{}{}'.format(qubitOp, qubitNo) for qubitNo, qubitOp in PauliWord]
-
-            seperator = ' '
-            node_string_set.append(seperator.join(PauliStrings))
-
-        self.node_string_set = node_string_set
 
 
     def Get_nodes_terms_as_indices(self):
@@ -41,20 +25,22 @@ class BuildGraph():
         self.node_index_set = node_index_set
 
 
+    def Get_string_indexes(self):
 
-    def Build_string_nodes(self, plot_graph = False):
+        if self.node_index_set == None:
+            self.Get_nodes_terms_as_indices()
 
-        if self.node_string_set == None:
-            self.Get_node_terms_as_strings()
+        index_string_dict = {}
+        for key in list(self.G.nodes):
+            PauliWord = self.PauliWords[key]
+            PauliStrings = ['{}{}'.format(qubitOp, qubitNo) for qubitNo, qubitOp in PauliWord]
 
-        for string_node in self.node_string_set:
-            self.G_string.add_node(string_node)
+            seperator = ' '
+            together = seperator.join(PauliStrings)
+            index_string_dict.update({key: together})
 
+        self.index_string_dict = index_string_dict
 
-        if plot_graph == True:
-            plt.figure()
-            nx.draw(self.G_string, with_labels=1)
-            plt.show()
 
     def Build_index_nodes(self, plot_graph = False):
 
@@ -62,127 +48,73 @@ class BuildGraph():
             self.Get_nodes_terms_as_indices()
 
         for numerical_node in self.node_index_set:
-            self.G_index.add_node(numerical_node)
+            self.G.add_node(numerical_node)
 
 
         if plot_graph == True:
             plt.figure()
-            nx.draw(self.G_index, with_labels=1)
+            nx.draw(self.G, with_labels=1)
             plt.show()
 
 
-
-    def Build_string_edges(self, plot_graph = False):
-
-        if len(self.G_string.nodes()) == 0:
-            self.Build_string_nodes()
-
-        nodes_list = list(self.G_string.nodes())
-        for index, commuting_indices in self.indices:
-            for commuting_index in commuting_indices:
-                if commuting_index != []:
-                    self.G_string.add_edge(nodes_list[index], nodes_list[commuting_index])
-
-        if plot_graph == True:
-            plt.figure()
-            pos = nx.circular_layout(self.G_string)
-            nx.draw(self.G_string, pos, with_labels=1)
-            plt.show()
 
 
     def Build_index_edges(self, plot_graph=False):
 
-        if len(self.G_index.nodes()) == 0:
+        if len(self.G.nodes()) == 0:
             self.Build_index_nodes()
 
         for index, commuting_indices in self.indices:
             for i in range(len(commuting_indices)):
 
                 if commuting_indices[i] != []:
-                    self.G_index.add_edge(index, commuting_indices[i])
+                    self.G.add_edge(index, commuting_indices[i])
 
         if plot_graph == True:
             plt.figure()
-            pos = nx.circular_layout(self.G_index)
-            nx.draw(self.G_index, pos, with_labels=1)
+            pos = nx.circular_layout(self.G)
+            nx.draw(self.G, pos, with_labels=1)
             plt.show()
 
 
 
-    def Get_complementary_graph_string(self, plot_graph = False):
 
-        if len(list(self.G_string.edges())) == 0:
-            self.Build_string_edges()
-
-        self.G_string_comp = nx.complement(self.G_string)
-
-        if plot_graph == True:
-            plt.figure()
-            pos = nx.circular_layout(self.G_string_comp)
-            nx.draw(self.G_string_comp, pos, with_labels=1)
-            plt.show()
 
     def Get_complementary_graph_index(self, plot_graph = False):
 
-        if len(list(self.G_index.edges())) == 0:
+        if len(list(self.G.edges())) == 0:
             self.Build_index_edges()
 
-        self.G_index_comp = nx.complement(self.G_index)
+        self.G_comp = nx.complement(self.G)
 
         if plot_graph == True:
             plt.figure()
-            pos = nx.circular_layout(self.G_index_comp)
-            nx.draw(self.G_index_comp, pos, with_labels=1)
+            pos = nx.circular_layout(self.G_comp)
+            nx.draw(self.G_comp, pos, with_labels=1)
             plt.show()
 
 
-    def colour_string_graph(self, strategy = 'largest_first'):
+    def plot_graph_with_strings(self, graph):
 
-        if self.G_string_comp == None:
-            self.Get_complementary_graph_string()
+        if self.index_string_dict == None:
+            self.Get_string_indexes()
 
-        self.greedy_string = nx.greedy_color(self.G_string_comp, strategy=strategy, interchange=False)
+        plt.figure()
+        pos = nx.circular_layout(graph)
+        nx.draw_networkx_nodes(graph, pos)
+        nx.draw_networkx_labels(graph, pos, labels=self.index_string_dict)
+        plt.show()
 
     def colour_index_graph(self, strategy='largest_first'):
 
-        if self.G_index_comp == None:
+        if self.G_comp == None:
             self.Get_complementary_graph_index()
 
-        self.greedy_index = nx.greedy_color(self.G_index_comp, strategy=strategy, interchange=False)
+        self.greedy_index = nx.greedy_color(self.G_comp, strategy=strategy, interchange=False)
 
 
-    def Get_coloured_keys_string(self, plot_graph = False):
 
-
-        # store the names (the keys of the new dict) as a set (keeps elements unique)
-        unique_colours = set(self.greedy_string.values())
-
-        colour_key_for_nodes_string = {}
-        for colour in unique_colours:
-            colour_key_for_nodes_string[colour] = [k for k in self.greedy_string.keys()
-                                                   if self.greedy_string[k] == colour]
-        self.colour_key_for_nodes_string = colour_key_for_nodes_string
-
-        if plot_graph == True:
-            import matplotlib.cm as cm
-            plt.figure()
-            colour_list = cm.rainbow(np.linspace(0, 1, len(self.colour_key_for_nodes_string)))
-            pos = nx.circular_layout(self.G_string_comp)
-
-            for colour in self.colour_key_for_nodes_string:
-                nx.draw_networkx_nodes(self.G_string_comp, pos,
-                                       nodelist=self.colour_key_for_nodes_string[colour],
-                                       node_color=colour_list[colour],
-                                       node_size=500,
-                                       alpha=0.8)
-
-            nx.draw_networkx_edges(self.G_string_comp, pos, width=1.0, alpha=0.5)
-
-            # need to get FONT to change! TODO
-            nx.draw_networkx_labels(self.G_string_comp, pos, font_family='Times-New-Roman', font_size=12)
-            plt.plot()
-
-    def Get_coloured_keys_index(self, plot_graph=False):
+    def Get_coloured_keys_index(self, plot_graph=False, string_graph = False):
         # store the names (the keys of the new dict) as a set (keeps elements unique)
         unique_colours = set(self.greedy_index.values())
 
@@ -198,18 +130,24 @@ class BuildGraph():
 
             plt.figure()
             colour_list = cm.rainbow(np.linspace(0, 1, len(self.colour_key_for_nodes_index)))
-            pos = nx.circular_layout(self.G_index_comp)
+            pos = nx.circular_layout(self.G_comp)
 
             for colour in self.colour_key_for_nodes_index:
-                nx.draw_networkx_nodes(self.G_index_comp, pos,
+                nx.draw_networkx_nodes(self.G_comp, pos,
                                        nodelist=self.colour_key_for_nodes_index[colour],
                                        node_color=colour_list[colour],
                                        node_size=500,
                                        alpha=0.8)
 
-            nx.draw_networkx_edges(self.G_index_comp, pos, width=1.0, alpha=0.5)
+            nx.draw_networkx_edges(self.G_comp, pos, width=1.0, alpha=0.5)
 
-            nx.draw_networkx_labels(self.G_index_comp, pos)
+            if string_graph == True:
+
+                if self.index_string_dict == None:
+                    self.Get_string_indexes()
+                nx.draw_networkx_labels(self.G_comp, pos, labels=self.index_string_dict)
+            else:
+                nx.draw_networkx_labels(self.G_comp, pos)
             plt.plot()
 
 
@@ -252,24 +190,10 @@ if __name__ == '__main__':
     Y.colour_index_graph()
     Y.Get_coloured_keys_index(plot_graph=True)
 
-    Y.Build_string_nodes()# plot_graph=True)
-    Y.Build_string_edges()# plot_graph=True)
-    Y.Get_complementary_graph_string()# plot_graph=True)
-    Y.colour_string_graph()
-    Y.Get_coloured_keys_string(plot_graph=True)
+    #Y.plot_graph_with_strings(Y.G)
+    Y.Get_coloured_keys_index(plot_graph=True, string_graph=True)
 
 
-string_dict = {}
-for key in list(Y.G_index.nodes):
-    PauliWord = Y.PauliWords[key]
-    PauliStrings = ['{}{}'.format(qubitOp, qubitNo) for qubitNo, qubitOp in PauliWord]
 
-    seperator = ' '
-    together = seperator.join(PauliStrings)
-    string_dict.update({key: together})
 
-plt.figure()
-pos = nx.circular_layout(Y.G_index_comp)
-nx.draw_networkx_nodes(Y.G_index, pos)
-nx.draw_networkx_labels(Y.G_index, pos, labels=string_dict)
-plt.show()
+
