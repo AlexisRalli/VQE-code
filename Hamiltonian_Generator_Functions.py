@@ -368,3 +368,9 @@ if __name__ == '__main__':
 
     Y = Hamiltonian('H2')
     Y.Get_all_info(get_FCI_energy=True)
+
+    X = Hamiltonian('H2O')
+    X.Get_all_info(get_FCI_energy=False)
+
+    indices = X.QWC_indices
+    PauliWords = X.QubitHamiltonianCompleteTerms
