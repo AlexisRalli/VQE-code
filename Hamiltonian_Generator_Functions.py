@@ -228,20 +228,23 @@ class Hamiltonian():
         # Next tensor together each row...:
         from functools import reduce
         from tqdm import tqdm
+        from scipy.sparse import csr_matrix
+        QubitOperator = csr_matrix((2**self.MolecularHamiltonian.n_qubits,2**self.MolecularHamiltonian.n_qubits))
 
-        QubitOperator = bsr_matrix(np.zeros((2**self.MolecularHamiltonian.n_qubits, 2**self.MolecularHamiltonian.n_qubits)))
         Constants_list = [Constant for PauliWord, Constant in self.QubitHamiltonian.terms.items()]
         from scipy.sparse import kron
         for i in tqdm(range(len(PauliWord_list_matrices))):
             PauliWord_matrix = PauliWord_list_matrices[i]
 
 
-            tensored_PauliWord = reduce((lambda single_QubitMatrix_FIRST, single_QubitMatrix_SECOND: kron(single_QubitMatrix_FIRST,
-                                                                                                  single_QubitMatrix_SECOND)),
-                                                                                                    PauliWord_matrix)
+            # tensored_PauliWord = reduce((lambda single_QubitMatrix_FIRST, single_QubitMatrix_SECOND: kron(single_QubitMatrix_FIRST,
+            #                                                                                       single_QubitMatrix_SECOND)),
+            #                                                                                         PauliWord_matrix)
+            tensored_PauliWord = reduce(kron, PauliWord_matrix)
+
             constant_factor = Constants_list[i]
 
-            QubitOperator += constant_factor* tensored_PauliWord
+            QubitOperator += constant_factor*tensored_PauliWord
 
         # notes to get operator in full form (from sparse) use to_dense() method!
 
@@ -363,13 +366,5 @@ if __name__ == '__main__':
     # X.Get_QWC_terms()
     # print(X.QWC_indices)
 
-    Y = Hamiltonian('LiH')
-    # Y.Get_Qubit_Hamiltonian_Openfermion()
-    # Y.Get_qubit_Hamiltonian_matrix()
+    Y = Hamiltonian('H2')
     Y.Get_all_info(get_FCI_energy=True)
-    # Y.Get_QWC_terms()
-    # print(Y.QWC_indices)
-
-
-
-
