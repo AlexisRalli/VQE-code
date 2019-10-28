@@ -258,3 +258,18 @@ if __name__ == '__main__':
     Y.colour_string_graph()
     Y.Get_coloured_keys_string(plot_graph=True)
 
+
+string_dict = {}
+for key in list(Y.G_index.nodes):
+    PauliWord = Y.PauliWords[key]
+    PauliStrings = ['{}{}'.format(qubitOp, qubitNo) for qubitNo, qubitOp in PauliWord]
+
+    seperator = ' '
+    together = seperator.join(PauliStrings)
+    string_dict.update({key: together})
+
+plt.figure()
+pos = nx.circular_layout(Y.G_index_comp)
+nx.draw_networkx_nodes(Y.G_index, pos)
+nx.draw_networkx_labels(Y.G_index, pos, labels=string_dict)
+plt.show()
