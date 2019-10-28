@@ -26,7 +26,7 @@ class Hamiltonian():
 
         self.QubitHamiltonian = None
         self.HF_Energy = None
-        self.FCI_Energy = None
+        self.PSI4_FCI_Energy = None
 
         self.QubitHamiltonianCompleteTerms = None
         self.QubitOperator = np.zeros(1)
@@ -65,7 +65,7 @@ class Hamiltonian():
         self.MolecularHamiltonian = molecule.get_molecular_hamiltonian()
 
         self.HF_Energy = molecule.hf_energy
-        self.FCI_Energy = molecule.fci_energy
+        self.PSI4_FCI_Energy = molecule.fci_energy
 
     def Get_Qubit_Hamiltonian_Openfermion(self):
 
@@ -187,16 +187,33 @@ class Hamiltonian():
             self.Get_Qubit_Hamiltonian_terms()
 
 
+        from scipy.sparse import bsr_matrix
+
+        X = bsr_matrix( np.array([[0, 1],
+                                 [1, 0]])
+                        )
+
+        Y = bsr_matrix( np.array([[0, -1j],
+                                 [1j, 0]])
+                       )
+
+        Z = bsr_matrix(np.array([[1, 0],
+                                [0, -1]])
+                       )
+        I = bsr_matrix(np.array([[1, 0],
+                                 [0, 1]])
+                       )
+
+
+
         OperatorsKeys = {
-            'X': np.array([[0, 1],
-                           [1, 0]]),
-            'Y': np.array([[0, -1j],
-                           [1j, 0]]),
-            'Z': np.array([[1, 0],
-                           [0, -1]]),
-            'I': np.array([[1, 0],
-                           [0, 1]]),
+            'X': X,
+            'Y': Y,
+            'Z': Z,
+            'I': I,
         }
+
+
 
         PauliWord_list_matrices = []
         for PauliWord in self.QubitHamiltonianCompleteTerms:
@@ -205,40 +222,45 @@ class Hamiltonian():
                 PauliWord_matrix_instance.append(OperatorsKeys[qubitOp])
             PauliWord_list_matrices.append(PauliWord_matrix_instance)
 
+
+    ############
+
         # Next tensor together each row...:
         from functools import reduce
+        from tqdm import tqdm
 
-        tensored_terms = []
-        for PauliWord_matrix in PauliWord_list_matrices:
-            result1 = reduce((lambda single_QubitMatrix_FIRST, single_QubitMatrix_SECOND: np.kron(single_QubitMatrix_FIRST,
+        QubitOperator = bsr_matrix(np.zeros((2**self.MolecularHamiltonian.n_qubits, 2**self.MolecularHamiltonian.n_qubits)))
+        Constants_list = [Constant for PauliWord, Constant in self.QubitHamiltonian.terms.items()]
+        from scipy.sparse import kron
+        for i in tqdm(range(len(PauliWord_list_matrices))):
+            PauliWord_matrix = PauliWord_list_matrices[i]
+
+
+            tensored_PauliWord = reduce((lambda single_QubitMatrix_FIRST, single_QubitMatrix_SECOND: kron(single_QubitMatrix_FIRST,
                                                                                                   single_QubitMatrix_SECOND)),
                                                                                                     PauliWord_matrix)
-            tensored_terms.append(result1)
-
-        # then multiply each matrix by constant
-        Constants_list = [Constant for PauliWord, Constant in self.QubitHamiltonian.terms.items()]
-        full_tensored_list = []
-        for i in range(len(tensored_terms)):
             constant_factor = Constants_list[i]
-            matrix_instance = tensored_terms[i]
-            full_tensored_list.append(constant_factor * matrix_instance)
 
+            QubitOperator += constant_factor* tensored_PauliWord
 
-        QubitOperator = reduce((lambda first_matrix, second_matrix: first_matrix + second_matrix), full_tensored_list)
+        # notes to get operator in full form (from sparse) use to_dense() method!
 
         self.QubitOperator = QubitOperator
+
 
     def Get_FCI_Energy(self):
 
         if np.array_equal(self.QubitOperator, np.zeros(1)):
             self.Get_qubit_Hamiltonian_matrix()
 
-        eig_values, eig_vectors = np.linalg.eig(self.QubitOperator)
+        from scipy.sparse.linalg import eigs
+
+        eig_values, eig_vectors = eigs(self.QubitOperator)
 
         FCI_Energy = min(eig_values)
 
 
-        if FCI_Energy != self.FCI_Energy:
+        if not np.isclose(FCI_Energy.real, self.PSI4_FCI_Energy, rtol=1e-09, atol=0.0):
             # note self.FCI_Energy is PSI4 result!
             raise ValueError('Calculated FCI energy from Qubit Operator not equivalent to PSI4 calculation')
 
@@ -249,6 +271,9 @@ class Hamiltonian():
     def Get_QWC_terms(self):
         """
         Function ... TODO
+        Function takes in a qubit Hamiltonian... which is a list of Pauliwords that are lists of tuples.
+        And returns each index in qubit Hamiltonian and a list of corresonding indicies that the PauliWord qubit
+        wise commutes (QWC) with.
 
 
         self.QubitHamiltonianCompleteTerms =
@@ -317,10 +342,13 @@ class Hamiltonian():
 
         self.QWC_indices = index_of_commuting_terms
 
-    def Get_all_info(self):
+    def Get_all_info(self, get_FCI_energy = False):
         self.Get_Qubit_Hamiltonian_Openfermion()
-        self.Get_qubit_Hamiltonian_matrix()
-        self.Get_FCI_Energy()
+
+        if get_FCI_energy == True:
+            self.Get_qubit_Hamiltonian_matrix()
+            self.Get_FCI_Energy()
+
         self.Get_QWC_terms()
 
 
@@ -335,10 +363,12 @@ if __name__ == '__main__':
     # X.Get_QWC_terms()
     # print(X.QWC_indices)
 
-    Y = Hamiltonian('BeH2')
-    Y.Get_Qubit_Hamiltonian_Openfermion()
-    Y.Get_QWC_terms()
-    print(Y.QWC_indices)
+    Y = Hamiltonian('LiH')
+    # Y.Get_Qubit_Hamiltonian_Openfermion()
+    # Y.Get_qubit_Hamiltonian_matrix()
+    Y.Get_all_info(get_FCI_energy=True)
+    # Y.Get_QWC_terms()
+    # print(Y.QWC_indices)
 
 
 
