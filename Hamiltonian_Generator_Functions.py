@@ -351,7 +351,7 @@ def QWC_Pauli_Operators(Hamiltonian_class):
                 if Selected_PauliWord[k] == Comparison_PauliWord[k]:
                     checker[k]=1
 
-                #compare if identity present AND also in comparison Pauli
+                #compare if identity present in selected P word OR of I present in comparison Pauli
                 elif Selected_PauliWord[k][1] == 'I' or Comparison_PauliWord[k][1] == 'I':
                    checker[k]=1
 
