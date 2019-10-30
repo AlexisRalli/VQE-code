@@ -34,6 +34,7 @@ class Hamiltonian():
         self.eig_values = None
         self.eig_vectors = None
         self.QWC_indices = None
+        self.HamiltonainCofactors = None
 
     def Get_Molecular_Hamiltonian(self):
         from openfermion.hamiltonians import MolecularData
@@ -146,6 +147,7 @@ class Hamiltonian():
                 Operator_list_on_all_qubits.append(sorted(combined_terms_instance, key=lambda x: x[0]))
 
         self.QubitHamiltonianCompleteTerms = Operator_list_on_all_qubits
+        self.HamiltonainCofactors = [constant for PauliWord, constant in self.QubitHamiltonian.terms.items()]
 
 
     def Get_qubit_Hamiltonian_matrix(self):
@@ -374,3 +376,4 @@ if __name__ == '__main__':
 
     indices = X.QWC_indices
     PauliWords = X.QubitHamiltonianCompleteTerms
+    constants = X.HamiltonainCofactors
