@@ -5,10 +5,11 @@ import numpy as np
 
 class BuildGraph():
 
-    def __init__(self, PauliWords, indices):
+    def __init__(self, PauliWords, indices, HamiltonainCofactors):
 
         self.PauliWords = PauliWords
         self.indices = indices
+        self.HamiltonainCofactors = HamiltonainCofactors
 
         self.G = nx.Graph()
         self.node_index_set = None
@@ -283,7 +284,23 @@ if __name__ == '__main__':
      (13, [0, 1, 2, 3, 4, 5, [], [], [], [], 10, 11, 12, 14]),
      (14, [0, 1, 2, 3, 4, 5, [], [], [], [], 10, 11, 12, 13])]
 
-    Y = BuildGraph(PauliWords, indices)
+    HamiltonainCofactors = [(-0.32760818995565577 + 0j),
+                            (0.1371657293179602 + 0j),
+                            (0.1371657293179602 + 0j),
+                            (-0.13036292044009176 + 0j),
+                            (-0.13036292044009176 + 0j),
+                            (0.15660062486143395 + 0j),
+                            (0.04919764587885283 + 0j),
+                            (-0.04919764587885283 + 0j),
+                            (-0.04919764587885283 + 0j),
+                            (0.04919764587885283 + 0j),
+                            (0.10622904488350779 + 0j),
+                            (0.15542669076236065 + 0j),
+                            (0.15542669076236065 + 0j),
+                            (0.10622904488350779 + 0j),
+                            (0.1632676867167479 + 0j)]
+
+    Y = BuildGraph(PauliWords, indices, HamiltonainCofactors)
     Y.Build_index_nodes()# plot_graph=True)
     Y.Build_index_edges()# plot_graph=True)
     Y.Get_complementary_graph_index() #plot_graph=True)
@@ -299,14 +316,16 @@ if __name__ == '__main__':
 
 class BuildGraph_string():
 
-    def __init__(self, PauliWords, indices):
+    def __init__(self, PauliWords, indices, HamiltonainCofactors):
 
         self.PauliWords = PauliWords
         self.indices = indices
+        self.HamiltonainCofactors = HamiltonainCofactors
 
 
         self.G_string = nx.Graph() # undirected graph
         self.node_string_set = None
+        self.node_string_set_and_HamiltonainCofactors = None
         self.G_string_comp = None
         self.greedy_string = None
         self.colour_key_for_nodes_string = None
@@ -315,14 +334,22 @@ class BuildGraph_string():
     def Get_node_terms_as_strings(self):
 
         node_string_set = []
+        node_string_set_and_HamiltonainCofactors = {}
+
         for index, commuting_indices in self.indices:
             PauliWord = self.PauliWords[index]
+            Cofactor = self.HamiltonainCofactors[index]
+
             PauliStrings = ['{}{}'.format(qubitOp, qubitNo) for qubitNo, qubitOp in PauliWord]
 
             seperator = ' '
             node_string_set.append(seperator.join(PauliStrings))
 
+            node_string_set_and_HamiltonainCofactors.update({seperator.join(PauliStrings): Cofactor})
+
         self.node_string_set = node_string_set
+        self.node_string_set_and_HamiltonainCofactors = node_string_set_and_HamiltonainCofactors
+
 
 
 
@@ -345,6 +372,11 @@ class BuildGraph_string():
             plt.figure()
             nx.draw(self.G_index, with_labels=1)
             plt.show()
+
+        # add nodes attributes (appends Hamiltonian cofactors to each node)
+        # access via: self.G_string.nodes[NODE-NAME]['Cofactor']
+        # e.g. X.G_string.nodes['I0 I1 I2 I3']['Cofactor']
+        nx.set_node_attributes(self.G_string, self.node_string_set_and_HamiltonainCofactors, 'Cofactor')
 
 
 
@@ -403,19 +435,28 @@ class BuildGraph_string():
 
         colour_key_for_nodes_string = {}
         for colour in unique_colours:
-            colour_key_for_nodes_string[colour] = [k for k in self.greedy_string.keys()
+            colour_key_for_nodes_string[colour] = [(k, self.G_string.nodes[k]['Cofactor']) for k in self.greedy_string.keys()
                                                    if self.greedy_string[k] == colour]
         self.colour_key_for_nodes_string = colour_key_for_nodes_string
 
+
+        # repeating code! with (NEW_colour_key_for_nodes_string) and (self.colour_key_for_nodes_string) <-- TODO
+
         if plot_graph == True:
+            NEW_colour_key_for_nodes_string = {}
+            for colour in unique_colours:
+                NEW_colour_key_for_nodes_string[colour] = [k for k in
+                                                       self.greedy_string.keys()
+                                                       if self.greedy_string[k] == colour]
+
             import matplotlib.cm as cm
             plt.figure()
-            colour_list = cm.rainbow(np.linspace(0, 1, len(self.colour_key_for_nodes_string)))
+            colour_list = cm.rainbow(np.linspace(0, 1, len(NEW_colour_key_for_nodes_string)))
             pos = nx.circular_layout(self.G_string_comp)
 
             for colour in self.colour_key_for_nodes_string:
                 nx.draw_networkx_nodes(self.G_string_comp, pos,
-                                       nodelist=self.colour_key_for_nodes_string[colour],
+                                       nodelist=NEW_colour_key_for_nodes_string[colour],
                                        node_color=colour_list[colour],
                                        node_size=500,
                                        alpha=0.8)
@@ -458,8 +499,23 @@ if __name__ == '__main__':
      (12, [0, 1, 2, 3, 4, 5, [], [], [], [], 10, 11, 13, 14]),
      (13, [0, 1, 2, 3, 4, 5, [], [], [], [], 10, 11, 12, 14]),
      (14, [0, 1, 2, 3, 4, 5, [], [], [], [], 10, 11, 12, 13])]
+    HamiltonainCofactors = [(-0.32760818995565577 + 0j),
+                            (0.1371657293179602 + 0j),
+                            (0.1371657293179602 + 0j),
+                            (-0.13036292044009176 + 0j),
+                            (-0.13036292044009176 + 0j),
+                            (0.15660062486143395 + 0j),
+                            (0.04919764587885283 + 0j),
+                            (-0.04919764587885283 + 0j),
+                            (-0.04919764587885283 + 0j),
+                            (0.04919764587885283 + 0j),
+                            (0.10622904488350779 + 0j),
+                            (0.15542669076236065 + 0j),
+                            (0.15542669076236065 + 0j),
+                            (0.10622904488350779 + 0j),
+                            (0.1632676867167479 + 0j)]
 
-    X = BuildGraph_string(PauliWords, indices)
+    X = BuildGraph_string(PauliWords, indices, HamiltonainCofactors)
 
     X.Build_string_nodes()# plot_graph=True)
     X.Build_string_edges()# plot_graph=True)
@@ -470,3 +526,5 @@ if __name__ == '__main__':
 
 
 
+# nx.set_node_attributes(X.G_string, X.node_string_set_and_HamiltonainCofactors, 'Cofactor')
+# X.G_string.nodes['I0 I1 I2 I3']['Cofactor']
