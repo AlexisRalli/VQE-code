@@ -448,7 +448,7 @@ class BuildGraph_string():
 
             for colour in self.colour_key_for_nodes_string:
                 nx.draw_networkx_nodes(self.G_string_comp, pos,
-                                       nodelist=[PauliWord for PauliWord, constant in self.colour_key_for_nodes_string[colour]], 
+                                       nodelist=[PauliWord for PauliWord, constant in self.colour_key_for_nodes_string[colour]],
                                        node_color=colour_list[colour],
                                        node_size=500,
                                        alpha=0.8)
