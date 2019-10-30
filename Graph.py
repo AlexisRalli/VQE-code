@@ -440,23 +440,15 @@ class BuildGraph_string():
         self.colour_key_for_nodes_string = colour_key_for_nodes_string
 
 
-        # repeating code! with (NEW_colour_key_for_nodes_string) and (self.colour_key_for_nodes_string) <-- TODO
-
         if plot_graph == True:
-            NEW_colour_key_for_nodes_string = {}
-            for colour in unique_colours:
-                NEW_colour_key_for_nodes_string[colour] = [k for k in
-                                                       self.greedy_string.keys()
-                                                       if self.greedy_string[k] == colour]
-
             import matplotlib.cm as cm
             plt.figure()
-            colour_list = cm.rainbow(np.linspace(0, 1, len(NEW_colour_key_for_nodes_string)))
+            colour_list = cm.rainbow(np.linspace(0, 1, len(self.colour_key_for_nodes_string)))
             pos = nx.circular_layout(self.G_string_comp)
 
             for colour in self.colour_key_for_nodes_string:
                 nx.draw_networkx_nodes(self.G_string_comp, pos,
-                                       nodelist=NEW_colour_key_for_nodes_string[colour],
+                                       nodelist=[PauliWord for PauliWord, constant in self.colour_key_for_nodes_string[colour]], 
                                        node_color=colour_list[colour],
                                        node_size=500,
                                        alpha=0.8)
