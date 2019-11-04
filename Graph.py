@@ -520,6 +520,28 @@ if __name__ == '__main__':
     print(X.colour_key_for_nodes_string)
 
 
+G = X.G_string
+comp_G = X.G_string_comp
+
+#https://stackoverflow.com/questions/29127350/completely-connected-subgraphs-from-a-larger-graph-in-networkx
+list(nx.clique.find_cliques(comp_G))
+
+
+ll = nx.make_max_clique_graph(comp_G)
+pos = nx.circular_layout(ll)
+plt.figure()
+nx.draw(ll, pos, with_labels=1)
+
+
+from networkx.algorithms.components.connected import *
+graphs = list(connected_component_subgraphs(comp_G))
+#this allows access to connected_component_subgraphs function!!!!
+#https://testfixsphinx.readthedocs.io/en/latest/_modules/networkx/algorithms/components/connected.html#connected_component_subgraphs
+
+for graph in graphs:
+    pos = nx.circular_layout(graph)
+    plt.figure()
+    nx.draw(graph, pos, with_labels=1)
 
 # nx.set_node_attributes(X.G_string, X.node_string_set_and_HamiltonainCofactors, 'Cofactor')
 # X.G_string.nodes['I0 I1 I2 I3']['Cofactor']
