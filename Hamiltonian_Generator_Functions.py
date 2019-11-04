@@ -2,6 +2,7 @@ import openfermion
 import openfermioncirq
 import cirq
 import numpy as np
+from functools import reduce
 
 class Hamiltonian():
 
@@ -34,6 +35,7 @@ class Hamiltonian():
         self.eig_values = None
         self.eig_vectors = None
         self.QWC_indices = None
+        self.Commuting_indices = None
         self.HamiltonainCofactors = None
 
     def Get_Molecular_Hamiltonian(self):
@@ -125,6 +127,10 @@ class Hamiltonian():
         :return: A filled Operation list, with operation on each qubit
         :rtype: class
         """
+
+        if self.QubitHamiltonian == None:
+            self.Get_Qubit_Hamiltonian_Openfermion()
+
         num_qubits = self.MolecularHamiltonian.n_qubits
         Q_list = [i for i in range(num_qubits)]
 
@@ -347,6 +353,86 @@ class Hamiltonian():
 
         self.QWC_indices = index_of_commuting_terms
 
+
+    def Get_commuting_indices(self):
+        """
+        Function ... TODO
+        Function takes in a qubit Hamiltonian... which is a list of Pauliwords that are lists of tuples.
+        And returns each index in qubit Hamiltonian and a list of corresonding indicies that the PauliWord commut with
+
+
+        self.QubitHamiltonianCompleteTerms =
+
+            [
+                 [(0, 'I'), (1, 'I'), (2, 'I'), (3, 'I')],
+                 [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
+                 [(0, 'X'), (1, 'Y'), (2, 'Y'), (3, 'X')],
+                 [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'Z')]
+             ]
+
+
+
+        Returns a List of Tuples that have index of PauliWord and index of terms in the Hamiltonian that it commutes with
+
+        index_of_commuting_terms =
+
+            [
+                (0, [1, 2, 3]),
+                (1, [0, [], 3]),
+                (2, [0, [], []]),
+                (3, [0, 1, []])
+            ]
+
+        """
+
+        if self.QubitHamiltonianCompleteTerms == None:
+            self.Get_Qubit_Hamiltonian_terms()
+
+
+
+        index_of_commuting_terms = []
+        for i in range(len(self.QubitHamiltonianCompleteTerms)):
+            Selected_PauliWord = self.QubitHamiltonianCompleteTerms[i]
+
+            Complete_index_list = [index for index in range(len(self.QubitHamiltonianCompleteTerms)) if
+                                   index != i]  # all indexes except selected Pauli Word
+
+            Commuting_indexes = []
+            for j in Complete_index_list:
+                j_list = []
+                Comparison_PauliWord = self.QubitHamiltonianCompleteTerms[j]
+
+                checker = [0 for i in range(len(Selected_PauliWord))]
+                for k in range(len(Selected_PauliWord)):
+
+                    # compare tuples
+                    if Selected_PauliWord[k] == Comparison_PauliWord[k]:
+                        checker[k] = 1
+
+                    # compare if identity present in selected P word OR of I present in comparison Pauli
+                    elif Selected_PauliWord[k][1] == 'I' or Comparison_PauliWord[k][1] == 'I':
+                        checker[k] = 1
+
+                    else:
+                        checker[k] = -1
+
+                if reduce((lambda x, y: x * y), checker) == 1:  # <----- changing this to -ve one gives anti-commuting
+                    j_list.append(j)
+
+                # if sum(checker) == self.MolecularHamiltonian.n_qubits:
+                #     j_list.append(j)
+
+                if j_list != []:
+                    Commuting_indexes.append(*j_list)
+                else:
+                    Commuting_indexes.append(j_list)
+
+            commuting_Terms_indices = (i, Commuting_indexes)
+
+            index_of_commuting_terms.append(commuting_Terms_indices)
+
+        self.Commuting_indices = index_of_commuting_terms
+
     def Get_all_info(self, get_FCI_energy = False):
         self.Get_Qubit_Hamiltonian_Openfermion()
 
@@ -355,6 +441,7 @@ class Hamiltonian():
             self.Get_FCI_Energy()
 
         self.Get_QWC_terms()
+        self.Get_commuting_indices()
 
 
 
@@ -371,9 +458,11 @@ if __name__ == '__main__':
     Y = Hamiltonian('H2')
     Y.Get_all_info(get_FCI_energy=True)
 
+
     X = Hamiltonian('H2O')
     X.Get_all_info(get_FCI_energy=False)
 
-    indices = X.QWC_indices
+    QWC_indices = X.QWC_indices
+    Commuting_indices = X.Commuting_indices
     PauliWords = X.QubitHamiltonianCompleteTerms
     constants = X.HamiltonainCofactors
