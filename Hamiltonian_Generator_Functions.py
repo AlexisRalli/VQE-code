@@ -378,9 +378,9 @@ class Hamiltonian():
 
             [
                 (0, [1, 2, 3]),
-                (1, [0, [], 3]),
-                (2, [0, [], []]),
-                (3, [0, 1, []])
+                (1, [0, 3]),
+                (2, [0]),
+                (3, [0, 1,])
             ]
 
         """
@@ -425,8 +425,8 @@ class Hamiltonian():
                 if j_list != []:
                     Commuting_indexes.append(*j_list)
                 else:
-                    Commuting_indexes.append(j_list)
-
+                    #Commuting_indexes.append(j_list)      # <--- commented out! uneeded memory taken
+                    continue
             commuting_Terms_indices = (i, Commuting_indexes)
 
             index_of_commuting_terms.append(commuting_Terms_indices)
@@ -442,8 +442,6 @@ class Hamiltonian():
 
         self.Get_QWC_terms()
         self.Get_commuting_indices()
-
-
 
 
 if __name__ == '__main__':
