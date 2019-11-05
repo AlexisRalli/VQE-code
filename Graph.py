@@ -1,6 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm import tqdm
 
 
 class BuildGraph():
@@ -470,8 +471,10 @@ class BuildGraph_string():
         cliques = list(nx.find_cliques(self.G_string_comp))
         sorted_cliques = sorted(cliques, key=len, reverse=True)
         clique_list = []
-        for clique in sorted_cliques:
-            # print(clique)
+
+        #for clique in sorted_cliques:
+        for j in tqdm(range(len(sorted_cliques)), ascii=True, desc='Getting anti-commuting sets'):
+            clique = sorted_cliques[j]
             if clique_list == []:
                 clique_list.append(clique)
             else:

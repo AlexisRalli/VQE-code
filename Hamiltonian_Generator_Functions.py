@@ -1,6 +1,3 @@
-import openfermion
-import openfermioncirq
-import cirq
 import numpy as np
 from functools import reduce
 
@@ -469,3 +466,5 @@ if __name__ == '__main__':
     Commuting_indices = X.Commuting_indices
     PauliWords = X.QubitHamiltonianCompleteTerms
     constants = X.HamiltonainCofactors
+
+
