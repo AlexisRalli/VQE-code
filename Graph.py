@@ -1061,9 +1061,38 @@ plt.plot()
 
 
 
+### TODO
+for graph in X.connected_graphs:
+    if len(graph.nodes) > 1:
+        strategy = 'independent_set'
+        greedy_string = nx.greedy_color(graph, strategy=strategy, interchange=False)
+        unique_colours = set(greedy_string.values())
 
+        colour_key_for_nodes_string = {}
+        for colour in unique_colours:
+            colour_key_for_nodes_string[colour] = [k for k in greedy_string.keys()
+                                                   if greedy_string[k] == colour]
+        colour_key_for_nodes_string = colour_key_for_nodes_string
 
+        import matplotlib.cm as cm
 
+        plt.figure()
+        colour_list = cm.rainbow(np.linspace(0, 1, len(colour_key_for_nodes_string))) # <---  TODO look here
+        pos = nx.circular_layout(graph)
+
+        for colour in colour_key_for_nodes_string:
+            nx.draw_networkx_nodes(graph, pos,
+                                   nodelist=[PauliWord for PauliWord in colour_key_for_nodes_string[colour]],
+                                   node_color=colour_list[colour],
+                                   node_size=500,
+                                   alpha=0.8)
+
+        nx.draw_networkx_edges(graph, pos, width=1.0, alpha=0.5)
+
+        # need to get FONT to change! TODO
+        nx.draw_networkx_labels(graph, pos, font_family='Times-New-Roman', font_size=12)
+        plt.plot()
+        print(colour_key_for_nodes_string) ## <---- TODO somthing wrong with output
 
 
 
