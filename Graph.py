@@ -687,51 +687,81 @@ class BuildGraph_string():
                 # pos = nx.circular_layout(graph)
                 # plt.figure()
                 # nx.draw(graph, pos, with_labels=1)
+                nx.set_node_attributes(graph, self.node_string_set_and_HamiltonainCofactors, 'Cofactor')
                 multi_node_G.append(graph)
             else:
+                nx.set_node_attributes(graph, self.node_string_set_and_HamiltonainCofactors, 'Cofactor')
                 single_node_G.append(graph)
-        return single_node_G + multi_node_G
 
-    def colouring(self):
+        self.connected_graphs = connected_graphs
+        return single_node_G, multi_node_G
 
-        graphs = self.GG()
+    def colouring(self, plot_graph = False):
 
-        for comp_graph in graphs:
+        single_node_G, multi_node_G = self.GG()
+        strategy = 'independent_set'
 
-            strategy = 'independent_set'
+        multi_node_G_coloured = []
+        for comp_graph in multi_node_G:
             greedy_string = nx.greedy_color(comp_graph, strategy=strategy, interchange=False)
-            #greedy_index = nx.greedy_color(comp_graph, strategy=strategy, interchange=False)
 
             unique_colours = set(greedy_string.values())
 
             colour_key_for_nodes_string = {}
             for colour in unique_colours:
-                colour_key_for_nodes_string[colour] = [k for k in greedy_string.keys()
+                # colour_key_for_nodes_string[colour] = [k for k in greedy_string.keys()
+                #                                        if greedy_string[k] == colour]
+
+                colour_key_for_nodes_string[colour] = [(k, comp_graph.nodes[k]['Cofactor']) for k in
+                                                       greedy_string.keys()
                                                        if greedy_string[k] == colour]
-            colour_key_for_nodes_string = colour_key_for_nodes_string
 
-            import matplotlib.cm as cm
+            multi_node_G_coloured.append(colour_key_for_nodes_string)
 
-            plt.figure()
-            colour_list = cm.rainbow(np.linspace(0, 1, len(colour_key_for_nodes_string)))
-            pos = nx.circular_layout(comp_graph)
+            if plot_graph == True:
+                import matplotlib.cm as cm
 
-            for colour in colour_key_for_nodes_string:
-                nx.draw_networkx_nodes(comp_graph, pos,
-                                       nodelist=[PauliWord for PauliWord in colour_key_for_nodes_string[colour]],
-                                       node_color=colour_list[colour],
-                                       node_size=500,
-                                       alpha=0.8)
+                plt.figure()
+                colour_list = cm.rainbow(np.linspace(0, 1, len(colour_key_for_nodes_string)))
+                pos = nx.circular_layout(comp_graph)
 
-            nx.draw_networkx_edges(comp_graph, pos, width=1.0, alpha=0.5)
+                for colour in colour_key_for_nodes_string:
+                    nx.draw_networkx_nodes(comp_graph, pos,
+                                           nodelist=[PauliWord for PauliWord, const in colour_key_for_nodes_string[colour]],
+                                           node_color=colour_list[colour],
+                                           node_size=500,
+                                           alpha=0.8)
 
-            # need to get FONT to change! TODO
-            nx.draw_networkx_labels(comp_graph, pos, font_family='Times-New-Roman', font_size=12)
-            plt.plot()
+                nx.draw_networkx_edges(comp_graph, pos, width=1.0, alpha=0.5)
 
-            nx.set_node_attributes(self.G_string, self.node_string_set_and_HamiltonainCofactors, 'Cofactor')
+                # need to get FONT to change! TODO
+                nx.draw_networkx_labels(comp_graph, pos, font_family='Times-New-Roman', font_size=12)
+                plt.plot()
 
 
+        single_node_G_coloured = []
+
+        for comp_graph in single_node_G:
+            greedy_string = nx.greedy_color(comp_graph, strategy=strategy, interchange=False)
+
+            Cofactor = comp_graph.nodes[list(comp_graph.nodes)[0]]['Cofactor']
+
+            single_node_G_coloured.append(dict([(value, (key, Cofactor)) for key, value in greedy_string.items()]))
+
+
+
+        #self.single_node_G_coloured = single_node_G_coloured
+        #self.multi_node_G_coloured = multi_node_G_coloured
+
+
+        iter = 0
+        anti_commuting_sets_dict = {}
+        for sub_graph in single_node_G_coloured + multi_node_G_coloured:
+            for key, value in sub_graph.items():
+                anti_commuting_sets_dict[iter] = value
+                iter += 1
+
+        self.anticommuting_sets = anti_commuting_sets_dict
 
     # def max_clique_cover_composite_graph(self):
     #
@@ -815,12 +845,18 @@ if __name__ == '__main__':
 
     X = BuildGraph_string(PauliWords, indices, HamiltonainCofactors)
 
-    X.Build_string_nodes()# plot_graph=True)
-    X.Build_string_edges()# plot_graph=True)
-    X.Get_complementary_graph_string()# plot_graph=True)
-    X.colour_string_graph()
-    X.Get_coloured_keys_string(plot_graph=True)
-    print(X.colour_key_for_nodes_string)
+    X.Build_string_nodes()  # plot_graph=True)
+    X.Build_string_edges()  # plot_graph=True)
+    X.Get_complementary_graph_string()  # plot_graph=True)
+    X.colouring(plot_graph=True)
+
+    # X.Build_string_nodes()# plot_graph=True)
+    # X.Build_string_edges()# plot_graph=True)
+    # X.Get_complementary_graph_string()# plot_graph=True)
+    # X.colour_string_graph()
+    # X.Get_coloured_keys_string(plot_graph=True)
+    # print(X.colour_key_for_nodes_string)
+    # X.colouring()
 
 
 
