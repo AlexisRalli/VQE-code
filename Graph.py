@@ -678,7 +678,8 @@ class BuildGraph_string():
                         seen.add(v)
                         nextlevel.update(G[v])
 
-        connected_graphs = list(connected_component_subgraphs(self.G_string_comp))
+        #connected_graphs = list(connected_component_subgraphs(self.G_string_comp))
+        connected_graphs = list(connected_component_subgraphs(self.G_string))
         multi_node_G = []
         single_node_G = []
         for graph in connected_graphs:
@@ -699,7 +700,7 @@ class BuildGraph_string():
     def colouring(self, plot_graph = False):
 
         single_node_G, multi_node_G = self.GG()
-        strategy = 'independent_set'
+        strategy = 'independent_set' #largest_first
 
         multi_node_G_coloured = []
         for comp_graph in multi_node_G:
@@ -849,6 +850,7 @@ if __name__ == '__main__':
     X.Build_string_edges()  # plot_graph=True)
     X.Get_complementary_graph_string()  # plot_graph=True)
     X.colouring(plot_graph=True)
+    print(X.anticommuting_sets)
 
     # X.Build_string_nodes()# plot_graph=True)
     # X.Build_string_edges()# plot_graph=True)
