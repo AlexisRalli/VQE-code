@@ -58,12 +58,6 @@ class BuildGraph_string():
             nx.draw(self.G_string, with_labels=1)
             plt.show()
 
-
-        if plot_graph == True:
-            plt.figure()
-            nx.draw(self.G_index, with_labels=1)
-            plt.show()
-
         # add nodes attributes (appends Hamiltonian cofactors to each node)
         # access via: self.G_string.nodes[NODE-NAME]['Cofactor']
         # e.g. X.G_string.nodes['I0 I1 I2 I3']['Cofactor']
@@ -179,7 +173,6 @@ class BuildGraph_string():
                     c = set(_plain_bfs(G, v))
                     yield c
                     seen.update(c)
-
         @not_implemented_for('directed')
         def connected_component_subgraphs(G, copy=True):
             """Generate connected components as subgraphs.
@@ -336,7 +329,8 @@ class BuildGraph_string():
         return single_node_G, multi_node_G
 
     def colouring(self, plot_graph = False, strategy='largest_first'):
-        # strategy = 'independent_set' #largest_first
+        # different strategies at:
+        # https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.coloring.greedy_color.html#networkx.algorithms.coloring.greedy_color
 
         single_node_G, multi_node_G = self._Get_subgraphs()
 
