@@ -8,7 +8,7 @@ anti_commuting_sets = {
      4: [('I0 Z1 Z2 I3', (0.15542669076236065+0j))],
      5: [('I0 Z1 I2 Z3', (0.10622904488350779+0j))],
      6: [('I0 I1 Z2 Z3', (0.1632676867167479+0j))],
-     7: [('Z0 I1 I2 I3', (0.1371657293179602+0j)), ('Y0 X1 X2 Y3', (0.04919764587885283+0j))],
+     7: [('Z0 I1 I2 I3', (0.1371657293179602+0j)), ('Y0 X1 X2 Y3', (0.04919764587885283+0j)), ('X0 I1 I2 I3', (0.04919764587885283+0j))], # <- I added this term to check code
      8: [('I0 Z1 I2 I3', (0.1371657293179602+0j)), ('Y0 Y1 X2 X3', (-0.04919764587885283+0j))],
      9: [('I0 I1 Z2 I3', (-0.13036292044009176+0j)),('X0 X1 Y2 Y3', (-0.04919764587885283+0j))],
      10: [('I0 I1 I2 Z3', (-0.13036292044009176+0j)), ('X0 Y1 Y2 X3', (0.04919764587885283+0j))]
@@ -40,7 +40,7 @@ print(ll[10]['PauliWords'])
 print(ll[10]['factor'])
 
 
-def Get_R_sk_operator(normalised_anti_commuting_sets):
+def Get_R_sk_operator(normalised_anti_commuting_sets, S=0): # TODO write function to select 'best' S term!
     X_sk_and_theta_sk={}
     # pick S
     for key in normalised_anti_commuting_sets:
@@ -48,7 +48,6 @@ def Get_R_sk_operator(normalised_anti_commuting_sets):
 
         if len(anti_commuting_set) > 1:
 
-            S = 0 # TODO write function to select 'best' S term!
 
             k_indexes = [index for index in range(len(anti_commuting_set)) if
                        index != S]
@@ -63,16 +62,23 @@ def Get_R_sk_operator(normalised_anti_commuting_sets):
 
                 theta_sk = np.arctan(tan_theta_sk)
 
-                Op_list.append((X_sk_op, tan_theta_sk, normalised_anti_commuting_sets[key]['factor']))
+                #Op_list.append((X_sk_op, tan_theta_sk, normalised_anti_commuting_sets[key]['factor']))
+
+                Op_list.append({'X_sk': X_sk_op, 'theta_sk': theta_sk, 'factor': normalised_anti_commuting_sets[key]['factor']})
 
             X_sk_and_theta_sk.update({key: Op_list})
 
     return X_sk_and_theta_sk
 
-ww = Get_R_sk_operator(ll)
-print(ww)
-print(ww[7][0][0])
-print(ww[7][0][1])
+ww = Get_R_sk_operator(ll, S=0)
+
+print(ww[7][0]['X_sk'])
+print(ww[7][0]['theta_sk'])
+print(ww[7][0]['factor'])
+
+print(ww[7][1]['X_sk'])
+print(ww[7][1]['theta_sk'])
+print(ww[7][1]['factor'])
 
 
 ## now have everything for eqn 15 and thus eqn 17!
@@ -85,9 +91,9 @@ print(ww[7][0][1])
 def Get_R_S_operator(X_sk_and_theta_sk):
     for key in X_sk_and_theta_sk:
         for i in range(len(X_sk_and_theta_sk[key])):
-            X_sk = X_sk_and_theta_sk[key][i][0]
-            theta_sk = X_sk_and_theta_sk[key][i][1]
-            factor = X_sk_and_theta_sk[key][i][2]
+            X_sk = X_sk_and_theta_sk[key][i]['X_sk']
+            theta_sk = X_sk_and_theta_sk[key][i]['theta_sk']
+            factor = X_sk_and_theta_sk[key][i]['factor']
 
             print(X_sk, theta_sk, factor) # TODO build Q circuit from this info!
 
