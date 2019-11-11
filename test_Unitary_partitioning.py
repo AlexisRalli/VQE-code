@@ -190,7 +190,7 @@ def test_Get_X_sk_operators_manual():
                               'factor': (0.023655254019369937+0j)}
                          ],
 
-              
+
                 2:
                     [
                         {'X_sk': (('I0 Z1 I2 I3', (-0.9355920202531878 + 0j)),
