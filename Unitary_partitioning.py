@@ -23,7 +23,7 @@ anti_commuting_sets = {
 def Get_beta_j_cofactors(anti_commuting_sets):
     """
     Function takes in anti_commuting_sets and returns anti-commuting sets, but with new coefcators that
-    obey eq (10) in ArXiv:1908.08067 (sum_j B_j^2 = 1
+    obey eq (10) in ArXiv:1908.08067 (sum_j B_j^2 = 1)
 
     Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
 
@@ -36,6 +36,7 @@ def Get_beta_j_cofactors(anti_commuting_sets):
     :rtype: dict
 
     """
+    new_anti_commuting_sets = {}
     for key, value in anti_commuting_sets.items():
         factor = sum([constant**2 for PauliWord, constant in value])
 
@@ -46,9 +47,25 @@ def Get_beta_j_cofactors(anti_commuting_sets):
 
         # anti_commuting_sets[key] = [terms, ('factor', factor)] # can also have *terms
 
-        anti_commuting_sets[key] = {'PauliWords': terms, 'factor': factor}
-
-    return anti_commuting_sets
+        new_anti_commuting_sets[key] = {'PauliWords': terms, 'factor': factor}
+    # TODO (can make more efficient by missing terms with only 1 PauliWord)
+    # do the following:
+    #         if len(value)>1:
+    #
+    #             factor = sum([constant**2 for PauliWord, constant in value])
+    #
+    #             terms = []
+    #             for PauliWord, constant in value:
+    #                 new_constant = constant/np.sqrt(factor)
+    #                 terms.append((PauliWord, new_constant))
+    #
+    #             # anti_commuting_sets[key] = [terms, ('factor', factor)] # can also have *terms
+    #
+    #             new_anti_commuting_sets[key] = {'PauliWords': terms, 'factor': factor}
+    #         else:
+    #             for PauliWord, constant in value:
+    #                 new_anti_commuting_sets[key] = {'PauliWords': PauliWord, 'factor': constant}
+    return new_anti_commuting_sets
 
 #test
 if __name__ == '__main__':
@@ -63,6 +80,7 @@ def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write functi
     eq (11) in ArXiv:1908.08067.
 
     Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
+    NOTE S is fixed here!!!
 
     :param normalised_anti_commuting_sets: A dictionary of anti-commuting sets.
      Note this is a dictionary of dictionaries where one dict is a tuple of (PauliWord, Constant). The other is
@@ -82,7 +100,7 @@ def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write functi
     :rtype: dict
     """
     X_sk_and_theta_sk={}
-    # pick S
+
     for key in normalised_anti_commuting_sets:
         anti_commuting_set = normalised_anti_commuting_sets[key]['PauliWords']
 
@@ -201,37 +219,36 @@ if __name__ == '__main__':
     print(convert_X_sk(ww[7][0]['X_sk']))
 
 
-def Get_R_S_operator(X_sk_and_theta_sk):
-    # TODO --> This function is currently pointless (useful to see print statements!
-    #          Will probably delete this!
-    """
-    Function takes in normalised_anti_commuting_sets and gets each R_sk operator according to
-    eq (11) in ArXiv:1908.08067.
-
-    Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
-
-    :param X_sk_and_theta_sk: A dictionary of anti-commuting sets.
-     Note this is a dictionary of dictionaries where one dict is a tuple of (PauliWord, Constant). The other is
-     a dictionary containing the correction to the cofactor.
-    :type normalised_anti_commuting_sets: dict
-    ...
-    :raises [ErrorType]: [ErrorDescription]
-    ...
-    :return: A dictionary containing each R_sk operators for each anti-commuting subset.
-    :rtype: dict
-    """
-    for key in X_sk_and_theta_sk:
-        for i in range(len(X_sk_and_theta_sk[key])):
-            X_sk = X_sk_and_theta_sk[key][i]['X_sk']
-            theta_sk = X_sk_and_theta_sk[key][i]['theta_sk']
-            factor = X_sk_and_theta_sk[key][i]['factor']
-            #print(X_sk, theta_sk, factor) # TODO build Q circuit from this info!
-            print('X_sk: ', X_sk)
-            print('theta_sk: ', theta_sk)
-            print('factor: ', factor)
-
-Get_R_S_operator(ww)
-
+# def Get_R_S_operator(X_sk_and_theta_sk):
+#     # TODO --> This function is currently pointless (useful to see print statements!
+#     #          Will probably delete this!
+#     """
+#     Function takes in normalised_anti_commuting_sets and gets each R_sk operator according to
+#     eq (11) in ArXiv:1908.08067.
+#
+#     Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
+#
+#     :param X_sk_and_theta_sk: A dictionary of anti-commuting sets.
+#      Note this is a dictionary of dictionaries where one dict is a tuple of (PauliWord, Constant). The other is
+#      a dictionary containing the correction to the cofactor.
+#     :type normalised_anti_commuting_sets: dict
+#     ...
+#     :raises [ErrorType]: [ErrorDescription]
+#     ...
+#     :return: A dictionary containing each R_sk operators for each anti-commuting subset.
+#     :rtype: dict
+#     """
+#     for key in X_sk_and_theta_sk:
+#         for i in range(len(X_sk_and_theta_sk[key])):
+#             X_sk = X_sk_and_theta_sk[key][i]['X_sk']
+#             theta_sk = X_sk_and_theta_sk[key][i]['theta_sk']
+#             factor = X_sk_and_theta_sk[key][i]['factor']
+#             #print(X_sk, theta_sk, factor) # TODO build Q circuit from this info!
+#             print('X_sk: ', X_sk)
+#             print('theta_sk: ', theta_sk)
+#             print('factor: ', factor)
+#
+# Get_R_S_operator(ww)
 
 import cirq
 
@@ -433,6 +450,7 @@ if __name__ == '__main__':
 
     #X_SK_Test = (('I0 I1 X2 I3', (0.8918294488900189+0j)), ('Y0 I1 I2 I3', (0.3198751585326103+0j))   )
 
+
     R_sk_rot_circuit = R_sk_DAGGER(X_SK_Test, theta_sk)
 
     print(cirq.Circuit.from_ops((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits())))))
@@ -500,3 +518,73 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(cirq.decompose_once((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits()))))))
 
 
+class R_sk_full_circuit(cirq.Gate):
+    def __init__(self, X_sk, theta_sk):
+        """
+         blah
+
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: A circuit object to be used by cirq.Circuit.from_ops
+        :rtype: class
+       """
+        self.X_sk = X_sk
+        self.X_sk_converted_to_PauliWord = convert_X_sk(self.X_sk)
+        self.theta_sk = theta_sk
+
+
+    def _decompose_(self, qubits):
+
+
+        Basis_change_circuit = Change_of_Basis_initial(self.X_sk)
+        Ent_initial = Engtangle_initial(self.X_sk)
+        R_sk_rot_circuit = R_sk_DAGGER(self.X_sk, self.theta_sk)
+        Ent_final = Engtangle_final(self.X_sk)
+
+        basis_change_initial_gen = Basis_change_circuit._decompose_(qubits)
+        Ent_initial_gen = Ent_initial._decompose_(qubits)
+        R_sk_rot_circuit_gen = R_sk_rot_circuit._decompose_(qubits)
+        Ent_final_gen = Ent_final._decompose_(qubits)
+        basis_change_final_gen = Basis_change_circuit._decompose_(qubits)
+
+        list_generators = [basis_change_initial_gen, Ent_initial_gen, R_sk_rot_circuit_gen, Ent_final_gen,
+                           basis_change_final_gen]
+        yield list_generators
+
+
+
+    def _circuit_diagram_info_(self, args):
+
+        qubitNo_qubitOp_list = [(int(self.X_sk_converted_to_PauliWord[k][1]), self.X_sk_converted_to_PauliWord[k][0][1]) for k in range(len(self.X_sk_converted_to_PauliWord))]
+        string_list = []
+        for i in range(len(qubitNo_qubitOp_list)):
+                string_list.append('R_sk_circuit')
+        return string_list
+
+
+    def num_qubits(self):
+        return len(self.X_sk_converted_to_PauliWord)
+
+
+if __name__ == '__main__':
+    X_SK_Test = ww[7][0][
+        'X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    theta_sk = ww[7][0]['theta_sk']
+
+    # X_SK_Test = (('I0 I1 X2 I3', (0.8918294488900189+0j)), ('Y0 I1 I2 I3', (0.3198751585326103+0j))   )
+
+    R_sk_full = R_sk_full_circuit(X_SK_Test, theta_sk)
+
+    print(cirq.Circuit.from_ops((R_sk_full(*cirq.LineQubit.range(R_sk_full.num_qubits())))))
+    print(
+        cirq.Circuit.from_ops(
+            cirq.decompose_once((R_sk_full(*cirq.LineQubit.range(R_sk_full.num_qubits()))))))
+
+
+class R_S_operator():
+    def __init__(self):
+        blah = 1
+
+    def _decompose_(self, qubits):
+        pass
