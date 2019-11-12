@@ -4,7 +4,7 @@ import numpy as np
 # in Terminal run (LINUX!):
 # py.test /home/alexisr/Documents/PhD/Code/PhD\ Code/test_Unitary_partitioning.py -v
 
-
+###
 def test_Get_beta_j_cofactors_normalisation():
     '''
     Standard use case.
@@ -104,7 +104,7 @@ def test_Get_beta_j_cofactors_manual():
 
     assert CORRECT == updated_anti_commuting_sets
 
-##
+###
 def test_Get_X_sk_operators_THETA_sk_values():
     """
     Standard use case. Making sure the correct theta_sk values are obtained!
@@ -203,8 +203,13 @@ def test_Get_X_sk_operators_THETA_sk_values():
     assert X_sk_and_theta_sk == MANUAL_answer
 
 
-##
-def test_convert_X_sk():
+###
+def test_convert_X_sk_normal():
+    """
+    Standard use case
+
+    :return:
+    """
     X_sk = (
               ('I0 I1 I2 I3 X4 X5 X6 X7 Y8 Y9 Y10 Y11 Z12 Z13 Z14 Z15', (0.8918294488900189+0j)),
               ('I0 X1 Y2 Z3 I4 X5 Y6 Z7 I8 X9 Y10 Z11 I12 X13 Y14 Z15', (0.3198751585326103+0j))
@@ -234,15 +239,18 @@ def test_convert_X_sk():
                     ]
     assert New_PauliWord == Correct_New_Pauli
 
+def test_convert_X_sk_non_pauli():
+    """
+    Checking if non Pauli Operators used a KeyError is given!
 
-# pp = Get_beta_j_cofactors({
-#     0: [('I0 I1 Z2 Z3', (1 + 0j))],
-#     1: [('Z0 I1 I2 I3', (0.8918294488900189 + 0j)),
-#         ('Y0 X1 X2 Y3', (0.3198751585326103 + 0j)),
-#         ('X0 I1 I2 I3', (0.3198751585326103 + 0j))],
-#
-#     2: [('I0 Z1 I2 I3', (0.9412848366792171 + 0j)),
-#         ('Y0 Y1 X2 X3', (-0.33761347164735517 + 0j)),
-#         ('I0 X1 I2 I3', (-0.33761347164735517 + 0j)),
-#         ('X0 Y1 I2 I3', (0.421202031023012301 + 0j))]
-# })
+    :return:
+    """
+    X_sk = (
+              ('Z0 W1 I2 I3', (0.8918294488900189+0j)),
+              ('Y0 X1 X2 Y3', (0.3198751585326103+0j))
+            )
+
+    with pytest.raises(KeyError) as excinfo:
+        assert convert_X_sk(X_sk) in excinfo.value
+
+###
