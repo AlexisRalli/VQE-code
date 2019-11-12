@@ -186,7 +186,7 @@ def convert_X_sk(X_sk):
         'XI': (1,'X'),
         'XX': (1,'I'),
         'XY': (1j,'Z'),
-        'XZ': (-1j,'X'),
+        'XZ': (-1j,'Y'),
 
         'YI': (1,'Y'),
         'YX': (-1j,'Z'),
@@ -206,7 +206,7 @@ def convert_X_sk(X_sk):
 
     new_Pauli_terms = []
     for i in range(len(P_s)):
-        qubitNo = P_s[i][1]
+        qubitNo = P_s[i][1::]
 
         PauliString_s =  P_s[i][0]
         PauliString_k = P_k[i][0]

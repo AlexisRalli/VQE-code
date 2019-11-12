@@ -105,57 +105,9 @@ def test_Get_beta_j_cofactors_manual():
     assert CORRECT == updated_anti_commuting_sets
 
 ##
-def test_Get_X_sk_operators():
-    """
-    Standard use case
-
-    :return:
-    """
-    S = 0
-
-    normalised_anti_commuting_sets ={
-         0: {'PauliWords': [('I0 I1 Z2 Z3', (1 + 0j))],
-             'factor': (0.02665633752583814 + 0j)},
-
-         1: {'PauliWords': [('Z0 I1 I2 I3', (0.8918294488900189 + 0j)),
-                            ('Y0 X1 X2 Y3', (0.3198751585326103 + 0j)),
-                            ('X0 I1 I2 I3', (0.3198751585326103 + 0j))],
-             'factor': (0.023655254019369937 + 0j)},
-
-         2: {'PauliWords': [('I0 Z1 I2 I3', (0.9412848366792171 + 0j)),
-                            ('Y0 Y1 X2 X3', (-0.33761347164735517 + 0j))],
-             'factor': (0.021234845659348932 + 0j)},
-        }
-
-    X_sk_and_theta_sk = Get_X_sk_operators(normalised_anti_commuting_sets, S=S)
-
-    check_X_sk_and_theta_sk={}
-    for key in normalised_anti_commuting_sets:
-
-        anti_commuting_set = normalised_anti_commuting_sets[key]['PauliWords']
-
-        if len(anti_commuting_set) > 1:
-            k_indexes = [index for index in range(len(anti_commuting_set)) if
-                         index != S]
-
-            Op_list = []
-            for k in k_indexes:
-                X_sk_op = (anti_commuting_set[S], anti_commuting_set[k])
-
-                tan_theta_sk = anti_commuting_set[k][1] / (np.sqrt( anti_commuting_set[S][1] + sum([anti_commuting_set[beta_j][1]**2 for beta_j
-                                                                                         in np.arange(1,k, 1)]))) #eqn 16
-
-                theta_sk = np.arctan(tan_theta_sk)
-
-                Op_list.append({'X_sk': X_sk_op, 'theta_sk': theta_sk, 'factor': normalised_anti_commuting_sets[key]['factor']})
-
-                check_X_sk_and_theta_sk.update({key: Op_list})
-
-    assert check_X_sk_and_theta_sk == X_sk_and_theta_sk
-
 def test_Get_X_sk_operators_THETA_sk_values():
     """
-    Standard use case
+    Standard use case. Making sure the correct theta_sk values are obtained!
 
     :return:
     """
@@ -249,6 +201,38 @@ def test_Get_X_sk_operators_THETA_sk_values():
 
 
     assert X_sk_and_theta_sk == MANUAL_answer
+
+
+##
+def test_convert_X_sk():
+    X_sk = (
+              ('I0 I1 I2 I3 X4 X5 X6 X7 Y8 Y9 Y10 Y11 Z12 Z13 Z14 Z15', (0.8918294488900189+0j)),
+              ('I0 X1 Y2 Z3 I4 X5 Y6 Z7 I8 X9 Y10 Z11 I12 X13 Y14 Z15', (0.3198751585326103+0j))
+            )
+
+    New_PauliWord = convert_X_sk(X_sk)
+    # (cofactor, New_Pauli_string)  #QubitNo    #new constant
+
+    cofactor = X_sk[0][1] * X_sk[1][1]
+    Correct_New_Pauli = [
+        ((1, 'I'), '0', cofactor),
+        ((1, 'X'), '1', cofactor),
+        ((1, 'Y'), '2', cofactor),
+        ((1, 'Z'), '3', cofactor),
+        ((1, 'X'), '4', cofactor),
+        ((1, 'I'), '5', cofactor),
+        ((1j, 'Z'), '6', cofactor),
+        (((-0 - 1j), 'Y'), '7', cofactor),
+        ((1, 'Y'), '8', cofactor),
+        (((-0 - 1j), 'Z'), '9', cofactor),
+        ((1, 'I'), '10', cofactor),
+        ((1j, 'X'), '11', cofactor),
+        ((1, 'Z'), '12', cofactor),
+        ((1j, 'Y'), '13', cofactor),
+        (((-0 - 1j), 'X'), '14', cofactor),
+        ((1, 'I'), '15', cofactor)
+                    ]
+    assert New_PauliWord == Correct_New_Pauli
 
 
 # pp = Get_beta_j_cofactors({
