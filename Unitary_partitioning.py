@@ -111,12 +111,18 @@ def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write functi
                        index != S]
 
             Op_list = []
+            beta_S = None
             for k in k_indexes:
 
                 X_sk_op =(anti_commuting_set[S], anti_commuting_set[k])
 
-                tan_theta_sk = anti_commuting_set[k][1] / (np.sqrt( anti_commuting_set[S][1] + sum([anti_commuting_set[beta_j][1]**2 for beta_j
-                                                                                         in np.arange(1,k, 1)]))) #eqn 16
+                if beta_S == None:
+                    beta_S = anti_commuting_set[S][1]
+                    tan_theta_sk = anti_commuting_set[k][1] / beta_S # B_k/B_s
+                else:
+                    tan_theta_sk = anti_commuting_set[k][1] / beta_S # B_k/B_s
+
+                beta_S = np.sqrt(beta_S**2 + anti_commuting_set[k][1]**2) # beta_s_new = (B_s^2 + B_k^2)^0.5 ArXiv:1908.08067
 
                 theta_sk = np.arctan(tan_theta_sk)
 

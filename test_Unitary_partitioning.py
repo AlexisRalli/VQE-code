@@ -153,7 +153,7 @@ def test_Get_X_sk_operators():
 
     assert check_X_sk_and_theta_sk == X_sk_and_theta_sk
 
-def test_Get_X_sk_operators_manual():
+def test_Get_X_sk_operators_THETA_sk_values():
     """
     Standard use case
 
@@ -163,41 +163,102 @@ def test_Get_X_sk_operators_manual():
 
     normalised_anti_commuting_sets ={
          0: {'PauliWords': [('I0 I1 Z2 Z3', (1 + 0j))],
-             'factor': (0.02665633752583814 + 0j)},
+             'factor': (1+0j)},
 
          1: {'PauliWords': [('Z0 I1 I2 I3', (0.8918294488900189 + 0j)),
                             ('Y0 X1 X2 Y3', (0.3198751585326103 + 0j)),
                             ('X0 I1 I2 I3', (0.3198751585326103 + 0j))],
-             'factor': (0.023655254019369937 + 0j)},
+             'factor': (0.9999999999999999+0j)},
 
-         2: {'PauliWords': [('I0 Z1 I2 I3', (0.9412848366792171 + 0j)),
-                            ('Y0 Y1 X2 X3', (-0.33761347164735517 + 0j))],
-             'factor': (0.021234845659348932 + 0j)},
+         2: {'PauliWords': [('I0 Z1 I2 I3', (0.8283076631253103+0j)),
+                            ('Y0 Y1 X2 X3', (-0.2970916080263448+0j)),
+                            ('I0 X1 I2 I3', (-0.2970916080263448+0j)),
+                            ('X0 Y1 I2 I3', (0.37064749842475486+0j))],
+             'factor': (1.2913940071756902+0j)},
         }
 
-    X_sk_and_theta_sk = Get_X_sk_operators(normalised_anti_commuting_sets, S=S)
+
+    # note that normalised_anti_commuting_sets[1]['PauliWords'][0][1] is beta_s
+    # look at eq. (16) ArXiv 1908.08067
+    key1_tan_theta_01 = normalised_anti_commuting_sets[1]['PauliWords'][1][1]/normalised_anti_commuting_sets[1]['PauliWords'][0][1] #B_k/B_s
+    key1_theta_01 = np.arctan(key1_tan_theta_01)
+    beta_S_k1_NEW = np.sqrt(normalised_anti_commuting_sets[1]['PauliWords'][0][1]**2 + normalised_anti_commuting_sets[1]['PauliWords'][1][1]**2) # B_s^2 + B_k^2
+
+    key1_tan_theta_02 = normalised_anti_commuting_sets[1]['PauliWords'][2][1]/beta_S_k1_NEW #B_k/B_s
+    key1_theta_02 = np.arctan(key1_tan_theta_02)
+    # beta_S_k2_NEW = np.sqrt(
+    #     beta_S_k1_NEW + normalised_anti_commuting_sets[1]['PauliWords'][2][
+    #         1] ** 2)
+    # NOT needed... but included for reference!
+
+    key2_tan_theta_01 =  normalised_anti_commuting_sets[2]['PauliWords'][1][1]/normalised_anti_commuting_sets[2]['PauliWords'][0][1] #B_k/B_s
+    key2_theta_01 = np.arctan(key2_tan_theta_01)
+    beta_S_k1_NEW = np.sqrt(
+        normalised_anti_commuting_sets[2]['PauliWords'][0][1] ** 2 + normalised_anti_commuting_sets[2]['PauliWords'][1][
+            1] ** 2)  # B_s^2 + B_k^2
+
+    key2_tan_theta_02 = normalised_anti_commuting_sets[2]['PauliWords'][2][1]/beta_S_k1_NEW #B_k/B_s
+    key2_theta_02 = np.arctan(key2_tan_theta_02)
+    beta_S_k2_NEW = np.sqrt(
+        beta_S_k1_NEW**2 + normalised_anti_commuting_sets[2]['PauliWords'][2][
+            1] ** 2)
+
+    key2_tan_theta_03 = normalised_anti_commuting_sets[2]['PauliWords'][3][1] / beta_S_k2_NEW  # B_k/B_s
+    key2_theta_03 = np.arctan(key2_tan_theta_03)
+    # beta_S_03_NEW = np.sqrt(
+    #     beta_S_k2_NEW + normalised_anti_commuting_sets[2]['PauliWords'][3][
+    #         1] ** 2)
+    # NOT needed... but included for reference!
 
     MANUAL_answer = {1:
                          [
                              {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                             ('Y0 X1 X2 Y3', (0.3198751585326103+0j))),
-                             'theta_sk': (FIND),
-                             'factor': (0.023655254019369937+0j)},
+                             ('Y0 X1 X2 Y3', (0.3198751585326103 + 0j))),
+                             'theta_sk': (key1_theta_01),
+                             'factor': (0.9999999999999999+0j)},
 
                              {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                             ('X0 I1 I2 I3', (0.3198751585326103+0j))),
-                             'theta_sk': (FIND),
-                              'factor': (0.023655254019369937+0j)}
+                             ('X0 I1 I2 I3', (0.3198751585326103 + 0j))),
+                             'theta_sk': (key1_theta_02),
+                              'factor': (0.9999999999999999+0j)}
                          ],
 
 
                 2:
                     [
-                        {'X_sk': (('I0 Z1 I2 I3', (-0.9355920202531878 + 0j)),
-                               ('Y0 Y1 X2 X3', (0.3530829529141257 + 0j))),
-                      'theta_sk': (FIND),
-                      'factor': (0.0194148993856907 + 0j)}
+                        {'X_sk': (('I0 Z1 I2 I3', (0.8283076631253103+0j)),
+                               ('Y0 Y1 X2 X3', (-0.2970916080263448+0j))),
+                      'theta_sk': (key2_theta_01),
+                      'factor': (1.2913940071756902+0j)},
+
+                        {'X_sk': (('I0 Z1 I2 I3', (0.8283076631253103+0j)),
+                                  ('I0 X1 I2 I3', (-0.2970916080263448+0j))),
+                         'theta_sk': (key2_theta_02),
+                         'factor': (1.2913940071756902+0j)},
+
+                        {'X_sk': (('I0 Z1 I2 I3', (0.8283076631253103 + 0j)),
+                                  ('X0 Y1 I2 I3', (0.37064749842475486+0j))),
+                         'theta_sk': (key2_theta_03),
+                         'factor': (1.2913940071756902+0j)}
+
                     ]
     }
 
-    assert MANUAL_answer == X_sk_and_theta_sk
+    X_sk_and_theta_sk = Get_X_sk_operators(normalised_anti_commuting_sets, S=S)
+
+
+
+    assert X_sk_and_theta_sk == MANUAL_answer
+
+
+# pp = Get_beta_j_cofactors({
+#     0: [('I0 I1 Z2 Z3', (1 + 0j))],
+#     1: [('Z0 I1 I2 I3', (0.8918294488900189 + 0j)),
+#         ('Y0 X1 X2 Y3', (0.3198751585326103 + 0j)),
+#         ('X0 I1 I2 I3', (0.3198751585326103 + 0j))],
+#
+#     2: [('I0 Z1 I2 I3', (0.9412848366792171 + 0j)),
+#         ('Y0 Y1 X2 X3', (-0.33761347164735517 + 0j)),
+#         ('I0 X1 I2 I3', (-0.33761347164735517 + 0j)),
+#         ('X0 Y1 I2 I3', (0.421202031023012301 + 0j))]
+# })
