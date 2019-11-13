@@ -7,6 +7,7 @@ import cirq
 import pytest
 # in terminal type: py.test -v
 
+###
 def test_State_Prep():
     """
     Standard use test
@@ -48,4 +49,7 @@ def test_State_Prep_incorrect_form_WITH_DECOMPOSE_METHOD():
 
     with pytest.raises(ValueError) as exc_info:
         assert exc_info is cirq.Circuit.from_ops(cirq.decompose_once(
-            (initial_state(*cirq.LineQubit.range(initial_state.n
+            (initial_state(*cirq.LineQubit.range(initial_state.num_qubits())))))
+
+
+###
