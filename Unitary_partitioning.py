@@ -187,7 +187,8 @@ def convert_X_sk(X_sk):
         'ZZ': (1,'I')
     }
 
-    new_constant = X_sk[0][1] * X_sk[1][1]
+    # arXiv 1908.08067 eq (11)
+    new_constant = 1j * X_sk[0][1] * X_sk[1][1]
 
     PauliWord_s = X_sk[0][0].split(' ')
     PauliWord_k = X_sk[1][0].split(' ')
@@ -635,7 +636,6 @@ if __name__ == '__main__':
     bb = Get_R_S_operators(X_sk_and_theta_sk)
     print(cirq.Circuit.from_ops(
        (bb[7][0][0](*cirq.LineQubit.range(bb[7][0][0].num_qubits())))))
-
 
 
 #
