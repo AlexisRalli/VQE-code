@@ -38,6 +38,7 @@ def test_Get_beta_j_cofactors_constants():
     Standard use case.
 
     Makes sure that factor can be used to re-gain old constant!
+    [old constant = (factor^0.5) * new_constant]
 
     :return:
     '''

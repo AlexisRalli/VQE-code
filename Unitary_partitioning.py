@@ -66,11 +66,11 @@ def Get_beta_j_cofactors(anti_commuting_sets):
     #                 new_anti_commuting_sets[key] = {'PauliWords': PauliWord, 'factor': constant}
     return new_anti_commuting_sets
 
-#test
-if __name__ == '__main__':
-    ll = Get_beta_j_cofactors(anti_commuting_sets)
-    print(ll[10]['PauliWords'])
-    print(ll[10]['factor'])
+##test
+# if __name__ == '__main__':
+#     ll = Get_beta_j_cofactors(anti_commuting_sets)
+#     print(ll[10]['PauliWords'])
+#     print(ll[10]['factor'])
 
 
 def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write function to select 'best' S term!
@@ -133,25 +133,19 @@ def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write functi
 
     return X_sk_and_theta_sk
 
-#test
-if __name__ == '__main__':
-    ww = Get_X_sk_operators(ll, S=0)
+# #test
+# if __name__ == '__main__':
+#     ww = Get_X_sk_operators(ll, S=0)
+#
+#     print(ww[7][0]['X_sk'])
+#     print(ww[7][0]['theta_sk'])
+#     print(ww[7][0]['factor'])
+#
+#     print(ww[7][1]['X_sk'])
+#     print(ww[7][1]['theta_sk'])
+#     print(ww[7][1]['factor'])
 
-    print(ww[7][0]['X_sk'])
-    print(ww[7][0]['theta_sk'])
-    print(ww[7][0]['factor'])
 
-    print(ww[7][1]['X_sk'])
-    print(ww[7][1]['theta_sk'])
-    print(ww[7][1]['factor'])
-
-
-## now have everything for eqn 15 and thus eqn 17!
-# 1. apply R_S gate
-# 2. Results in P_s being left over :)
-# 3. Maybe build this in Cirq!
-
-# do rest in cirq!
 
 def convert_X_sk(X_sk):
     """
@@ -222,41 +216,31 @@ def convert_X_sk(X_sk):
 
     return (new_PauliWord, new_constant_SIGN*new_constant)
 
-#test
+# #test
+# if __name__ == '__main__':
+#     print(convert_X_sk(ww[7][0]['X_sk']))
+
+
+class X_sk_terms():
+    def __init__(self,anti_commuting_sets, S=0):
+        self.anti_commuting_sets = anti_commuting_sets
+        self.S = S
+
+        self.normalised_anti_commuting_sets = None
+        self.X_sk_Ops = None
+
+    def Get_all_X_sk_operator(self):
+        if self.normalised_anti_commuting_sets == None:
+            self.normalised_anti_commuting_sets = Get_beta_j_cofactors(self.anti_commuting_sets)
+
+        if self.X_sk_Ops == None:
+            self.X_sk_Ops = Get_X_sk_operators(self.normalised_anti_commuting_sets, S=self.S)
+
+
 if __name__ == '__main__':
-    print(convert_X_sk(ww[7][0]['X_sk']))
-
-
-# def Get_R_S_operator(X_sk_and_theta_sk):
-#     # TODO --> This function is currently pointless (useful to see print statements!
-#     #          Will probably delete this!
-#     """
-#     Function takes in normalised_anti_commuting_sets and gets each R_sk operator according to
-#     eq (11) in ArXiv:1908.08067.
-#
-#     Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
-#
-#     :param X_sk_and_theta_sk: A dictionary of anti-commuting sets.
-#      Note this is a dictionary of dictionaries where one dict is a tuple of (PauliWord, Constant). The other is
-#      a dictionary containing the correction to the cofactor.
-#     :type normalised_anti_commuting_sets: dict
-#     ...
-#     :raises [ErrorType]: [ErrorDescription]
-#     ...
-#     :return: A dictionary containing each R_sk operators for each anti-commuting subset.
-#     :rtype: dict
-#     """
-#     for key in X_sk_and_theta_sk:
-#         for i in range(len(X_sk_and_theta_sk[key])):
-#             X_sk = X_sk_and_theta_sk[key][i]['X_sk']
-#             theta_sk = X_sk_and_theta_sk[key][i]['theta_sk']
-#             factor = X_sk_and_theta_sk[key][i]['factor']
-#             #print(X_sk, theta_sk, factor) # TODO build Q circuit from this info!
-#             print('X_sk: ', X_sk)
-#             print('theta_sk: ', theta_sk)
-#             print('factor: ', factor)
-#
-# Get_R_S_operator(ww)
+    All_X_sk_terms = X_sk_terms(anti_commuting_sets)
+    All_X_sk_terms.Get_all_X_sk_operator()
+    print(All_X_sk_terms.X_sk_Ops)
 
 import cirq
 
@@ -318,8 +302,8 @@ class Change_of_Basis_initial(cirq.Gate):
         return len(PauliWord)
 
 if __name__ == '__main__':
-    X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
-
+    #X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
     Basis_change_circuit = Change_of_Basis_initial(X_SK_Test)
@@ -375,7 +359,8 @@ class Engtangle_initial(cirq.Gate):
 
 
 if __name__ == '__main__':
-    X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    #X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
 
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
@@ -445,18 +430,17 @@ class R_sk_DAGGER(cirq.Gate):
         return string_list
 
 if __name__ == '__main__':
-    X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
-    theta_sk = ww[7][0]['theta_sk']
-
+    # X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    # theta_sk = ww[7][0]['theta_sk']
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    theta_sk = All_X_sk_terms.X_sk_Ops[7][0]['theta_sk']
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
-
 
     R_sk_rot_circuit = R_sk_DAGGER(X_SK_Test, theta_sk)
 
     print(cirq.Circuit.from_ops((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits())))))
     print(
         cirq.Circuit.from_ops(cirq.decompose_once((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits()))))))
-
 
 class Engtangle_final(cirq.Gate):
     def __init__(self, X_sk):
@@ -503,8 +487,8 @@ class Engtangle_final(cirq.Gate):
 
 
 if __name__ == '__main__':
-    X_SK_Test = ww[7][0]['X_sk']
-
+    #X_SK_Test = ww[7][0]['X_sk']
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
     Ent_final = Engtangle_final(X_SK_Test)
@@ -563,10 +547,10 @@ class R_sk_full_circuit(cirq.Gate):
 
 
 if __name__ == '__main__':
-    X_SK_Test = ww[7][0][
-        'X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
-    theta_sk = ww[7][0]['theta_sk']
-
+    # X_SK_Test = ww[7][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    # theta_sk = ww[7][0]['theta_sk']
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    theta_sk = All_X_sk_terms.X_sk_Ops[7][0]['theta_sk']
     # X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
     R_sk_full = R_sk_full_circuit(X_SK_Test, theta_sk)
@@ -645,7 +629,9 @@ def Get_R_S_operators(X_sk_and_theta_sk):
 
 
 if __name__ == '__main__':
-    X_sk_and_theta_sk = Get_X_sk_operators(ll, S=0)
+    # X_sk_and_theta_sk = Get_X_sk_operators(ll, S=0)
+
+    X_sk_and_theta_sk = All_X_sk_terms.X_sk_Ops
     bb = Get_R_S_operators(X_sk_and_theta_sk)
     print(cirq.Circuit.from_ops(
        (bb[7][0][0](*cirq.LineQubit.range(bb[7][0][0].num_qubits())))))
