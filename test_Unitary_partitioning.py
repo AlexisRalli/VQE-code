@@ -210,33 +210,39 @@ def test_convert_X_sk_normal():
 
     :return:
     """
+    # contains all Pauli relations:
     X_sk = (
               ('I0 I1 I2 I3 X4 X5 X6 X7 Y8 Y9 Y10 Y11 Z12 Z13 Z14 Z15', (0.8918294488900189+0j)),
               ('I0 X1 Y2 Z3 I4 X5 Y6 Z7 I8 X9 Y10 Z11 I12 X13 Y14 Z15', (0.3198751585326103+0j))
             )
 
-    New_PauliWord = convert_X_sk(X_sk)
-    # (cofactor, New_Pauli_string)  #QubitNo    #new constant
+    convert_term ={
+        'II': (1,'I'),
+        'IX': (1,'X'),
+        'IY': (1,'Y'),
+        'IZ': (1,'Z'),
 
+        'XI': (1,'X'),
+        'XX': (1,'I'),
+        'XY': (1j,'Z'),
+        'XZ': (-1j,'Y'),
+
+        'YI': (1,'Y'),
+        'YX': (-1j,'Z'),
+        'YY': (1,'I'),
+        'YZ': (1j,'X'),
+
+        'ZI': (1,'Z'),
+        'ZX': (1j,'Y'),
+        'ZY': (-1j,'X'),
+        'ZZ': (1,'I')
+    }
+    cofactor_SIGN = np.prod([Pauli_factor_string[0] for PauliCombo, Pauli_factor_string in convert_term.items()])
     cofactor = X_sk[0][1] * X_sk[1][1]
-    Correct_New_Pauli = [
-        ((1, 'I'), '0', cofactor),
-        ((1, 'X'), '1', cofactor),
-        ((1, 'Y'), '2', cofactor),
-        ((1, 'Z'), '3', cofactor),
-        ((1, 'X'), '4', cofactor),
-        ((1, 'I'), '5', cofactor),
-        ((1j, 'Z'), '6', cofactor),
-        (((-0 - 1j), 'Y'), '7', cofactor),
-        ((1, 'Y'), '8', cofactor),
-        (((-0 - 1j), 'Z'), '9', cofactor),
-        ((1, 'I'), '10', cofactor),
-        ((1j, 'X'), '11', cofactor),
-        ((1, 'Z'), '12', cofactor),
-        ((1j, 'Y'), '13', cofactor),
-        (((-0 - 1j), 'X'), '14', cofactor),
-        ((1, 'I'), '15', cofactor)
-                    ]
+
+    Correct_New_Pauli = ('I0 X1 Y2 Z3 X4 I5 Z6 Y7 Y8 Z9 I10 X11 Z12 Y13 X14 I15', cofactor * cofactor_SIGN)
+
+    New_PauliWord = convert_X_sk(X_sk)
     assert New_PauliWord == Correct_New_Pauli
 
 def test_convert_X_sk_non_pauli():

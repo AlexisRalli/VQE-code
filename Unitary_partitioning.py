@@ -161,20 +161,15 @@ def convert_X_sk(X_sk):
     :param X_sk:
 
     e.g. : (
-              ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-              ('Y0 X1 X2 Y3', (0.3198751585326103+0j))
+              ('Z0 I1 I2 I3', (0.8918294488900189+0j)), # P_s
+              ('Y0 X1 X2 Y3', (0.3198751585326103+0j))  # P_k
             )
 
-    :return: Returns a list of tuples containing  (new PauliString, qubitNo, new constant)
+    :return: Returns a list of tuples containing  (new PauliString, new constant)
     :rtype: list
 
-    e.g. [
-            (((-0-1j), 'X'),      '0',     (0.28527408634774526+0j)),
-            ((1, 'X'),            '1',     (0.28527408634774526+0j)),
-            ((1, 'X'),            '2',     (0.28527408634774526+0j)),
-            ((1, 'Y'),            '3',     (0.28527408634774526+0j))
-         ]
-    (cofactor, New_Pauli_string)  #QubitNo    #new constant
+    e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
+
     """
     convert_term ={
         'II': (1,'I'),
@@ -200,27 +195,32 @@ def convert_X_sk(X_sk):
 
     new_constant = X_sk[0][1] * X_sk[1][1]
 
-    P_s = X_sk[0][0].split(' ')
-    P_k = X_sk[1][0].split(' ')
+    PauliWord_s = X_sk[0][0].split(' ')
+    PauliWord_k = X_sk[1][0].split(' ')
 
-    new_Pauli_terms = []
-    for i in range(len(P_s)):
-        qubitNo = P_s[i][1::]
+    new_PauliWord = []
+    for i in range(len(PauliWord_s)):
+        qubitNo = PauliWord_s[i][1::]
 
-        PauliString_s =  P_s[i][0]
-        PauliString_k = P_k[i][0]
+        if qubitNo == PauliWord_k[i][1::]:
+            PauliString_s =  PauliWord_s[i][0]
+            PauliString_k = PauliWord_k[i][0]
 
-        term = PauliString_s + PauliString_k
+            term = PauliString_s + PauliString_k
 
-        try:
-            new_Pauli = (convert_term[term], qubitNo, new_constant)
-            new_Pauli_terms.append(new_Pauli)
-        except:
-            raise KeyError('Cannot combine: {}, as contains Non-Pauli operators'.format(term))
+            try:
+                new_PauliString = convert_term[term]
+                new_PauliWord.append((new_PauliString, qubitNo))
+            except:
+                raise KeyError('Cannot combine: {}, as contains Non-Pauli operators'.format(term))
+        else:
+            raise ValueError('qubit indexes do Not match. P_s index = {} and P_k index = {}'.format(qubitNo, PauliWord_k[i][1::]))
 
+    new_constant_SIGN = np.prod([factorpaulistring[0] for factorpaulistring, qubitNo in new_PauliWord])
+    seperator = ' '
+    new_PauliWord = seperator.join([factorpaulistring[1] + qubitNo for factorpaulistring, qubitNo in new_PauliWord])
 
-    return new_Pauli_terms
-
+    return (new_PauliWord, new_constant_SIGN*new_constant)
 
 #test
 if __name__ == '__main__':
@@ -274,14 +274,8 @@ class Change_of_Basis_initial(cirq.Gate):
                         ('Y0 X1 X2 Y3', (0.3198751585326103+0j))
                     )
 
-        Run convert_X_sk function... giving:
-        e.g. [
-                (((-0-1j), 'X'),      '0',     (0.28527408634774526+0j)),
-                ((1, 'X'),            '1',     (0.28527408634774526+0j)),
-                ((1, 'X'),            '2',     (0.28527408634774526+0j)),
-                ((1, 'Y'),            '3',     (0.28527408634774526+0j))
-             ]
-        (cofactor, New_Pauli_string)  #QubitNo    #new constant
+        Run convert_X_sk function... giving single term:
+        e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
 
         Then build circuit!
 
@@ -297,11 +291,12 @@ class Change_of_Basis_initial(cirq.Gate):
 
     def _decompose_(self, qubits):
 
-        for PauliString in self.X_sk_converted_to_PauliWord:
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
 
-            Pauli_factor, qubitOp = PauliString[0]
-            qubitNo =  int(PauliString[1])          # <-- NEED TO MAKE THIS AN INTEGER!
-            #new_constant =  PauliString[2]
+        for PauliString in PauliWord:
+            qubitOp = PauliString[0]
+            qubitNo = int(PauliString[1::])
+
             if qubitOp == 'X':
                 yield cirq.H(qubits[qubitNo])
             elif qubitOp == 'Y':
@@ -312,14 +307,15 @@ class Change_of_Basis_initial(cirq.Gate):
                 raise ValueError("Qubit Operation: {} is NOT a Pauli operation".format(qubitOp))
 
     def _circuit_diagram_info_(self, args):
-
         Ansatz_basis_change_list = []
-        for i in range(len(self.X_sk_converted_to_PauliWord)):
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        for i in range(len(PauliWord)):
                 Ansatz_basis_change_list.append('Basis_change')
         return Ansatz_basis_change_list
 
     def num_qubits(self):
-        return len(self.X_sk_converted_to_PauliWord)
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        return len(PauliWord)
 
 if __name__ == '__main__':
     X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
@@ -350,9 +346,10 @@ class Engtangle_initial(cirq.Gate):
 
     def _decompose_(self, qubits):
 
-        # note identity  terms removed here
-        qubitNo_qubitOp_list = [(int(self.X_sk_converted_to_PauliWord[k][1]), self.X_sk_converted_to_PauliWord[k][0][1])
-                                for k in range(len(self.X_sk_converted_to_PauliWord)) if self.X_sk_converted_to_PauliWord[k][0][1] != 'I']
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+
+        # note identity terms removed here
+        qubitNo_qubitOp_list = [(int(PauliString[1::]), PauliString[0]) for PauliString in PauliWord if PauliString[0] != 'I']
 
         control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list])
 
@@ -365,16 +362,16 @@ class Engtangle_initial(cirq.Gate):
 
 
     def _circuit_diagram_info_(self, args):
-
-        qubitNo_qubitOp_list = [(int(self.X_sk_converted_to_PauliWord[k][1]), self.X_sk_converted_to_PauliWord[k][0][1]) for k in range(len(self.X_sk_converted_to_PauliWord))]
         string_list = []
-        for i in range(len(qubitNo_qubitOp_list)):
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        for i in range(len(PauliWord)):
                 string_list.append('Entangling circuit')
         return string_list
 
 
     def num_qubits(self):
-        return len(self.X_sk_converted_to_PauliWord)
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        return len(PauliWord)
 
 
 if __name__ == '__main__':
@@ -409,14 +406,8 @@ class R_sk_DAGGER(cirq.Gate):
                     ('Y0 X1 X2 Y3', (0.3198751585326103+0j))
                 )
 
-    Run convert_X_sk function... giving:
-    e.g. [
-            (((-0-1j), 'X'),      '0',     (0.28527408634774526+0j)),
-            ((1, 'X'),            '1',     (0.28527408634774526+0j)),
-            ((1, 'X'),            '2',     (0.28527408634774526+0j)),
-            ((1, 'Y'),            '3',     (0.28527408634774526+0j))
-         ]
-    (cofactor, New_Pauli_string)  #QubitNo    #new constant
+        Run convert_X_sk function... giving single term:
+        e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
 
     ...
     :raises [ErrorType]: [ErrorDescription]
@@ -433,31 +424,25 @@ class R_sk_DAGGER(cirq.Gate):
 
     def _decompose_(self, qubits):
 
-        # note identity  terms removed here
-        qubitNo_qubitOp_list = [(int(self.X_sk_converted_to_PauliWord[k][1]), self.X_sk_converted_to_PauliWord[k][0][1])
-                                for k in range(len(self.X_sk_converted_to_PauliWord)) if self.X_sk_converted_to_PauliWord[k][0][1] != 'I']
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
 
-        # qubitNo_qubitOp_PauliFactor_list = [(int(self.X_sk_converted_to_PauliWord[k][1]),
-        #                                      self.X_sk_converted_to_PauliWord[k][0][1],
-        #                                      self.X_sk_converted_to_PauliWord[k][0][0]) ## <-- TODO look at this PauliFactor... e.g. (((-0-1j), 'X') first part! May use to correct Rz rotation here (or can do post)
-        #                                     for k in range(len(self.X_sk_converted_to_PauliWord)) if
-        #                                     self.X_sk_converted_to_PauliWord[k][0][1] != 'I']
+        # note identity terms removed here
+        qubitNo_qubitOp_list = [(int(PauliString[1::]), PauliString[0]) for PauliString in PauliWord if PauliString[0] != 'I']
 
         control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list])
 
         yield cirq.Rz(self.theta_sk).on(qubits[control_qubit])
 
     def num_qubits(self):
-        return len(self.X_sk_converted_to_PauliWord)
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        return len(PauliWord)
 
     def _circuit_diagram_info_(self, args):
-
-        qubitNo_qubitOp_list = [(int(self.X_sk_converted_to_PauliWord[k][1]), self.X_sk_converted_to_PauliWord[k][0][1]) for k in range(len(self.X_sk_converted_to_PauliWord))]
         string_list = []
-        for i in range(len(qubitNo_qubitOp_list)):
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        for i in range(len(PauliWord)):
                 string_list.append('R_sk_rotation circuit')
         return string_list
-
 
 if __name__ == '__main__':
     X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
@@ -489,9 +474,10 @@ class Engtangle_final(cirq.Gate):
 
     def _decompose_(self, qubits):
 
-        # note identity  terms removed here
-        qubitNo_qubitOp_list_REVERSE = [(int(self.X_sk_converted_to_PauliWord[k][1]), self.X_sk_converted_to_PauliWord[k][0][1])
-                                for k in range(len(self.X_sk_converted_to_PauliWord)) if self.X_sk_converted_to_PauliWord[k][0][1] != 'I'][::-1]
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+
+        # note identity terms removed here
+        qubitNo_qubitOp_list_REVERSE = [(int(PauliString[1::]), PauliString[0]) for PauliString in PauliWord if PauliString[0] != 'I'][::-1]
 
         control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list_REVERSE])
 
@@ -504,16 +490,16 @@ class Engtangle_final(cirq.Gate):
 
 
     def _circuit_diagram_info_(self, args):
-
-        qubitNo_qubitOp_list = [(int(self.X_sk_converted_to_PauliWord[k][1]), self.X_sk_converted_to_PauliWord[k][0][1]) for k in range(len(self.X_sk_converted_to_PauliWord))]
         string_list = []
-        for i in range(len(qubitNo_qubitOp_list)):
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        for i in range(len(PauliWord)):
                 string_list.append('Entangling circuit')
         return string_list
 
 
     def num_qubits(self):
-        return len(self.X_sk_converted_to_PauliWord)
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        return len(PauliWord)
 
 
 if __name__ == '__main__':
@@ -565,16 +551,15 @@ class R_sk_full_circuit(cirq.Gate):
 
 
     def _circuit_diagram_info_(self, args):
-
-        qubitNo_qubitOp_list = [(int(self.X_sk_converted_to_PauliWord[k][1]), self.X_sk_converted_to_PauliWord[k][0][1]) for k in range(len(self.X_sk_converted_to_PauliWord))]
         string_list = []
-        for i in range(len(qubitNo_qubitOp_list)):
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        for i in range(len(PauliWord)):
                 string_list.append('R_sk_circuit')
         return string_list
 
-
     def num_qubits(self):
-        return len(self.X_sk_converted_to_PauliWord)
+        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        return len(PauliWord)
 
 
 if __name__ == '__main__':
@@ -606,38 +591,39 @@ def Get_R_S_operators(X_sk_and_theta_sk):
     :type X_sk_and_theta_sk: dict
 
     e.g.
-    {
-         7: [{'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-            ('Y0 X1 X2 Y3', (0.3198751585326103+0j))),
-           'theta_sk': (0.34438034648829496+0j),
-           'factor': (0.023655254019369937+0j)},
-            {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-            ('X0 I1 I2 I3', (0.3198751585326103+0j))),
-           'theta_sk': (0.325597719954341+0j),
-           'factor': (0.023655254019369937+0j)}],
-         8: [{'X_sk': (('I0 Z1 I2 I3', (0.9412848366792171+0j)),
-            ('Y0 Y1 X2 X3', (-0.33761347164735517+0j))),
-           'theta_sk': (-0.344380346488295+0j),
-           'factor': (0.021234845659348932+0j)}],
-         9: [{'X_sk': (('I0 I1 Z2 I3', (-0.9355920202531878+0j)),
-            ('X0 X1 Y2 Y3', (-0.3530829529141257+0j))),
-           'theta_sk': (0.36086425264176164-0j),
-           'factor': (0.0194148993856907+0j)}],
-         10: [{'X_sk': (('I0 I1 I2 Z3', (-0.9355920202531878+0j)),
-            ('X0 Y1 Y2 X3', (0.3530829529141257+0j))),
-           'theta_sk': (-0.36086425264176164-0j),
-           'factor': (0.0194148993856907+0j)}]}
+        {
+            7: [
+                { 'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))),
+                  'theta_sk': (0.34438034648829496+0j),
+                  'factor': (0.023655254019369937+0j)},
+                { 'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('X0 I1 I2 I3', (0.3198751585326103+0j))),
+                  'theta_sk': (0.325597719954341+0j),
+                  'factor': (0.023655254019369937+0j)}
+               ],
+
+             8: [{'X_sk': (('I0 Z1 I2 I3', (0.9412848366792171+0j)), ('Y0 Y1 X2 X3', (-0.33761347164735517+0j))),
+               'theta_sk': (-0.344380346488295+0j),
+               'factor': (0.021234845659348932+0j)}],
+             9: [{'X_sk': (('I0 I1 Z2 I3', (-0.9355920202531878+0j)),
+                ('X0 X1 Y2 Y3', (-0.3530829529141257+0j))),
+               'theta_sk': (0.36086425264176164-0j),
+               'factor': (0.0194148993856907+0j)}],
+             10: [{'X_sk': (('I0 I1 I2 Z3', (-0.9355920202531878+0j)),
+                ('X0 Y1 Y2 X3', (0.3530829529141257+0j))),
+               'theta_sk': (-0.36086425264176164-0j),
+               'factor': (0.0194148993856907+0j)}]
+           }
 
     :return: dictionary of R_sk circuits with corresponding correction factor
     :rtype: dict
     e.g.
-    {
-         7: [(<__main__.R_sk_full_circuit at 0x7f11771468d0>,  (0.023655254019369937+0j)),
-             (<__main__.R_sk_full_circuit at 0x7f1177146a90>,  (0.023655254019369937+0j))],
-         8: [(<__main__.R_sk_full_circuit at 0x7f1177146b38>,  (0.021234845659348932+0j))],
-         9: [(<__main__.R_sk_full_circuit at 0x7f1177146b70>,  (0.0194148993856907+0j))],
-         10: [(<__main__.R_sk_full_circuit at 0x7f1177146ba8>, (0.0194148993856907+0j))]
-    }
+        {
+           7: [(<__main__.R_sk_full_circuit at 0x7effdcb95cc0>,  (0.023655254019369937+0j)),
+               (<__main__.R_sk_full_circuit at 0x7effdcb95b00>,     (0.023655254019369937+0j))],
+           8: [(<__main__.R_sk_full_circuit at 0x7effdcb95ba8>,  (0.021234845659348932+0j))],
+           9: [(<__main__.R_sk_full_circuit at 0x7effdcb95e80>,  (0.0194148993856907+0j))],
+           10: [(<__main__.R_sk_full_circuit at 0x7effdcb959b0>, (0.0194148993856907+0j))]
+        }
     """
     output_circuits={}
     for key in X_sk_and_theta_sk:
