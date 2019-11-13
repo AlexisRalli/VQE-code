@@ -269,9 +269,47 @@ def JW_transform(T_Terms, T_dagger_terms):
     return T_Term_paulis
 
 
-def Reformat_Pauli_terms(T_Term_Paulis):
+# def Reformat_Pauli_terms(T_Term_Paulis):
+#     """
+#      Input is list of T Pauli QubitOperators. Output is list of lists to turn into quantum circuit.
+#
+#      e.g.
+#      input (type = QubitOperator)
+#      [
+#         -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
+#         -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
+#      ]
+#
+#      output (type = list of lists, where inner list is QubitOperator)
+#     [
+#          [0.125j [Y0 Z1 X2], -0.125j [X0 Z1 Y2]],
+#          [0.125j [Y1 Z2 X3], -0.125j [X1 Z2 Y3]]
+#     ]
+#     :param T_Term_Paulis: A list containing QubitOperator (OpenFermion) for each T term
+#     :type T_Term_Paulis: list
+#
+#
+#     ...
+#     :raises [ErrorType]: [ErrorDescription]
+#     ...
+#     :return: A list of lists, where each term in list is QubitOperator (openfermion)
+#     :rtype: list
+#
+#
+#     """
+#
+#     Complete_Operation_list = []
+#     for term in T_Term_Paulis:
+#         sub_term_list = list(term)
+#         QubitOperatorSubList = [sub_term for sub_term in sub_term_list]
+#         Complete_Operation_list.append(QubitOperatorSubList)
+#     return Complete_Operation_list
+
+
+def Reformat_Pauli_terms(T_Terms_Paulis):
     """
-     Input is list of T Pauli QubitOperators. Output is list of lists to turn into quantum circuit.
+     Input is list of (T Pauli) QubitOperators. Output is list of lists of PauliWords with factors
+     to turn into quantum circuit.
 
      e.g.
      input (type = QubitOperator)
@@ -280,14 +318,14 @@ def Reformat_Pauli_terms(T_Term_Paulis):
         -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
      ]
 
-     output (type = list of lists, where inner list is QubitOperator)
+     output list of lists... where inner list contains (PauliWord, factor)
     [
-         [0.125j [Y0 Z1 X2], -0.125j [X0 Z1 Y2]],
-         [0.125j [Y1 Z2 X3], -0.125j [X1 Z2 Y3]]
-    ]
+         [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
+         [('Y1 Z2 X3', 0.125j), ('X1 Z2 Y3', -0.125j)]
+     ]
+
     :param T_Term_Paulis: A list containing QubitOperator (OpenFermion) for each T term
     :type T_Term_Paulis: list
-
 
     ...
     :raises [ErrorType]: [ErrorDescription]
@@ -298,12 +336,16 @@ def Reformat_Pauli_terms(T_Term_Paulis):
 
     """
 
-    Complete_Operation_list = []
-    for term in T_Term_Paulis:
-        sub_term_list = list(term)
-        QubitOperatorSubList = [sub_term for sub_term in sub_term_list]
-        Complete_Operation_list.append(QubitOperatorSubList)
-    return Complete_Operation_list
+    PauliWord_list = []
+    for T_term in T_Terms_Paulis:
+        temp_list = []
+        for qubitNo_qubitOp, constant in T_term.terms.items():
+            PauliStrings = [var[1] + str(var[0]) for var in qubitNo_qubitOp]
+            seperator = ' '
+            PauliWord = seperator.join(PauliStrings)
+            temp_list.append((PauliWord, constant))
+        PauliWord_list.append(temp_list)
+    return PauliWord_list
 
 
 
@@ -316,8 +358,6 @@ def Reformat_Pauli_terms(T_Term_Paulis):
 #         x = [key for key in PauliString.terms]
 #         Pauli_Word_list.append(*x)
 #     print(Pauli_Word_list)
-
-
 
 
 
