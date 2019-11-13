@@ -1,4 +1,8 @@
-from Ansatz_Circuit_Functions import *
+if __name__ == '__main__':
+    from VQE_methods.Ansatz_Circuit_Functions import *
+else:
+    from .VQE_methods.Ansatz_Circuit_Functions import *
+
 import cirq
 import pytest
 # in terminal type: py.test -v

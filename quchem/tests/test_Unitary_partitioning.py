@@ -1,4 +1,9 @@
-from Unitary_partitioning import *
+if __name__ == '__main__':
+    from VQE_methods.Unitary_partitioning import *
+else:
+    from .VQE_methods.Unitary_partitioning import *
+
+
 import pytest
 import numpy as np
 # in Terminal run (LINUX!):
@@ -239,7 +244,7 @@ def test_convert_X_sk_normal():
         'ZZ': (1,'I')
     }
     cofactor_SIGN = np.prod([Pauli_factor_string[0] for PauliCombo, Pauli_factor_string in convert_term.items()])
-    cofactor = X_sk[0][1] * X_sk[1][1]
+    cofactor = 1j * X_sk[0][1] * X_sk[1][1]
 
     Correct_New_Pauli = ('I0 X1 Y2 Z3 X4 I5 Z6 Y7 Y8 Z9 I10 X11 Z12 Y13 X14 I15', cofactor * cofactor_SIGN)
 

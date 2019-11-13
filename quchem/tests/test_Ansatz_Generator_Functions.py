@@ -1,4 +1,9 @@
-from Ansatz_Generator_Functions import *
+if __name__ == '__main__':
+    from VQE_methods.Ansatz_Generator_Functions import *
+else:
+    from .VQE_methods.Ansatz_Generator_Functions import *
+
+
 import pytest
 # in Terminal run (LINUX!):
 # py.test /home/alexisr/Documents/PhD/Code/PhD\ Code/test_Ansatz_Circuit_Functions.py

@@ -1,7 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-from tqdm import tqdm
+#from tqdm import tqdm
 
 class BuildGraph_string():
 

@@ -1,4 +1,9 @@
-from Graph import BuildGraph
+if __name__ == '__main__':
+    from VQE_methods.Graph import BuildGraph_string
+else:
+    from .VQE_methods.Graph import BuildGraph_string
+
+
 import pytest
 
 PauliWords = [[(0, 'I'), (1, 'I'), (2, 'I'), (3, 'I')],
@@ -39,7 +44,7 @@ def test_Get_nodes_terms_as_indices():
     :return:
     '''
 
-    graph = BuildGraph(PauliWords, indices)
+    graph = BuildGraph_string(PauliWords, indices)
     graph.Build_index_nodes()
 
     node_index_set = [j for j in range(len(PauliWords))]

@@ -1,5 +1,8 @@
 import cirq
-from Ansatz_Generator_Functions import *
+if __name__ == '__main__':
+    from Ansatz_Generator_Functions import *
+else:
+    from .Ansatz_Generator_Functions import *
 
 class State_Prep(cirq.Gate):
 
