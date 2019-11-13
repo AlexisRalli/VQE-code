@@ -338,11 +338,12 @@ class Engtangle_initial(cirq.Gate):
 
         control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list])
 
-
-        for qubitNo, qubitOp in qubitNo_qubitOp_list:
+        for j in range(len(qubitNo_qubitOp_list)):
+            qubitNo = qubitNo_qubitOp_list[j][0]
+            #qubitOp = qubitNo_qubitOp_list[j][1]
 
             if qubitNo < control_qubit:
-                qubitNo_NEXT = qubitNo_qubitOp_list[qubitNo + 1][0]
+                qubitNo_NEXT = qubitNo_qubitOp_list[j + 1][0]
                 yield cirq.CNOT(qubits[qubitNo], qubits[qubitNo_NEXT])
 
 
