@@ -119,6 +119,7 @@ def test_Get_X_sk_operators_THETA_sk_values():
     """
     S = 0
 
+
     normalised_anti_commuting_sets ={
          0: {'PauliWords': [('I0 I1 Z2 Z3', (1 + 0j))],
              'factor': (1+0j)},
@@ -168,21 +169,23 @@ def test_Get_X_sk_operators_THETA_sk_values():
     #         1] ** 2)
     # NOT needed... but included for reference!
 
-    MANUAL_answer = {1:
-                         [
-                             {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                             ('Y0 X1 X2 Y3', (0.3198751585326103 + 0j))),
-                             'theta_sk': (key1_theta_01),
-                             'factor': (0.9999999999999999+0j)},
+    MANUAL_answer = {1: {'X_sk_theta_sk':
+                                             [
+                                                 {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
+                                                 ('Y0 X1 X2 Y3', (0.3198751585326103 + 0j))),
+                                                 'theta_sk': (key1_theta_01),
+                                                 'factor': (0.9999999999999999+0j)},
 
-                             {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                             ('X0 I1 I2 I3', (0.3198751585326103 + 0j))),
-                             'theta_sk': (key1_theta_02),
-                              'factor': (0.9999999999999999+0j)}
-                         ],
+                                                 {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
+                                                 ('X0 I1 I2 I3', (0.3198751585326103 + 0j))),
+                                                 'theta_sk': (key1_theta_02),
+                                                  'factor': (0.9999999999999999+0j)}
+                                             ],
+                        'PauliWord_S':     normalised_anti_commuting_sets[1]['PauliWords'][S]
+                        },
 
 
-                2:
+                2:  { 'X_sk_theta_sk':
                     [
                         {'X_sk': (('I0 Z1 I2 I3', (0.8283076631253103+0j)),
                                ('Y0 Y1 X2 X3', (-0.2970916080263448+0j))),
@@ -199,7 +202,9 @@ def test_Get_X_sk_operators_THETA_sk_values():
                          'theta_sk': (key2_theta_03),
                          'factor': (1.2913940071756902+0j)}
 
-                    ]
+                    ],
+                    'PauliWord_S': normalised_anti_commuting_sets[2]['PauliWords'][S]
+                }
     }
 
     X_sk_and_theta_sk = Get_X_sk_operators(normalised_anti_commuting_sets, S=S)

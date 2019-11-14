@@ -129,7 +129,7 @@ def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write functi
 
                 Op_list.append({'X_sk': X_sk_op, 'theta_sk': theta_sk, 'factor': normalised_anti_commuting_sets[key]['factor']})
 
-            X_sk_and_theta_sk.update({key: Op_list})
+            X_sk_and_theta_sk.update({key: {'X_sk_theta_sk': Op_list, 'PauliWord_S': anti_commuting_set[S]}})
 
     return X_sk_and_theta_sk
 
@@ -137,13 +137,13 @@ def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write functi
 # if __name__ == '__main__':
 #     ww = Get_X_sk_operators(ll, S=0)
 #
-#     print(ww[7][0]['X_sk'])
-#     print(ww[7][0]['theta_sk'])
-#     print(ww[7][0]['factor'])
+#     print(ww[7]['X_sk_theta_sk'][0]['X_sk'])
+#     print(ww[7]['X_sk_theta_sk'][0]['theta_sk'])
+#     print(ww[7]['X_sk_theta_sk'][0]['factor'])
 #
-#     print(ww[7][1]['X_sk'])
-#     print(ww[7][1]['theta_sk'])
-#     print(ww[7][1]['factor'])
+#     print(ww[7]['X_sk_theta_sk'][1]['X_sk'])
+#     print(ww[7]['X_sk_theta_sk'][1]['theta_sk'])
+#     print(ww[7]['X_sk_theta_sk'][1]['factor'])
 
 
 
@@ -219,7 +219,7 @@ def convert_X_sk(X_sk):
 
 # #test
 # if __name__ == '__main__':
-#     print(convert_X_sk(ww[7][0]['X_sk']))
+#     print(convert_X_sk(ww[7]['X_sk_theta_sk'][0]['X_sk']))
 
 
 class X_sk_terms():
@@ -304,7 +304,7 @@ class Change_of_Basis_initial(cirq.Gate):
 
 if __name__ == '__main__':
     #X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
-    X_SK_Test = All_X_sk_terms.X_sk_Ops[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
     Basis_change_circuit = Change_of_Basis_initial(X_SK_Test)
@@ -362,7 +362,7 @@ class Engtangle_initial(cirq.Gate):
 
 if __name__ == '__main__':
     #X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
-    X_SK_Test = All_X_sk_terms.X_sk_Ops[7][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
 
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
@@ -434,8 +434,8 @@ class R_sk_DAGGER(cirq.Gate):
 if __name__ == '__main__':
     # X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
     # theta_sk = ww[7][0]['theta_sk']
-    X_SK_Test = All_X_sk_terms.X_sk_Ops[7][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
-    theta_sk = All_X_sk_terms.X_sk_Ops[7][0]['theta_sk']
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    theta_sk = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['theta_sk']
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
     R_sk_rot_circuit = R_sk_DAGGER(X_SK_Test, theta_sk)
@@ -490,7 +490,7 @@ class Engtangle_final(cirq.Gate):
 
 if __name__ == '__main__':
     #X_SK_Test = ww[7][0]['X_sk']
-    X_SK_Test = All_X_sk_terms.X_sk_Ops[7][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
     Ent_final = Engtangle_final(X_SK_Test)
@@ -551,8 +551,8 @@ class R_sk_full_circuit(cirq.Gate):
 if __name__ == '__main__':
     # X_SK_Test = ww[7][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
     # theta_sk = ww[7][0]['theta_sk']
-    X_SK_Test = All_X_sk_terms.X_sk_Ops[7][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
-    theta_sk = All_X_sk_terms.X_sk_Ops[7][0]['theta_sk']
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    theta_sk = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['theta_sk']
     # X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
     R_sk_full = R_sk_full_circuit(X_SK_Test, theta_sk)
@@ -614,7 +614,7 @@ def Get_R_S_operators(X_sk_and_theta_sk):
     output_circuits={}
     for key in X_sk_and_theta_sk:
         list_generators = []
-        for terms in X_sk_and_theta_sk[key]:
+        for terms in X_sk_and_theta_sk[key]['X_sk_theta_sk']:
             R_s_k_circuit_instance = R_sk_full_circuit(terms['X_sk'], terms['theta_sk'])
 
             correction_factor = terms['factor']
