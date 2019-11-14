@@ -361,3 +361,244 @@ if __name__ == '__main__':
     print(
         cirq.Circuit.from_ops(
             cirq.decompose_once((full_Oper(*cirq.LineQubit.range(full_Oper.num_qubits()))))))
+
+
+class Perform_PauliWord(cirq.Gate):
+    def __init__(self, PauliWord_and_cofactor):
+        """
+        NOTE this is NOT the exponentiated operator: e^(-i theta/2 PAULI)
+
+        This class builds a quantum circuit that performs a PauliWord
+
+        :param PauliWord_and_cofactor: (PauliWord, constant)
+        :type PauliWord_and_cofactor: tuple
+
+        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
+
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: A circuit object to be used by cirq.Circuit.from_ops
+        :rtype: class
+       """
+
+        self.PauliWord_and_cofactor = PauliWord_and_cofactor
+
+    def _decompose_(self, qubits):
+
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+
+        for PauliString in PauliWord:
+            qubitOp = PauliString[0]
+            qubitNo = int(PauliString[1::])
+
+            if qubitOp == 'X':
+                yield cirq.X(qubits[qubitNo])
+            elif qubitOp == 'Y':
+                 yield cirq.Y(qubits[qubitNo])
+            elif qubitOp == 'Z':
+                yield cirq.Z(qubits[qubitNo])
+            elif qubitOp == 'I':
+                continue
+            else:
+                raise ValueError("Qubit Operation: {} is NOT a Pauli operation".format(qubitOp))
+
+    def _circuit_diagram_info_(self, args):
+        string_list = []
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        for i in range(len(PauliWord)):
+                string_list.append(' Performing_PauliWord ')
+        return string_list
+
+    def num_qubits(self):
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        return len(PauliWord)
+
+if __name__ == '__main__':
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+    Pauilword_circuit = Perform_PauliWord(PauliWord_test)
+
+    print(cirq.Circuit.from_ops((Pauilword_circuit(*cirq.LineQubit.range(Pauilword_circuit.num_qubits())))))
+    print(
+        cirq.Circuit.from_ops(
+            cirq.decompose_once((Pauilword_circuit(*cirq.LineQubit.range(Pauilword_circuit.num_qubits()))))))
+
+
+class Change_Basis_to_Measure_PauliWord(cirq.Gate):
+    def __init__(self, PauliWord_and_cofactor):
+        """
+        NOTE this is NOT the exponentiated operator: e^(-i theta/2 PAULI)
+
+        This class builds a quantum circuit that performs a PauliWord
+
+        :param PauliWord_and_cofactor: (PauliWord, constant)
+        :type PauliWord_and_cofactor: tuple
+
+        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
+
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: A circuit object to be used by cirq.Circuit.from_ops
+        :rtype: class
+       """
+
+        self.PauliWord_and_cofactor = PauliWord_and_cofactor
+
+    def _decompose_(self, qubits):
+
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+
+        for PauliString in PauliWord:
+            qubitOp = PauliString[0]
+            qubitNo = int(PauliString[1::])
+
+            if qubitOp == 'X':
+                yield cirq.H(qubits[qubitNo])
+            elif qubitOp == 'Y':
+                yield (cirq.S**-1)(qubits[qubitNo])
+            elif qubitOp == 'Z':
+                continue
+            elif qubitOp == 'I':
+                continue
+            else:
+                raise ValueError("Qubit Operation: {} is NOT a Pauli operation".format(qubitOp))
+
+    def _circuit_diagram_info_(self, args):
+        string_list = []
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        for i in range(len(PauliWord)):
+            string_list.append(' Changing_Basis_to_Measure_PauliWord ')
+        return string_list
+
+    def num_qubits(self):
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        return len(PauliWord)
+
+class Measure_PauliWord(cirq.Gate):
+    def __init__(self, PauliWord_and_cofactor):
+        """
+        NOTE this is NOT the exponentiated operator: e^(-i theta/2 PAULI)
+
+        This class builds a quantum circuit that performs a PauliWord
+
+        :param PauliWord_and_cofactor: (PauliWord, constant)
+        :type PauliWord_and_cofactor: tuple
+
+        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
+
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: A circuit object to be used by cirq.Circuit.from_ops
+        :rtype: class
+       """
+
+        self.PauliWord_and_cofactor = PauliWord_and_cofactor
+
+    def _decompose_(self, qubits):
+
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+
+        qubits_to_measure = []  # list of line qubits to measure!
+        list_of_qubitNo_to_measure = []
+        for PauliString in PauliWord:
+            qubitOp = PauliString[0]
+            qubitNo = int(PauliString[1::])
+
+            if qubitOp in ['X', 'Y', 'Z']:
+                qubits_to_measure.append(qubits[qubitNo])
+                list_of_qubitNo_to_measure.append(str(qubitNo))
+            elif qubitOp == 'I':
+                continue
+            else:
+                raise ValueError("Qubit Operation: {} is NOT a Pauli operation".format(qubitOp))
+
+        string = ','.join(list_of_qubitNo_to_measure)
+
+        # note to use cirq.measurementgate...
+        # need string = '0,1,2,3'
+        # qubits to measure =  [cirq.LineQubit(0), cirq.LineQubit(1), cirq.LineQubit(2), cirq.LineQubit(3)]
+
+        yield cirq.MeasurementGate(string, ()).on(*qubits_to_measure)
+
+
+
+    def _circuit_diagram_info_(self, args):
+        string_list = []
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        for i in range(len(PauliWord)):
+            string_list.append(' Measuring_PauliWord ')
+        return string_list
+
+    def num_qubits(self):
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        return len(PauliWord)
+
+if __name__ == '__main__':
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+    Pauilword_Measure_circuit = Measure_PauliWord(PauliWord_test)
+
+    #print(cirq.Circuit.from_ops((Pauilword_Measure_circuit(*cirq.LineQubit.range(Pauilword_Measure_circuit.num_qubits())))))
+    print(
+        cirq.Circuit.from_ops(
+            cirq.decompose_once((Pauilword_Measure_circuit(*cirq.LineQubit.range(Pauilword_Measure_circuit.num_qubits()))))))
+
+class Perform_PauliWord_and_Measure(cirq.Gate):
+    def __init__(self, PauliWord_and_cofactor):
+        """
+        blah
+
+        :param PauliWord_and_cofactor: (PauliWord, constant)
+        :type PauliWord_and_cofactor: tuple
+
+        :param theta: angle to rotate by
+        :type theta: float
+
+        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
+
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: A circuit object to be used by cirq.Circuit.from_ops
+        :rtype: class
+       """
+        self.PauliWord_and_cofactor = PauliWord_and_cofactor
+
+
+    def _decompose_(self, qubits):
+
+
+        Perform_PauliWord_circuit = Perform_PauliWord(self.PauliWord_and_cofactor)
+        change_basis_to_measure_circuit = Change_Basis_to_Measure_PauliWord(self.PauliWord_and_cofactor)
+        measurment_circuit = Measure_PauliWord(self.PauliWord_and_cofactor)
+
+
+        Perform_PauliWord_circuit_gen = Perform_PauliWord_circuit._decompose_(qubits)
+        change_basis_to_measure_circuit_gen = change_basis_to_measure_circuit._decompose_(qubits)
+        measurment_circuit_gen = measurment_circuit._decompose_(qubits)
+
+
+        list_generators = [Perform_PauliWord_circuit_gen, change_basis_to_measure_circuit_gen, measurment_circuit_gen]
+        yield list_generators
+
+
+    def _circuit_diagram_info_(self, args):
+        string_list = []
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        for i in range(len(PauliWord)):
+                string_list.append('Perform_PauliWord_and_measure')
+        return string_list
+
+    def num_qubits(self):
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        return len(PauliWord)
+
+if __name__ == '__main__':
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+    Pauilword_FULL_circuit = Perform_PauliWord_and_Measure(PauliWord_test)
+
+    print(cirq.Circuit.from_ops((Pauilword_FULL_circuit(*cirq.LineQubit.range(Pauilword_FULL_circuit.num_qubits())))))
+    print(
+        cirq.Circuit.from_ops(
+            cirq.decompose_once((Pauilword_FULL_circuit(*cirq.LineQubit.range(Pauilword_FULL_circuit.num_qubits()))))))
