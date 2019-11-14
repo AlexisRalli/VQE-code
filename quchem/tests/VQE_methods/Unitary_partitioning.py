@@ -127,9 +127,9 @@ def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write functi
 
                 #Op_list.append((X_sk_op, tan_theta_sk, normalised_anti_commuting_sets[key]['factor']))
 
-                Op_list.append({'X_sk': X_sk_op, 'theta_sk': theta_sk, 'factor': normalised_anti_commuting_sets[key]['factor']})
+                Op_list.append({'X_sk': X_sk_op, 'theta_sk': theta_sk})#, 'factor': normalised_anti_commuting_sets[key]['factor']})
 
-            X_sk_and_theta_sk.update({key: {'X_sk_theta_sk': Op_list, 'PauliWord_S': anti_commuting_set[S]}})
+            X_sk_and_theta_sk.update({key: {'X_sk_theta_sk': Op_list, 'PauliWord_S': anti_commuting_set[S], 'gamma_l': normalised_anti_commuting_sets[key]['factor']}})
 
     return X_sk_and_theta_sk
 
@@ -139,11 +139,11 @@ def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write functi
 #
 #     print(ww[7]['X_sk_theta_sk'][0]['X_sk'])
 #     print(ww[7]['X_sk_theta_sk'][0]['theta_sk'])
-#     print(ww[7]['X_sk_theta_sk'][0]['factor'])
+#     print(ww[7]['gamma_l'])
 #
 #     print(ww[7]['X_sk_theta_sk'][1]['X_sk'])
 #     print(ww[7]['X_sk_theta_sk'][1]['theta_sk'])
-#     print(ww[7]['X_sk_theta_sk'][1]['factor'])
+#     print(ww[7]['gamma_l'])
 
 
 
@@ -577,28 +577,39 @@ def Get_R_S_operators(X_sk_and_theta_sk):
     :type X_sk_and_theta_sk: dict
 
     e.g.
-        {
-            7: [
-                { 'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))),
-                  'theta_sk': (0.34438034648829496+0j),
-                  'factor': (0.023655254019369937+0j)},
-                { 'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('X0 I1 I2 I3', (0.3198751585326103+0j))),
-                  'theta_sk': (0.325597719954341+0j),
-                  'factor': (0.023655254019369937+0j)}
-               ],
 
-             8: [{'X_sk': (('I0 Z1 I2 I3', (0.9412848366792171+0j)), ('Y0 Y1 X2 X3', (-0.33761347164735517+0j))),
-               'theta_sk': (-0.344380346488295+0j),
-               'factor': (0.021234845659348932+0j)}],
-             9: [{'X_sk': (('I0 I1 Z2 I3', (-0.9355920202531878+0j)),
-                ('X0 X1 Y2 Y3', (-0.3530829529141257+0j))),
-               'theta_sk': (0.36086425264176164-0j),
-               'factor': (0.0194148993856907+0j)}],
-             10: [{'X_sk': (('I0 I1 I2 Z3', (-0.9355920202531878+0j)),
-                ('X0 Y1 Y2 X3', (0.3530829529141257+0j))),
-               'theta_sk': (-0.36086425264176164-0j),
-               'factor': (0.0194148993856907+0j)}]
-           }
+           {
+             7: {'X_sk_theta_sk': [{'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
+                 ('Y0 X1 X2 Y3', (0.3198751585326103+0j))),
+                'theta_sk': (0.34438034648829496+0j)},
+
+               {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
+                 ('X0 I1 I2 I3', (0.3198751585326103+0j))),
+                'theta_sk': (0.325597719954341+0j)}],
+
+
+              'PauliWord_S': ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
+              'gamma_l': (0.023655254019369937+0j)},
+
+             8: {'X_sk_theta_sk': [{'X_sk': (('I0 Z1 I2 I3', (0.9412848366792171+0j)),
+                 ('Y0 Y1 X2 X3', (-0.33761347164735517+0j))),
+                'theta_sk': (-0.344380346488295+0j)}],
+
+              'PauliWord_S': ('I0 Z1 I2 I3', (0.9412848366792171+0j)),
+              'gamma_l': (0.021234845659348932+0j)},
+             9: {'X_sk_theta_sk': [{'X_sk': (('I0 I1 Z2 I3', (-0.9355920202531878+0j)),
+                 ('X0 X1 Y2 Y3', (-0.3530829529141257+0j))),
+                'theta_sk': (0.36086425264176164-0j)}],
+
+              'PauliWord_S': ('I0 I1 Z2 I3', (-0.9355920202531878+0j)),
+              'gamma_l': (0.0194148993856907+0j)},
+             10: {'X_sk_theta_sk': [{'X_sk': (('I0 I1 I2 Z3', (-0.9355920202531878+0j)),
+                 ('X0 Y1 Y2 X3', (0.3530829529141257+0j))),
+                'theta_sk': (-0.36086425264176164-0j)}],
+
+              'PauliWord_S': ('I0 I1 I2 Z3', (-0.9355920202531878+0j)),
+              'gamma_l': (0.0194148993856907+0j)}
+            }
 
     :return: dictionary of R_sk circuits with corresponding correction factor
     :rtype: dict
@@ -617,7 +628,7 @@ def Get_R_S_operators(X_sk_and_theta_sk):
         for terms in X_sk_and_theta_sk[key]['X_sk_theta_sk']:
             R_s_k_circuit_instance = R_sk_full_circuit(terms['X_sk'], terms['theta_sk'])
 
-            correction_factor = terms['factor']
+            correction_factor = X_sk_and_theta_sk[key]['gamma_l']
 
             list_generators.append((R_s_k_circuit_instance, correction_factor))
             # print(
