@@ -2,6 +2,8 @@
 from tests.VQE_methods.Hamiltonian_Generator_Functions import Hamiltonian
 from tests.VQE_methods.Graph import BuildGraph_string
 from tests.VQE_methods.Unitary_partitioning import *
+from tests.VQE_methods.Ansatz_Generator_Functions import *
+from tests.VQE_methods.quantum_circuit_functions import *
 
 
 ### Get Hamiltonian
@@ -13,6 +15,8 @@ Hamilt = Hamiltonian(Molecule,
                  geometry = None)
 
 Hamilt.Get_all_info(get_FCI_energy=False)
+
+# TODO write function to find HF state!
 
 Commuting_indices = Hamilt.Commuting_indices
 PauliWords = Hamilt.QubitHamiltonianCompleteTerms
@@ -35,5 +39,20 @@ All_X_sk_terms.Get_all_X_sk_operator()
 # print(All_X_sk_terms.normalised_anti_commuting_sets)
 # print(All_X_sk_terms.X_sk_Ops)
 R_S_operators_by_key = Get_R_S_operators(All_X_sk_terms.X_sk_Ops)
+# print(cirq.Circuit.from_ops(cirq.decompose_once(
+#     (R_S_operators_by_key[7][0][0](*cirq.LineQubit.range(R_S_operators_by_key[7][0][0].num_qubits()))))))
+
+
+### Ansatz
+
+HF_state = [0, 0, 1, 1]
+UCC = UCC_Terms(HF_state)
+print(Reformat_Pauli_terms(UCC.T1_Term_paulis))
+
+T1_Ansatz_circuits=[]
+for term in Reformat_Pauli_terms(UCC.T1_Term_paulis):
+    for circuit in term:
+        T1_Ansatz_circuits.append(PauliWord_exponential_rotation(circuit, np.pi))
+
 print(cirq.Circuit.from_ops(cirq.decompose_once(
-    (R_S_operators_by_key[7][0][0](*cirq.LineQubit.range(R_S_operators_by_key[7][0][0].num_qubits()))))))
+     (T1_Ansatz_circuits[0](*cirq.LineQubit.range(T1_Ansatz_circuits[0].num_qubits()))))))
