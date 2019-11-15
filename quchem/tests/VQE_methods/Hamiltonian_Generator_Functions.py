@@ -194,11 +194,11 @@ class Hamiltonian():
 
         from scipy.sparse import bsr_matrix
 
-        X = bsr_matrix( np.array([[0, 1],
+        X = bsr_matrix(np.array([[0, 1],
                                  [1, 0]])
                         )
 
-        Y = bsr_matrix( np.array([[0, -1j],
+        Y = bsr_matrix(np.array([[0, -1j],
                                  [1j, 0]])
                        )
 
@@ -271,6 +271,12 @@ class Hamiltonian():
         if not np.isclose(FCI_Energy.real, self.PSI4_FCI_Energy, rtol=1e-09, atol=0.0):
             # note self.FCI_Energy is PSI4 result!
             raise ValueError('Calculated FCI energy from Qubit Operator not equivalent to PSI4 calculation')
+
+        # sorting to correct order
+        idx = eig_values.argsort()[::-1]
+        eig_values = eig_values[idx]
+        eig_vectors = eig_vectors[:, idx]
+        # HF state = self.eig_vectors[:,-1]
 
         self.full_CI_energy = FCI_Energy
         self.eig_values = eig_values
