@@ -8,7 +8,9 @@ import numpy as np
 
 
 ### Get Hamiltonian
-Molecule = 'H2'
+Molecule = 'H2O'
+n_electrons = 2
+
 Hamilt = Hamiltonian(Molecule,
                      run_scf = 1, run_mp2 = 1, run_cisd = 0, run_ccsd = 0, run_fci = 1,
                  basis = 'sto-3g',
@@ -20,8 +22,11 @@ Hamilt.Get_all_info(get_FCI_energy=False)
 # TODO write function to find HF state!
 
 
+
 ### Ansatz
-HF_initial_state = [0, 0, 1, 1]
+#HF_initial_state= HF_state_generator(n_electrons, Hamilt.MolecularHamiltonian.n_qubits)
+#HF_initial_state = [0, 0, 1, 1]
+HF_initial_state = [0., 0., 0., 0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]
 
 # HF
 HF_state_prep = State_Prep(HF_initial_state)
@@ -29,7 +34,7 @@ HF_state_prep_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
     (HF_state_prep(*cirq.LineQubit.range(HF_state_prep.num_qubits())))))
 
 # UCC
-UCC = Full_state_prep_circuit(HF_initial_state, theta_T1_list=[np.pi, 2*np.pi], theta_T2_list=[3*np.pi/2])
+UCC = Full_state_prep_circuit(HF_initial_state)#, theta_T1_list=[np.pi, 2*np.pi], theta_T2_list=[3*np.pi/2])
 UCC.complete_UCC_circuit()
 UCC_quantum_circuit =UCC.UCC_full_circuit
 #print(UCC_quantum_circuit)

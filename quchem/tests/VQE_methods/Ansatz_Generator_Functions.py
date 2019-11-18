@@ -1,5 +1,10 @@
 import numpy as np
 
+def HF_state_generator(n_electrons, n_qubits):
+    occupied = np.ones(n_electrons)
+    unoccupied = np.zeros(n_qubits-n_electrons)
+    return np.array([*unoccupied,*occupied])
+
 def Get_Occupied_and_Unoccupied_sites(HF_State):
     """
     Input is HF state in occupation number basis (canonical orbitals)
@@ -47,7 +52,6 @@ def Get_Occupied_and_Unoccupied_sites(HF_State):
 
 
     return up_occ, down_occ, up_unocc, down_unocc
-
 
 def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
 
@@ -336,20 +340,37 @@ def Reformat_Pauli_terms(T_Terms_Paulis):
     """
 
     PauliWord_list = []
+
+    def digits(P_String):
+        return int(P_String[1::])
+
     for T_term in T_Terms_Paulis:
         temp_list = []
         for qubitNo_qubitOp, constant in T_term.terms.items():
             PauliStrings = [var[1] + str(var[0]) for var in qubitNo_qubitOp]
+            qubitNo_list = [var[0] for var in qubitNo_qubitOp]
 
-            if int(PauliStrings[0][1]) != 0:
-                # makes sure starts from qubit 0
-                leading_identity_terms = ['I{}'.format(kk) for kk in np.arange(0, int(PauliStrings[0][1]))]
-                PauliStrings = [*leading_identity_terms, *PauliStrings]
+            max_qubit = int(PauliStrings[-1][1::])
+            Q_list = [i for i in range(max_qubit + 1)]
 
+            not_indexed = [qNo for qNo in Q_list if
+                           qNo not in qubitNo_list]
+
+            Identity_terms = ['I{}'.format(kk) for kk in not_indexed]
+
+            # seperator = ' '
+            # PauliWord = seperator.join(PauliStrings)
+            # missing_I = seperator.join(Identity_terms)
+
+            PauliStrings = [*PauliStrings, *Identity_terms]
+            # print(PauliStrings)
+
+            PauliStrings = sorted(PauliStrings, key=lambda x: digits(x))
             seperator = ' '
             PauliWord = seperator.join(PauliStrings)
             temp_list.append((PauliWord, constant))
         PauliWord_list.append(temp_list)
+
     return PauliWord_list
 
 
@@ -450,12 +471,22 @@ def Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES):
     :return:
     """
     T_Term_Ansatz_circuits = []
-    for term, angle in T_Terms_Reformatted_Paulis_and_ANGLES:
+
+    for i in range(len(T_Terms_Reformatted_Paulis_and_ANGLES)):
+        angle = T_Terms_Reformatted_Paulis_and_ANGLES[i][1]
         sub_term_circuits = []
-        for PauliWord in term:
+        for PauliWord in T_Terms_Reformatted_Paulis_and_ANGLES[i][0]:
             sub_term_circuits.append(full_exponentiated_PauliWord_circuit(PauliWord, angle))
         T_Term_Ansatz_circuits.append(sub_term_circuits)
+
     return T_Term_Ansatz_circuits
+
+    # for term, angle in T_Terms_Reformatted_Paulis_and_ANGLES:
+    #     sub_term_circuits = []
+    #     for PauliWord in term:
+    #         sub_term_circuits.append(full_exponentiated_PauliWord_circuit(PauliWord, angle))
+    #     T_Term_Ansatz_circuits.append(sub_term_circuits)
+    # return T_Term_Ansatz_circuits
 
 
 #
@@ -560,17 +591,7 @@ if __name__ == '__main__':
                 (circuit(*cirq.LineQubit.range(circuit.num_qubits()))))))
 
 
-#T1_Ansatz_circuits_ANGLES = Set_circuit_angles(UCC.T1_formatted, theta_list=None) #theta_list=[math.pi, 2 * math.pi]
-# T1_Ansatz_circuits = Get_T_term_circuits(T1_Ansatz_circuits_ANGLES)
-#
-# T2_Ansatz_circuits_ANGLES = Set_circuit_angles(UCC.T2_formatted, theta_list=None) #theta_list=[math.pi]
-# T2_Ansatz_circuits = Get_T_term_circuits(T2_Ansatz_circuits_ANGLES)
-#
-# for sub_term in T1_Ansatz_circuits:
-#     for circuit in sub_term:
-#         print(cirq.Circuit.from_ops(cirq.decompose_once(
-#             (circuit(*cirq.LineQubit.range(circuit.num_qubits()))))))
-#
+
 # print(cirq.Circuit.from_ops(
 #     [
 #     cirq.decompose_once(T1_Ansatz_circuits[0][0](*cirq.LineQubit.range(T1_Ansatz_circuits[0][0].num_qubits()))),
@@ -591,7 +612,8 @@ class Full_state_prep_circuit(UCC_Terms):
 
         self.T1_Ansatz_circuits = Get_T_term_circuits(self.T1_PauliWords_and_circuits_ANGLES)
 
-        self.T2_PauliWords_and_circuits_ANGLES =  Set_circuit_angles(self.T2_formatted,
+
+        self.T2_PauliWords_and_circuits_ANGLES = Set_circuit_angles(self.T2_formatted,
                                                        theta_list= self.theta_T2_list)
 
         self.T2_Ansatz_circuits = Get_T_term_circuits(self.T2_PauliWords_and_circuits_ANGLES)
@@ -604,7 +626,7 @@ class Full_state_prep_circuit(UCC_Terms):
     def Combine_T1_circuits(self):
 
         T1_full_circuit = []
-        for sub_term in self.T1_Ansatz_circuits:
+        for sub_term in self.T1_Ansatz_circuits: #T1_PauliWords_and_circuits_ANGLES
             for circuit in sub_term:
                 T1_full_circuit.append(cirq.decompose_once(
                     circuit(*cirq.LineQubit.range(circuit.num_qubits()))))
