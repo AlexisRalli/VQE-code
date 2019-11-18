@@ -616,7 +616,7 @@ def Get_R_S_operators(X_sk_and_theta_sk):
     e.g.
         {
            7: [(<__main__.R_sk_full_circuit at 0x7effdcb95cc0>,  (0.023655254019369937+0j)),
-               (<__main__.R_sk_full_circuit at 0x7effdcb95b00>,     (0.023655254019369937+0j))],
+               (<__main__.R_sk_full_circuit at 0x7effdcb95b00>,  (0.023655254019369937+0j))],
            8: [(<__main__.R_sk_full_circuit at 0x7effdcb95ba8>,  (0.021234845659348932+0j))],
            9: [(<__main__.R_sk_full_circuit at 0x7effdcb95e80>,  (0.0194148993856907+0j))],
            10: [(<__main__.R_sk_full_circuit at 0x7effdcb959b0>, (0.0194148993856907+0j))]

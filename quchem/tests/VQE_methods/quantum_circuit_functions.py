@@ -520,7 +520,10 @@ class Measure_PauliWord(cirq.Gate):
         # need string = '0,1,2,3'
         # qubits to measure =  [cirq.LineQubit(0), cirq.LineQubit(1), cirq.LineQubit(2), cirq.LineQubit(3)]
 
-        yield cirq.MeasurementGate(string, ()).on(*qubits_to_measure)
+        if qubits_to_measure != []:
+            yield cirq.MeasurementGate(string, ()).on(*qubits_to_measure)
+        else:
+            return None
 
 
 

@@ -4,6 +4,7 @@ from tests.VQE_methods.Graph import BuildGraph_string
 from tests.VQE_methods.Unitary_partitioning import *
 from tests.VQE_methods.Ansatz_Generator_Functions import *
 from tests.VQE_methods.quantum_circuit_functions import *
+import numpy as np
 
 
 ### Get Hamiltonian
@@ -17,6 +18,33 @@ Hamilt = Hamiltonian(Molecule,
 Hamilt.Get_all_info(get_FCI_energy=False)
 
 # TODO write function to find HF state!
+
+
+### Ansatz
+HF_initial_state = [0, 0, 1, 1]
+
+# HF
+HF_state_prep = State_Prep(HF_initial_state)
+HF_state_prep_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
+    (HF_state_prep(*cirq.LineQubit.range(HF_state_prep.num_qubits())))))
+
+# UCC
+UCC = Full_state_prep_circuit(HF_initial_state, theta_T1_list=[np.pi, 2*np.pi], theta_T2_list=[3*np.pi/2])
+UCC.complete_UCC_circuit()
+UCC_quantum_circuit =UCC.UCC_full_circuit
+#print(UCC_quantum_circuit)
+
+
+full_anstaz_circuit = cirq.Circuit.from_ops(
+                                            [
+                                            cirq.decompose_once(HF_state_prep_circuit),
+                                            cirq.decompose_once(UCC_quantum_circuit)
+                                            ]
+                                            )
+
+print(full_anstaz_circuit)
+
+
 
 Commuting_indices = Hamilt.Commuting_indices
 PauliWords = Hamilt.QubitHamiltonianCompleteTerms
@@ -43,28 +71,62 @@ R_S_operators_by_key = Get_R_S_operators(All_X_sk_terms.X_sk_Ops)
 #     (R_S_operators_by_key[7][0][0](*cirq.LineQubit.range(R_S_operators_by_key[7][0][0].num_qubits()))))))
 
 
-### Ansatz
+circuits_and_constants={}
+for key in All_X_sk_terms.normalised_anti_commuting_sets:
+    if key not in All_X_sk_terms.X_sk_Ops:
+        PauliWord = All_X_sk_terms.normalised_anti_commuting_sets[key]['PauliWords'][0]
+        constant = All_X_sk_terms.normalised_anti_commuting_sets[key]['factor']
 
-HF_state = [0, 0, 1, 1]
-UCC = UCC_Terms(HF_state)
-#print(Reformat_Pauli_terms(UCC.T1_Term_paulis))
+        Pauli_circuit_object = Perform_PauliWord_and_Measure(PauliWord)
+        q_circuit_Pauliword = cirq.Circuit.from_ops(
+            cirq.decompose_once(
+                (Pauli_circuit_object(*cirq.LineQubit.range(Pauli_circuit_object.num_qubits())))))
+        circuit_ops = list(q_circuit_Pauliword.all_operations())
+
+        if circuit_ops == []:
+            # deals with identity only circuit
+            circuits_and_constants[key] = {'circuit': None,
+                                           'factor': constant}
+        else:
+            full_circuit = cirq.Circuit.from_ops(
+                [
+                    *full_anstaz_circuit.all_operations(), # maybe make this a variable! (rather than repeated method)
+                    *circuit_ops
+                ])
+
+            circuits_and_constants[key] = {'circuit': full_circuit,
+                                           'factor': constant}
+
+    else:
+        term_reduction_circuits = [cirq.decompose_once(
+             (circuit(*cirq.LineQubit.range(circuit.num_qubits())))) for circuit, constant in R_S_operators_by_key[key]]
+
+        Pauliword_S = All_X_sk_terms.X_sk_Ops[key]['PauliWord_S']
+        q_circuit_Pauliword_S_object = Perform_PauliWord_and_Measure(Pauliword_S)
+
+        q_circuit_Pauliword_S = cirq.Circuit.from_ops(
+            cirq.decompose_once((q_circuit_Pauliword_S_object(*cirq.LineQubit.range(q_circuit_Pauliword_S_object.num_qubits())))))
+
+        full_circuit = cirq.Circuit.from_ops(
+            [
+                *full_anstaz_circuit.all_operations(),      #maybe make this a variable! (rather than repeated method)
+                *term_reduction_circuits,
+                *q_circuit_Pauliword_S.all_operations()
+            ]
+        )
+
+        circuits_and_constants[key] = {'circuit': full_circuit, 'factor': Pauliword_S[1]*All_X_sk_terms.X_sk_Ops[key]['gamma_l']}
 
 
-T1_Ansatz_circuits_ANGLES = Set_circuit_angles(UCC.T1_formatted, theta_list=None) #theta_list=[math.pi, 2 * math.pi]
-T1_Ansatz_circuits = Get_T_term_circuits(T1_Ansatz_circuits_ANGLES)
 
-T2_Ansatz_circuits_ANGLES = Set_circuit_angles(UCC.T2_formatted, theta_list=None) #theta_list=[math.pi]
-T2_Ansatz_circuits = Get_T_term_circuits(T2_Ansatz_circuits_ANGLES)
 
-for sub_term in T1_Ansatz_circuits:
-    for circuit in sub_term:
-        print(cirq.Circuit.from_ops(cirq.decompose_once(
-            (circuit(*cirq.LineQubit.range(circuit.num_qubits()))))))
 
-print(cirq.Circuit.from_ops(
-    [
-    cirq.decompose_once(T1_Ansatz_circuits[0][0](*cirq.LineQubit.range(T1_Ansatz_circuits[0][0].num_qubits()))),
-    cirq.decompose_once(
-            T1_Ansatz_circuits[0][1](*cirq.LineQubit.range(T1_Ansatz_circuits[0][1].num_qubits())))
-    ]
-            ))
+
+
+# print(cirq.Circuit.from_ops(
+#     [
+#     cirq.decompose_once(T1_Ansatz_circuits[0][0](*cirq.LineQubit.range(T1_Ansatz_circuits[0][0].num_qubits()))),
+#     cirq.decompose_once(
+#             T1_Ansatz_circuits[0][1](*cirq.LineQubit.range(T1_Ansatz_circuits[0][1].num_qubits())))
+#     ]
+#             ))

@@ -458,6 +458,7 @@ def Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES):
     return T_Term_Ansatz_circuits
 
 
+#
 # def Trotter_ordering(T_Terms,
 #                      trotter_number=1,
 #                      trotter_order=1,
@@ -559,6 +560,25 @@ if __name__ == '__main__':
                 (circuit(*cirq.LineQubit.range(circuit.num_qubits()))))))
 
 
+#T1_Ansatz_circuits_ANGLES = Set_circuit_angles(UCC.T1_formatted, theta_list=None) #theta_list=[math.pi, 2 * math.pi]
+# T1_Ansatz_circuits = Get_T_term_circuits(T1_Ansatz_circuits_ANGLES)
+#
+# T2_Ansatz_circuits_ANGLES = Set_circuit_angles(UCC.T2_formatted, theta_list=None) #theta_list=[math.pi]
+# T2_Ansatz_circuits = Get_T_term_circuits(T2_Ansatz_circuits_ANGLES)
+#
+# for sub_term in T1_Ansatz_circuits:
+#     for circuit in sub_term:
+#         print(cirq.Circuit.from_ops(cirq.decompose_once(
+#             (circuit(*cirq.LineQubit.range(circuit.num_qubits()))))))
+#
+# print(cirq.Circuit.from_ops(
+#     [
+#     cirq.decompose_once(T1_Ansatz_circuits[0][0](*cirq.LineQubit.range(T1_Ansatz_circuits[0][0].num_qubits()))),
+#     cirq.decompose_once(
+#             T1_Ansatz_circuits[0][1](*cirq.LineQubit.range(T1_Ansatz_circuits[0][1].num_qubits())))
+#     ]
+#             ))
+
 class Full_state_prep_circuit(UCC_Terms):
     def __init__(self, HF_State,  theta_T1_list=None, theta_T2_list=None):
         super().__init__(HF_State)
@@ -566,12 +586,12 @@ class Full_state_prep_circuit(UCC_Terms):
         self.theta_T1_list= theta_T1_list
         self.theta_T2_list = theta_T2_list
 
-        self.T1_PauliWords_and_circuits_ANGLES =  Set_circuit_angles(UCC.T1_formatted,
+        self.T1_PauliWords_and_circuits_ANGLES =  Set_circuit_angles(self.T1_formatted,
                                                        theta_list=self.theta_T1_list)
 
         self.T1_Ansatz_circuits = Get_T_term_circuits(self.T1_PauliWords_and_circuits_ANGLES)
 
-        self.T2_PauliWords_and_circuits_ANGLES =  Set_circuit_angles(UCC.T2_formatted,
+        self.T2_PauliWords_and_circuits_ANGLES =  Set_circuit_angles(self.T2_formatted,
                                                        theta_list= self.theta_T2_list)
 
         self.T2_Ansatz_circuits = Get_T_term_circuits(self.T2_PauliWords_and_circuits_ANGLES)
