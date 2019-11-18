@@ -8,7 +8,7 @@ import numpy as np
 
 
 ### Get Hamiltonian
-Molecule = 'H2O'
+Molecule = 'H2'
 n_electrons = 2
 
 Hamilt = Hamiltonian(Molecule,
@@ -24,9 +24,9 @@ Hamilt.Get_all_info(get_FCI_energy=False)
 
 
 ### Ansatz
-#HF_initial_state= HF_state_generator(n_electrons, Hamilt.MolecularHamiltonian.n_qubits)
+HF_initial_state= HF_state_generator(n_electrons, Hamilt.MolecularHamiltonian.n_qubits)
 #HF_initial_state = [0, 0, 1, 1]
-HF_initial_state = [0., 0., 0., 0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]
+#HF_initial_state = [0., 0., 0., 0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]
 
 # HF
 HF_state_prep = State_Prep(HF_initial_state)
@@ -47,7 +47,7 @@ full_anstaz_circuit = cirq.Circuit.from_ops(
                                             ]
                                             )
 
-print(full_anstaz_circuit)
+#print(full_anstaz_circuit)
 
 
 
