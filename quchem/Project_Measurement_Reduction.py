@@ -47,12 +47,24 @@ R_S_operators_by_key = Get_R_S_operators(All_X_sk_terms.X_sk_Ops)
 
 HF_state = [0, 0, 1, 1]
 UCC = UCC_Terms(HF_state)
-print(Reformat_Pauli_terms(UCC.T1_Term_paulis))
+#print(Reformat_Pauli_terms(UCC.T1_Term_paulis))
 
-T1_Ansatz_circuits=[]
-for term in Reformat_Pauli_terms(UCC.T1_Term_paulis):
-    for circuit in term:
-        T1_Ansatz_circuits.append(PauliWord_exponential_rotation(circuit, np.pi))
 
-print(cirq.Circuit.from_ops(cirq.decompose_once(
-     (T1_Ansatz_circuits[0](*cirq.LineQubit.range(T1_Ansatz_circuits[0].num_qubits()))))))
+T1_Ansatz_circuits_ANGLES = Set_circuit_angles(UCC.T1_formatted, theta_list=None) #theta_list=[math.pi, 2 * math.pi]
+T1_Ansatz_circuits = Get_T_term_circuits(T1_Ansatz_circuits_ANGLES)
+
+T2_Ansatz_circuits_ANGLES = Set_circuit_angles(UCC.T2_formatted, theta_list=None) #theta_list=[math.pi]
+T2_Ansatz_circuits = Get_T_term_circuits(T2_Ansatz_circuits_ANGLES)
+
+for sub_term in T1_Ansatz_circuits:
+    for circuit in sub_term:
+        print(cirq.Circuit.from_ops(cirq.decompose_once(
+            (circuit(*cirq.LineQubit.range(circuit.num_qubits()))))))
+
+print(cirq.Circuit.from_ops(
+    [
+    cirq.decompose_once(T1_Ansatz_circuits[0][0](*cirq.LineQubit.range(T1_Ansatz_circuits[0][0].num_qubits()))),
+    cirq.decompose_once(
+            T1_Ansatz_circuits[0][1](*cirq.LineQubit.range(T1_Ansatz_circuits[0][1].num_qubits())))
+    ]
+            ))
