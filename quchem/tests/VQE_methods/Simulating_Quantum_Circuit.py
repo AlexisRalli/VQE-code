@@ -1,6 +1,4 @@
 import cirq
-import pickle
-import math
 
 ###circuits_and_constants
 
