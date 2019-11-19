@@ -91,7 +91,7 @@ for key in All_X_sk_terms.normalised_anti_commuting_sets:
         if circuit_ops == []:
             # deals with identity only circuit
             circuits_and_constants[key] = {'circuit': None,
-                                           'factor': constant}
+                                           'factor': constant, 'PauliWord': PauliWord[0]}
         else:
             full_circuit = cirq.Circuit.from_ops(
                 [
@@ -100,7 +100,7 @@ for key in All_X_sk_terms.normalised_anti_commuting_sets:
                 ])
 
             circuits_and_constants[key] = {'circuit': full_circuit,
-                                           'factor': constant}
+                                           'factor': constant, 'PauliWord': PauliWord[0]}
 
     else:
         term_reduction_circuits = [cirq.decompose_once(
@@ -120,7 +120,8 @@ for key in All_X_sk_terms.normalised_anti_commuting_sets:
             ]
         )
 
-        circuits_and_constants[key] = {'circuit': full_circuit, 'factor': Pauliword_S[1]*All_X_sk_terms.X_sk_Ops[key]['gamma_l']}
+        circuits_and_constants[key] = {'circuit': full_circuit, 'factor': Pauliword_S[1]*All_X_sk_terms.X_sk_Ops[key]['gamma_l'],
+                                       'PauliWord': Pauliword_S[0]}
 
 
 

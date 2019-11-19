@@ -650,153 +650,297 @@ if __name__ == '__main__':
        (bb[7][0][0](*cirq.LineQubit.range(bb[7][0][0].num_qubits())))))
 
 
-#
-# class R_S_operator():
-#     def __init__(self, X_sk_and_theta_sk_instances):
-#         """
-#
-#         Takes in X_sk_and_theta_sk terms of a  SINGLE anti-commuting set and returns full R_s operator
-#         eq (15) ArXiv: 1908.08067
-#
-#
-#         :param X_sk_and_theta_sk_instance: A list of dictionaries containing
-#                                            each X_sk term and corresponding theta_sk with the correction factor
-#         :type X_sk_and_theta_sk_instances: list
-#
-#
-#         [{'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-#                 ('Y0 X1 X2 Y3', (0.3198751585326103+0j))),
-#                'theta_sk': (0.34438034648829496+0j),
-#                'factor': (0.023655254019369937+0j)},
-#               {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-#                 ('X0 I1 I2 I3', (0.3198751585326103+0j))),
-#                'theta_sk': (0.325597719954341+0j),
-#                'factor': (0.023655254019369937+0j)}]
-#         """
-#         self.X_sk_and_theta_sk_instances = X_sk_and_theta_sk_instances
-#
-#     def _decompose_(self, qubits):
-#
-#         list_generators = []
-#         for instance in self.X_sk_and_theta_sk_instances:
-#             R_s_k_circuit_instance = R_sk_full_circuit(instance['X_sk'], instance['theta_sk'])
-#
-#             R_s_k_circuit_instance_gen = R_s_k_circuit_instance._decompose_(qubits)
-#             list_generators.append(R_s_k_circuit_instance_gen)
-#         yield list_generators
-#
-#         # R_S_circuits_by_key = {}
-#         # for key in self.X_sk_and_theta_sk:
-#         #     list_generators = []
-#         #     for terms in self.X_sk_and_theta_sk[key]:
-#         #         R_s_k_circuit_instance = R_sk_full_circuit(terms['X_sk'], terms['theta_sk'])
-#         #
-#         #         R_s_k_circuit_instance_gen = R_s_k_circuit_instance._decompose_(qubits)
-#         #         list_generators.append(R_s_k_circuit_instance_gen)
-#         #     R_S_circuits_by_key[key] = list_generators
-#         #     yield R_S_circuits_by_key
-#
-#     def _circuit_diagram_info_(self, args):
-#
-#         # take anyterm
-#         for instance in self.X_sk_and_theta_sk_instances:
-#             term = instance['X_sk'][0][0]
-#             term = term.split(' ')
-#             num_qubits = int(term[-1][1::])
-#             break
-#
-#         string_list = []
-#         for i in range(num_qubits + 1):
-#                 string_list.append('R_s_circuit (all R_sk sub-circuits!)')
-#         return string_list
-#
-#
-#     def num_qubits(self):
-#         # take anyterm
-#         for instance in self.X_sk_and_theta_sk_instances:
-#             term = instance['X_sk'][0][0]
-#             term = term.split(' ')
-#             num_qubits = int(term[-1][1::])
-#             break
-#         return num_qubits + 1 # +1 as index starts from 0
-#
+# TODO look at the following function and class. Would be good to implement! (currently causes error!
+#   need to re-write it)
+
 # if __name__ == '__main__':
-#     X_sk_and_theta_sk = Get_X_sk_operators(ll, S=0)
+#     from quantum_circuit_functions import *
+# else:
+#     from .quantum_circuit_functions import *
 #
-#     R_S_full = R_S_operator(X_sk_and_theta_sk[7])
+# def Get_quantum_circuits(All_X_sk_terms, R_S_operators_by_key, full_anstaz_circuit):
+#     """
+#
+#     :param all_normalised_anti_commuting_sets:
+#
+#     e.g. {
+#          0: {'PauliWords': [('I0 I1 I2 I3', (-1+0j))],
+#              'factor': (0.10732712612602104+0j)},
+#          1: {'PauliWords': [('Z0 Z1 I2 I3', (1+0j))],
+#           'factor': (0.024523755706991564+0j)},
+#          2: {'PauliWords': [('Z0 I1 Z2 I3', (1+0j))],
+#           'factor': (0.011284609976862313+0j)},
+#          3: {'PauliWords': [('Z0 I1 I2 Z3', (1+0j))],
+#           'factor': (0.024157456201338485+0j)},
+#          4: {'PauliWords': [('I0 Z1 Z2 I3', (1+0j))],
+#           'factor': (0.024157456201338485+0j)},
+#          5: {'PauliWords': [('I0 Z1 I2 Z3', (1+0j))],
+#           'factor': (0.011284609976862313+0j)},
+#          6: {'PauliWords': [('I0 I1 Z2 Z3', (1+0j))],
+#           'factor': (0.02665633752583814+0j)},
+#          7: {'PauliWords': [('Z0 I1 I2 I3', (0.9412848366792171+0j)),
+#            ('Y0 X1 X2 Y3', (0.33761347164735517+0j))],
+#           'factor': (0.021234845659348932+0j)},
+#          8: {'PauliWords': [('I0 Z1 I2 I3', (0.9412848366792171+0j)),
+#            ('Y0 Y1 X2 X3', (-0.33761347164735517+0j))],
+#           'factor': (0.021234845659348932+0j)},
+#          9: {'PauliWords': [('I0 I1 Z2 I3', (-0.9355920202531878+0j)),
+#            ('X0 X1 Y2 Y3', (-0.3530829529141257+0j))],
+#           'factor': (0.0194148993856907+0j)},
+#          10: {'PauliWords': [('I0 I1 I2 Z3', (-0.9355920202531878+0j)),
+#            ('X0 Y1 Y2 X3', (0.3530829529141257+0j))],
+#           'factor': (0.0194148993856907+0j)}
+#     }
+#
+#     :return:
+#
+#     e.g.
+#     {
+# 0: {'circuit': None,
+#   'factor': (0.10732712612602104+0j),
+#   'PauliWord': ('I0 I1 I2 I3', (-1+0j))},
+#
+# 1: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H────
+#                  │                        │                         │                        │
+# 1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────
+#                      │                │                                 │                │                  │
+# 2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────
+#                                                                                                                 │
+# 3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───Rz
+#   'factor': (0.024523755706991564+0j)},
+#
+#  2: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H────
+#                  │                        │                         │                        │
+# 1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────
+#                      │                │                                 │                │                  │
+# 2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────
+#                                                                                                                 │
+# 3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───Rz
+#   'factor': (0.011284609976862313+0j)},
+#  3: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H────
+#                  │                        │                         │                        │
+# 1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────
+#                      │                │                                 │                │                  │
+# 2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────
+#                                                                                                                 │
+# 3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───Rz
+#   'factor': (0.024157456201338485+0j)},
+#  4: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H─────
+#                  │                        │                         │                        │
+# 1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────@─
+#                      │                │                                 │                │                  │         │
+# 2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────X─
+#                                                                                                                 │
+# 3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───────
+#   'factor': (0.024157456201338485+0j)},
+#
+#   ... etc ...
+#     """
+#
+#     circuits_and_constants = {}
+#     for key in All_X_sk_terms.normalised_anti_commuting_sets:
+#         if key not in All_X_sk_terms.X_sk_Ops:
+#             PauliWord = All_X_sk_terms.normalised_anti_commuting_sets[key]['PauliWords'][0]
+#             constant = All_X_sk_terms.normalised_anti_commuting_sets[key]['factor']
+#
+#             Pauli_circuit_object = Perform_PauliWord_and_Measure(PauliWord)
+#             q_circuit_Pauliword = cirq.Circuit.from_ops(
+#                 cirq.decompose_once(
+#                     (Pauli_circuit_object(*cirq.LineQubit.range(Pauli_circuit_object.num_qubits())))))
+#             circuit_ops = list(q_circuit_Pauliword.all_operations())
+#
+#             if circuit_ops == []:
+#                 # deals with identity only circuit
+#                 circuits_and_constants[key] = {'circuit': None,
+#                                                'factor': constant, 'PauliWord': PauliWord}
+#             else:
+#                 full_circuit = cirq.Circuit.from_ops(
+#                     [
+#                         *full_anstaz_circuit.all_operations(),
+#                         # maybe make this a variable! (rather than repeated method)
+#                         *circuit_ops
+#                     ])
+#
+#                 circuits_and_constants[key] = {'circuit': full_circuit,
+#                                                'factor': constant}
+#
+#         else:
+#             term_reduction_circuits = [cirq.decompose_once(
+#                 (circuit(*cirq.LineQubit.range(circuit.num_qubits())))) for circuit, constant in
+#                 R_S_operators_by_key[key]]
+#
+#             Pauliword_S = All_X_sk_terms.X_sk_Ops[key]['PauliWord_S']
+#             q_circuit_Pauliword_S_object = Perform_PauliWord_and_Measure(Pauliword_S)
+#
+#             q_circuit_Pauliword_S = cirq.Circuit.from_ops(
+#                 cirq.decompose_once(
+#                     (q_circuit_Pauliword_S_object(*cirq.LineQubit.range(q_circuit_Pauliword_S_object.num_qubits())))))
+#
+#             full_circuit = cirq.Circuit.from_ops(
+#                 [
+#                     *full_anstaz_circuit.all_operations(),  # maybe make this a variable! (rather than repeated method)
+#                     *term_reduction_circuits,
+#                     *q_circuit_Pauliword_S.all_operations()
+#                 ]
+#             )
+#
+#             circuits_and_constants[key] = {'circuit': full_circuit,
+#                                            'factor': Pauliword_S[1] * All_X_sk_terms.X_sk_Ops[key]['gamma_l'],
+#                                            'PauliWord': Pauliword_S[0]}
+#     return circuits_and_constants
 #
 #
-#     print(cirq.Circuit.from_ops((R_S_full(*cirq.LineQubit.range(R_S_full.num_qubits())))))
-#     print(
-#         cirq.Circuit.from_ops(
-#             cirq.decompose_once((R_S_full(*cirq.LineQubit.range(R_S_full.num_qubits()))))))
+# class Get_reduced_quantum_circuits(X_sk_terms):
+#     def __init__(self,anti_commuting_sets, full_anstaz_circuit, S=0):
+#         """
+#
+#         :param anti_commuting_sets:
+#
+#         e.g. {
+#              0: {'PauliWords': [('I0 I1 I2 I3', (-1+0j))],
+#                  'factor': (0.10732712612602104+0j)},
+#              1: {'PauliWords': [('Z0 Z1 I2 I3', (1+0j))],
+#               'factor': (0.024523755706991564+0j)},
+#              2: {'PauliWords': [('Z0 I1 Z2 I3', (1+0j))],
+#               'factor': (0.011284609976862313+0j)},
+#              3: {'PauliWords': [('Z0 I1 I2 Z3', (1+0j))],
+#               'factor': (0.024157456201338485+0j)},
+#              4: {'PauliWords': [('I0 Z1 Z2 I3', (1+0j))],
+#               'factor': (0.024157456201338485+0j)},
+#              5: {'PauliWords': [('I0 Z1 I2 Z3', (1+0j))],
+#               'factor': (0.011284609976862313+0j)},
+#              6: {'PauliWords': [('I0 I1 Z2 Z3', (1+0j))],
+#               'factor': (0.02665633752583814+0j)},
+#              7: {'PauliWords': [('Z0 I1 I2 I3', (0.9412848366792171+0j)),
+#                ('Y0 X1 X2 Y3', (0.33761347164735517+0j))],
+#               'factor': (0.021234845659348932+0j)},
+#              8: {'PauliWords': [('I0 Z1 I2 I3', (0.9412848366792171+0j)),
+#                ('Y0 Y1 X2 X3', (-0.33761347164735517+0j))],
+#               'factor': (0.021234845659348932+0j)},
+#              9: {'PauliWords': [('I0 I1 Z2 I3', (-0.9355920202531878+0j)),
+#                ('X0 X1 Y2 Y3', (-0.3530829529141257+0j))],
+#               'factor': (0.0194148993856907+0j)},
+#              10: {'PauliWords': [('I0 I1 I2 Z3', (-0.9355920202531878+0j)),
+#                ('X0 Y1 Y2 X3', (0.3530829529141257+0j))],
+#               'factor': (0.0194148993856907+0j)}
+#         }
+#
+#         :return:
+#
+#         e.g.
+#         {
+#     0: {'circuit': None,
+#       'factor': (0.10732712612602104+0j),
+#       'PauliWord': ('I0 I1 I2 I3', (-1+0j))},
+#
+#     1: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H────
+#                      │                        │                         │                        │
+#     1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────
+#                          │                │                                 │                │                  │
+#     2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────
+#                                                                                                                     │
+#     3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───Rz
+#       'factor': (0.024523755706991564+0j)},
+#
+#      2: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H────
+#                      │                        │                         │                        │
+#     1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────
+#                          │                │                                 │                │                  │
+#     2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────
+#                                                                                                                     │
+#     3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───Rz
+#       'factor': (0.011284609976862313+0j)},
+#      3: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H────
+#                      │                        │                         │                        │
+#     1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────
+#                          │                │                                 │                │                  │
+#     2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────
+#                                                                                                                     │
+#     3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───Rz
+#       'factor': (0.024157456201338485+0j)},
+#      4: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H─────
+#                      │                        │                         │                        │
+#     1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────@─
+#                          │                │                                 │                │                  │         │
+#     2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────X─
+#                                                                                                                     │
+#     3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───────
+#       'factor': (0.024157456201338485+0j)},
+#
+#       ... etc ...
+#         """
+#
+#         super().__init__(anti_commuting_sets, S=S)
+#
+#         if self.X_sk_Ops == None:
+#             self.Get_all_X_sk_operator
+#
+#         self.X_sk_and_theta_sk = Get_X_sk_operators(self.normalised_anti_commuting_sets, S=S)
+#         self.R_S_operators_by_key = Get_R_S_operators(self.X_sk_and_theta_sk)
+#
+#         self.full_anstaz_circuit = full_anstaz_circuit
+#
+#         self.circuits_and_constants = None
 #
 #
-# # class R_S_operator():
-# #     def __init__(self, X_sk_and_theta_sk):
-# #         """
-# #         :param X_sk_and_theta_sk: Dictionary containing each X_sk term and corresponding theta_sk and correction factor
-# #         :type X_sk_and_theta_sk: dict
-# #
-# #         e.g. {7: [{'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-# #                 ('Y0 X1 X2 Y3', (0.3198751585326103+0j))),
-# #                'theta_sk': (0.34438034648829496+0j),
-# #                'factor': (0.023655254019369937+0j)},
-# #               {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-# #                 ('X0 I1 I2 I3', (0.3198751585326103+0j))),
-# #                'theta_sk': (0.325597719954341+0j),
-# #                'factor': (0.023655254019369937+0j)}],
-# #              8: [{'X_sk': (('I0 Z1 I2 I3', (0.9412848366792171+0j)),
-# #                 ('Y0 Y1 X2 X3', (-0.33761347164735517+0j))),
-# #                'theta_sk': (-0.344380346488295+0j),
-# #                'factor': (0.021234845659348932+0j)}],
-# #              9: [{'X_sk': (('I0 I1 Z2 I3', (-0.9355920202531878+0j)),
-# #                 ('X0 X1 Y2 Y3', (-0.3530829529141257+0j))),
-# #                'theta_sk': (0.36086425264176164-0j),
-# #                'factor': (0.0194148993856907+0j)}],
-# #              10: [{'X_sk': (('I0 I1 I2 Z3', (-0.9355920202531878+0j)),
-# #                 ('X0 Y1 Y2 X3', (0.3530829529141257+0j))),
-# #                'theta_sk': (-0.36086425264176164-0j),
-# #                'factor': (0.0194148993856907+0j)}]}
-# #         """
-# #         self.X_sk_and_theta_sk = X_sk_and_theta_sk
-# #
-# #     def _decompose_(self, qubits):
-# #         list_generators=[]
-# #         for key in self.X_sk_and_theta_sk:
-# #             for terms in self.X_sk_and_theta_sk[key]:
-# #                 R_s_k_circuit_instance = R_sk_full_circuit(terms['X_sk'], terms['theta_sk'])
-# #
-# #                 R_s_k_circuit_instance_gen = R_s_k_circuit_instance._decompose_(qubits)
-# #                 list_generators.append(R_s_k_circuit_instance_gen)
-# #         return list_generators
-# #
-# #     def _circuit_diagram_info_(self, args):
-# #
-# #         # take anyterm
-# #         for key in self.X_sk_and_theta_sk:
-# #             instance = self.X_sk_and_theta_sk[key][0]['X_sk'][0][0]
-# #             instance = instance.split(' ')
-# #             num_qubits = int(instance[-1][1::])
-# #             break
-# #
-# #         for i in range(len(num_qubits + 1)):
-# #                 string_list.append('R_s_circuit (all R_sk sub-circuits!)')
-# #         return string_list
-# #
-# #
-# #     def num_qubits(self):
-# #         # take anyterm
-# #         for key in self.X_sk_and_theta_sk:
-# #             instance = self.X_sk_and_theta_sk[key][0]['X_sk'][0][0]
-# #             instance = instance.split(' ')
-# #             num_qubits = int(instance[-1][1::])
-# #             break
-# #         return num_qubits + 1 # +1 as index starts from 0
-# #
-# #
-# # X_sk_and_theta_sk = Get_X_sk_operators(ll, S=0)
-# #
-# # R_S_full = R_S_operator(X_sk_and_theta_sk)
-# #
-# # yy = R_S_full._decompose_(cirq.LineQubit.range(4))
+#         # self.anti_commuting_sets = anti_commuting_sets
+#         # self.S = S
+#         #
+#         # self.normalised_anti_commuting_sets = None
+#         # self.X_sk_Ops = None
+#
+#     def Get_quantum_circuits(self):
+#         circuits_and_constants = {}
+#         for key in self.all_normalised_anti_commuting_sets:
+#             if key not in self.X_sk_Ops:
+#                 PauliWord = self.normalised_anti_commuting_sets[key]['PauliWords'][0]
+#                 constant = self.normalised_anti_commuting_sets[key]['factor']
+#
+#                 Pauli_circuit_object = Perform_PauliWord_and_Measure(PauliWord)
+#                 q_circuit_Pauliword = cirq.Circuit.from_ops(
+#                     cirq.decompose_once(
+#                         (Pauli_circuit_object(*cirq.LineQubit.range(Pauli_circuit_object.num_qubits())))))
+#                 circuit_ops = list(q_circuit_Pauliword.all_operations())
+#
+#                 if circuit_ops == []:
+#                     # deals with identity only circuit
+#                     circuits_and_constants[key] = {'circuit': None,
+#                                                    'factor': constant, 'PauliWord': PauliWord}
+#                 else:
+#                     full_circuit = cirq.Circuit.from_ops(
+#                         [
+#                             *self.full_anstaz_circuit.all_operations(),
+#                             # maybe make this a variable! (rather than repeated method)
+#                             *circuit_ops
+#                         ])
+#
+#                     circuits_and_constants[key] = {'circuit': full_circuit,
+#                                                    'factor': constant}
+#
+#             else:
+#                 term_reduction_circuits = [cirq.decompose_once(
+#                     (circuit(*cirq.LineQubit.range(circuit.num_qubits())))) for circuit, constant in
+#                     self.R_S_operators_by_key[key]]
+#
+#                 Pauliword_S = self.X_sk_Ops[key]['PauliWord_S']
+#                 q_circuit_Pauliword_S_object = Perform_PauliWord_and_Measure(Pauliword_S)
+#
+#                 q_circuit_Pauliword_S = cirq.Circuit.from_ops(
+#                     cirq.decompose_once(
+#                         (q_circuit_Pauliword_S_object(
+#                             *cirq.LineQubit.range(q_circuit_Pauliword_S_object.num_qubits())))))
+#
+#                 full_circuit = cirq.Circuit.from_ops(
+#                     [
+#                         *self.full_anstaz_circuit.all_operations(),
+#                         # maybe make this a variable! (rather than repeated method)
+#                         *term_reduction_circuits,
+#                         *q_circuit_Pauliword_S.all_operations()
+#                     ]
+#                 )
+#
+#                 circuits_and_constants[key] = {'circuit': full_circuit,
+#                                                'factor': Pauliword_S[1] * All_X_sk_terms.X_sk_Ops[key]['gamma_l'],
+#                                                'PauliWord': Pauliword_S[0]}
+#         self.circuits_and_constants
+
