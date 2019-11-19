@@ -245,7 +245,7 @@ if __name__ == '__main__':
 
 import cirq
 
-class Change_of_Basis_initial(cirq.Gate):
+class Change_of_Basis_initial_X_sk(cirq.Gate):
     def __init__(self, X_sk):
         """
          Circuit to perform change of basis in order to perform: e^(-i theta_sk/2 X_sk) ... eq (12) arXiv: 1908.08067
@@ -307,7 +307,7 @@ if __name__ == '__main__':
     X_SK_Test = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
-    Basis_change_circuit = Change_of_Basis_initial(X_SK_Test)
+    Basis_change_circuit = Change_of_Basis_initial_X_sk(X_SK_Test)
 
     print(cirq.Circuit.from_ops((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits())))))
     print(
@@ -315,7 +315,7 @@ if __name__ == '__main__':
 
 
 
-class Engtangle_initial(cirq.Gate):
+class Engtangle_initial_X_sk(cirq.Gate):
     def __init__(self, X_sk):
         """
          blah
@@ -366,7 +366,7 @@ if __name__ == '__main__':
 
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
-    Ent_initial = Engtangle_initial(X_SK_Test)
+    Ent_initial = Engtangle_initial_X_sk(X_SK_Test)
 
     print(cirq.Circuit.from_ops((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits())))))
     print(
@@ -444,7 +444,7 @@ if __name__ == '__main__':
     print(
         cirq.Circuit.from_ops(cirq.decompose_once((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits()))))))
 
-class Engtangle_final(cirq.Gate):
+class Engtangle_final_X_sk(cirq.Gate):
     def __init__(self, X_sk):
         """
          blah
@@ -493,7 +493,7 @@ if __name__ == '__main__':
     X_SK_Test = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
     #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
 
-    Ent_final = Engtangle_final(X_SK_Test)
+    Ent_final = Engtangle_final_X_sk(X_SK_Test)
 
     print(cirq.Circuit.from_ops((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits())))))
     print(
@@ -503,7 +503,24 @@ if __name__ == '__main__':
 class R_sk_full_circuit(cirq.Gate):
     def __init__(self, X_sk, theta_sk):
         """
-         blah
+        :param X_sk:
+        :type X_sk: tuple
+
+
+        e.g.
+         X_sk =
+                (
+                    ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
+                    ('Y0 X1 X2 Y3', (0.3198751585326103+0j))
+                )
+
+        :param theta_sk: angle
+        :type theta_sk: complex float
+
+
+        note X_sk_converted_to_PauliWord: ('X0 X1 X2 Y3', (0.28527408634774526+0j))
+
+
 
         ...
         :raises [ErrorType]: [ErrorDescription]
@@ -519,10 +536,10 @@ class R_sk_full_circuit(cirq.Gate):
     def _decompose_(self, qubits):
 
 
-        Basis_change_circuit = Change_of_Basis_initial(self.X_sk)
-        Ent_initial = Engtangle_initial(self.X_sk)
+        Basis_change_circuit = Change_of_Basis_initial_X_sk(self.X_sk)
+        Ent_initial = Engtangle_initial_X_sk(self.X_sk)
         R_sk_rot_circuit = R_sk_DAGGER(self.X_sk, self.theta_sk)
-        Ent_final = Engtangle_final(self.X_sk)
+        Ent_final = Engtangle_final_X_sk(self.X_sk)
 
         basis_change_initial_gen = Basis_change_circuit._decompose_(qubits)
         Ent_initial_gen = Ent_initial._decompose_(qubits)
@@ -648,6 +665,65 @@ if __name__ == '__main__':
     bb = Get_R_S_operators(X_sk_and_theta_sk)
     print(cirq.Circuit.from_ops(
        (bb[7][0][0](*cirq.LineQubit.range(bb[7][0][0].num_qubits())))))
+    print(cirq.Circuit.from_ops(cirq.decompose_once(
+        (bb[7][0][0](*cirq.LineQubit.range(bb[7][0][0].num_qubits()))))))
+
+
+
+if __name__ == '__main__':
+    from quantum_circuit_functions import *
+else:
+    from .quantum_circuit_functions import *
+
+def Get_quantum_circuits_and_constants(All_X_sk_terms, R_S_operators_by_key, full_anstaz_circuit):
+
+    circuits_and_constants={}
+    for key in All_X_sk_terms.normalised_anti_commuting_sets:
+        if key not in All_X_sk_terms.X_sk_Ops:
+            PauliWord = All_X_sk_terms.normalised_anti_commuting_sets[key]['PauliWords'][0]
+            constant = All_X_sk_terms.normalised_anti_commuting_sets[key]['factor']
+
+            Pauli_circuit_object = Perform_PauliWord_and_Measure(PauliWord)
+            q_circuit_Pauliword = cirq.Circuit.from_ops(
+                cirq.decompose_once(
+                    (Pauli_circuit_object(*cirq.LineQubit.range(Pauli_circuit_object.num_qubits())))))
+            circuit_ops = list(q_circuit_Pauliword.all_operations())
+
+            if circuit_ops == []:
+                # deals with identity only circuit
+                circuits_and_constants[key] = {'circuit': None,
+                                               'factor': constant, 'PauliWord': PauliWord[0]}
+            else:
+                full_circuit = cirq.Circuit.from_ops(
+                    [
+                        *full_anstaz_circuit.all_operations(), # maybe make this a variable! (rather than repeated method)
+                        *circuit_ops
+                    ])
+
+                circuits_and_constants[key] = {'circuit': full_circuit,
+                                               'factor': constant, 'PauliWord': PauliWord[0]}
+
+        else:
+            term_reduction_circuits = [cirq.decompose_once(
+                 (circuit(*cirq.LineQubit.range(circuit.num_qubits())))) for circuit, constant in R_S_operators_by_key[key]]
+
+            Pauliword_S = All_X_sk_terms.X_sk_Ops[key]['PauliWord_S']
+            q_circuit_Pauliword_S_object = Perform_PauliWord_and_Measure(Pauliword_S)
+
+            q_circuit_Pauliword_S = cirq.Circuit.from_ops(
+                cirq.decompose_once((q_circuit_Pauliword_S_object(*cirq.LineQubit.range(q_circuit_Pauliword_S_object.num_qubits())))))
+
+            full_circuit = cirq.Circuit.from_ops(
+                [
+                    *full_anstaz_circuit.all_operations(),      #maybe make this a variable! (rather than repeated method)
+                    *term_reduction_circuits,
+                    *q_circuit_Pauliword_S.all_operations()
+                ]
+            )
+
+            circuits_and_constants[key] = {'circuit': full_circuit, 'factor': Pauliword_S[1]*All_X_sk_terms.X_sk_Ops[key]['gamma_l'],
+                                           'PauliWord': Pauliword_S[0]}
+    return circuits_and_constants
 
 
 # TODO look at the following function and class. Would be good to implement! (currently causes error!

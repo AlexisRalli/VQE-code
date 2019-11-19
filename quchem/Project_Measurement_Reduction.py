@@ -75,53 +75,53 @@ R_S_operators_by_key = Get_R_S_operators(All_X_sk_terms.X_sk_Ops)
 # print(cirq.Circuit.from_ops(cirq.decompose_once(
 #     (R_S_operators_by_key[7][0][0](*cirq.LineQubit.range(R_S_operators_by_key[7][0][0].num_qubits()))))))
 
-
-circuits_and_constants={}
-for key in All_X_sk_terms.normalised_anti_commuting_sets:
-    if key not in All_X_sk_terms.X_sk_Ops:
-        PauliWord = All_X_sk_terms.normalised_anti_commuting_sets[key]['PauliWords'][0]
-        constant = All_X_sk_terms.normalised_anti_commuting_sets[key]['factor']
-
-        Pauli_circuit_object = Perform_PauliWord_and_Measure(PauliWord)
-        q_circuit_Pauliword = cirq.Circuit.from_ops(
-            cirq.decompose_once(
-                (Pauli_circuit_object(*cirq.LineQubit.range(Pauli_circuit_object.num_qubits())))))
-        circuit_ops = list(q_circuit_Pauliword.all_operations())
-
-        if circuit_ops == []:
-            # deals with identity only circuit
-            circuits_and_constants[key] = {'circuit': None,
-                                           'factor': constant, 'PauliWord': PauliWord[0]}
-        else:
-            full_circuit = cirq.Circuit.from_ops(
-                [
-                    *full_anstaz_circuit.all_operations(), # maybe make this a variable! (rather than repeated method)
-                    *circuit_ops
-                ])
-
-            circuits_and_constants[key] = {'circuit': full_circuit,
-                                           'factor': constant, 'PauliWord': PauliWord[0]}
-
-    else:
-        term_reduction_circuits = [cirq.decompose_once(
-             (circuit(*cirq.LineQubit.range(circuit.num_qubits())))) for circuit, constant in R_S_operators_by_key[key]]
-
-        Pauliword_S = All_X_sk_terms.X_sk_Ops[key]['PauliWord_S']
-        q_circuit_Pauliword_S_object = Perform_PauliWord_and_Measure(Pauliword_S)
-
-        q_circuit_Pauliword_S = cirq.Circuit.from_ops(
-            cirq.decompose_once((q_circuit_Pauliword_S_object(*cirq.LineQubit.range(q_circuit_Pauliword_S_object.num_qubits())))))
-
-        full_circuit = cirq.Circuit.from_ops(
-            [
-                *full_anstaz_circuit.all_operations(),      #maybe make this a variable! (rather than repeated method)
-                *term_reduction_circuits,
-                *q_circuit_Pauliword_S.all_operations()
-            ]
-        )
-
-        circuits_and_constants[key] = {'circuit': full_circuit, 'factor': Pauliword_S[1]*All_X_sk_terms.X_sk_Ops[key]['gamma_l'],
-                                       'PauliWord': Pauliword_S[0]}
+circuits_and_constants = Get_quantum_circuits_and_constants(All_X_sk_terms, R_S_operators_by_key, full_anstaz_circuit)
+# circuits_and_constants={}
+# for key in All_X_sk_terms.normalised_anti_commuting_sets:
+#     if key not in All_X_sk_terms.X_sk_Ops:
+#         PauliWord = All_X_sk_terms.normalised_anti_commuting_sets[key]['PauliWords'][0]
+#         constant = All_X_sk_terms.normalised_anti_commuting_sets[key]['factor']
+#
+#         Pauli_circuit_object = Perform_PauliWord_and_Measure(PauliWord)
+#         q_circuit_Pauliword = cirq.Circuit.from_ops(
+#             cirq.decompose_once(
+#                 (Pauli_circuit_object(*cirq.LineQubit.range(Pauli_circuit_object.num_qubits())))))
+#         circuit_ops = list(q_circuit_Pauliword.all_operations())
+#
+#         if circuit_ops == []:
+#             # deals with identity only circuit
+#             circuits_and_constants[key] = {'circuit': None,
+#                                            'factor': constant, 'PauliWord': PauliWord[0]}
+#         else:
+#             full_circuit = cirq.Circuit.from_ops(
+#                 [
+#                     *full_anstaz_circuit.all_operations(), # maybe make this a variable! (rather than repeated method)
+#                     *circuit_ops
+#                 ])
+#
+#             circuits_and_constants[key] = {'circuit': full_circuit,
+#                                            'factor': constant, 'PauliWord': PauliWord[0]}
+#
+#     else:
+#         term_reduction_circuits = [cirq.decompose_once(
+#              (circuit(*cirq.LineQubit.range(circuit.num_qubits())))) for circuit, constant in R_S_operators_by_key[key]]
+#
+#         Pauliword_S = All_X_sk_terms.X_sk_Ops[key]['PauliWord_S']
+#         q_circuit_Pauliword_S_object = Perform_PauliWord_and_Measure(Pauliword_S)
+#
+#         q_circuit_Pauliword_S = cirq.Circuit.from_ops(
+#             cirq.decompose_once((q_circuit_Pauliword_S_object(*cirq.LineQubit.range(q_circuit_Pauliword_S_object.num_qubits())))))
+#
+#         full_circuit = cirq.Circuit.from_ops(
+#             [
+#                 *full_anstaz_circuit.all_operations(),      #maybe make this a variable! (rather than repeated method)
+#                 *term_reduction_circuits,
+#                 *q_circuit_Pauliword_S.all_operations()
+#             ]
+#         )
+#
+#         circuits_and_constants[key] = {'circuit': full_circuit, 'factor': Pauliword_S[1]*All_X_sk_terms.X_sk_Ops[key]['gamma_l'],
+#                                        'PauliWord': Pauliword_S[0]}
 
 
 
@@ -136,3 +136,4 @@ for key in All_X_sk_terms.normalised_anti_commuting_sets:
 #             T1_Ansatz_circuits[0][1](*cirq.LineQubit.range(T1_Ansatz_circuits[0][1].num_qubits())))
 #     ]
 #             ))
+
