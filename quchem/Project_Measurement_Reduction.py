@@ -34,7 +34,8 @@ HF_state_prep_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
     (HF_state_prep(*cirq.LineQubit.range(HF_state_prep.num_qubits())))))
 
 # UCC
-UCC = Full_state_prep_circuit(HF_initial_state)#, theta_T1_list=[np.pi, 2*np.pi], theta_T2_list=[3*np.pi/2])
+
+UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=[])#, T1_and_T2_theta_list=[0,np.pi,0.5*np.pi])
 UCC.complete_UCC_circuit()
 UCC_quantum_circuit =UCC.UCC_full_circuit
 #print(UCC_quantum_circuit)
@@ -71,11 +72,11 @@ All_X_sk_terms.Get_all_X_sk_operator()
 
 # print(All_X_sk_terms.normalised_anti_commuting_sets)
 # print(All_X_sk_terms.X_sk_Ops)
-R_S_operators_by_key = Get_R_S_operators(All_X_sk_terms.X_sk_Ops)
+#R_S_operators_by_key = Get_R_S_operators(All_X_sk_terms.X_sk_Ops)
 # print(cirq.Circuit.from_ops(cirq.decompose_once(
 #     (R_S_operators_by_key[7][0][0](*cirq.LineQubit.range(R_S_operators_by_key[7][0][0].num_qubits()))))))
 
-circuits_and_constants = Get_quantum_circuits_and_constants(All_X_sk_terms, R_S_operators_by_key, full_anstaz_circuit)
+circuits_and_constants = Get_quantum_circuits_and_constants(All_X_sk_terms, full_anstaz_circuit)
 # circuits_and_constants={}
 # for key in All_X_sk_terms.normalised_anti_commuting_sets:
 #     if key not in All_X_sk_terms.X_sk_Ops:
@@ -137,3 +138,14 @@ circuits_and_constants = Get_quantum_circuits_and_constants(All_X_sk_terms, R_S_
 #     ]
 #             ))
 
+
+
+
+from tests.VQE_methods.Scipy_Optimizer import *
+max_iter = 50
+NM = Optimizer(1000, [0,1,2],
+                  HF_state_prep_circuit, HF_initial_state, All_X_sk_terms,
+                 noisy=True, store_values = True, optimized_result=None)
+NM.get_env(max_iter)
+#NM.plot_convergence()
+print(NM.optimized_result)

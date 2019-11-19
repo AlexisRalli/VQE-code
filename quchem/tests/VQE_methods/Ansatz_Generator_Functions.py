@@ -426,6 +426,21 @@ class UCC_Terms():
 
 import random
 import math
+
+def combined_T1_T2_theta_list(T1_formatted, T2_formatted, T1_and_T2_theta_list=[]):
+
+    if T1_and_T2_theta_list== []:
+        T1_theta_list = [random.uniform(0, 2*math.pi) for i in range(len(T1_formatted))]
+        T2_theta_list = [random.uniform(0, 2*math.pi) for i in range(len(T2_formatted))]
+    else:
+        length_T1 = len(T1_formatted)
+        T1_theta_list = [T1_and_T2_theta_list[i] for i in range(length_T1)]
+        T2_theta_list = [T1_and_T2_theta_list[i + length_T1] for i in range(len(T2_formatted))]
+
+    return T1_theta_list, T2_theta_list
+
+
+
 def Set_circuit_angles(T_Terms_Reformatted_Paulis, theta_list=None):
     """
 
@@ -458,7 +473,8 @@ def Set_circuit_angles(T_Terms_Reformatted_Paulis, theta_list=None):
 if __name__ == '__main__':
     from quantum_circuit_functions import *
 else:
-    from .quantum_circuit_functions import *
+    #from .quantum_circuit_functions import *
+    from tests.VQE_methods.quantum_circuit_functions import *
 
 def Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES):
     """
@@ -591,7 +607,6 @@ if __name__ == '__main__':
                 (circuit(*cirq.LineQubit.range(circuit.num_qubits()))))))
 
 
-
 # print(cirq.Circuit.from_ops(
 #     [
 #     cirq.decompose_once(T1_Ansatz_circuits[0][0](*cirq.LineQubit.range(T1_Ansatz_circuits[0][0].num_qubits()))),
@@ -601,11 +616,10 @@ if __name__ == '__main__':
 #             ))
 
 class Full_state_prep_circuit(UCC_Terms):
-    def __init__(self, HF_State,  theta_T1_list=None, theta_T2_list=None):
+    def __init__(self, HF_State,  T1_and_T2_theta_list=[]):
         super().__init__(HF_State)
 
-        self.theta_T1_list= theta_T1_list
-        self.theta_T2_list = theta_T2_list
+        self.theta_T1_list, self.theta_T2_list = combined_T1_T2_theta_list(self.T1_formatted, self.T2_formatted, T1_and_T2_theta_list=T1_and_T2_theta_list)
 
         self.T1_PauliWords_and_circuits_ANGLES =  Set_circuit_angles(self.T1_formatted,
                                                        theta_list=self.theta_T1_list)
@@ -659,6 +673,6 @@ class Full_state_prep_circuit(UCC_Terms):
 
 if __name__ == '__main__':
     HF_initial_state = [0, 0, 1, 1]
-    UCC = Full_state_prep_circuit(HF_initial_state)
+    UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=[0,np.pi,0.5*np.pi])
     UCC.complete_UCC_circuit()
     print(UCC.UCC_full_circuit)

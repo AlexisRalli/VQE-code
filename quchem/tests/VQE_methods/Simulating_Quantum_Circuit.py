@@ -257,7 +257,7 @@ def expectation_value(results_binary):
         num_zeros = 0
         for state in results_binary[key]['Counter']:
             individual_outcomes = [int(bit) for bit in state]
-            print(individual_outcomes)
+            #print(individual_outcomes)
             for bit in individual_outcomes:
                 if bit == 1:
                     num_ones += results_binary[key]['Counter'][state]
@@ -265,7 +265,7 @@ def expectation_value(results_binary):
                     num_zeros += results_binary[key]['Counter'][state]
                 else:
                     raise ValueError('incorrect outcome {}'.format(individual_outcomes))
-        print('number of 1 s =', num_ones, 'number of 0 s =', num_zeros)
+        #print('number of 1 s =', num_ones, 'number of 0 s =', num_zeros)
         expectation_value_results[key] = (num_zeros - num_ones) / (num_zeros + num_ones) * results_binary[key]['factor']
 
     return expectation_value_results
@@ -284,4 +284,3 @@ def Calc_Energy(quantum_circuit_dict, num_shots):
         E += exp_per_circuit[circuit]
     return E
 
-Calc_Energy(circuits_and_constants, 1000)
