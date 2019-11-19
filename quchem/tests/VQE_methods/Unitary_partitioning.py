@@ -673,9 +673,13 @@ if __name__ == '__main__':
 if __name__ == '__main__':
     from quantum_circuit_functions import *
 else:
-    from .quantum_circuit_functions import *
+    #from quantum_circuit_functions import *
+    from tests.VQE_methods.quantum_circuit_functions import *
 
-def Get_quantum_circuits_and_constants(All_X_sk_terms, R_S_operators_by_key, full_anstaz_circuit):
+
+def Get_quantum_circuits_and_constants(All_X_sk_terms, full_anstaz_circuit):
+
+    R_S_operators_by_key = Get_R_S_operators(All_X_sk_terms.X_sk_Ops)
 
     circuits_and_constants={}
     for key in All_X_sk_terms.normalised_anti_commuting_sets:
