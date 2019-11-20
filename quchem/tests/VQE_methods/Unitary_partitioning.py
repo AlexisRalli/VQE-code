@@ -174,24 +174,23 @@ def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write functi
 
             beta_j_sum = 0
             for k in k_indexes:
-
                 X_sk_op =(anti_commuting_set[S], anti_commuting_set[k])
 
                 beta_K = anti_commuting_set[k][1]
                 if beta_j_sum == 0:
-                    tan_theta_sk = beta_K / np.sqrt(beta_S + beta_j_sum)
-                    beta_j_sum += beta_K
+                    tan_theta_sk = beta_K / np.sqrt(beta_S**2)
+                    beta_j_sum += beta_K**2
                 else:
-                    tan_theta_sk = beta_K / np.sqrt(beta_S + beta_j_sum)# B_k/B_s
-                    beta_j_sum += beta_K
+                    tan_theta_sk = beta_K / np.sqrt(beta_S**2 + beta_j_sum**2)# B_k/B_s
+                    beta_j_sum += beta_K**2
 
                 theta_sk = np.arctan(tan_theta_sk)
 
-                #Op_list.append((X_sk_op, tan_theta_sk, normalised_anti_commuting_sets[key]['factor']))
-
                 Op_list.append({'X_sk': X_sk_op, 'theta_sk': theta_sk})#, 'factor': normalised_anti_commuting_sets[key]['factor']})
 
-            X_sk_and_theta_sk.update({key: {'X_sk_theta_sk': Op_list, 'PauliWord_S': anti_commuting_set[S], 'gamma_l': normalised_anti_commuting_sets[key]['factor']}})
+            new_beta_S = np.sqrt(beta_j_sum + anti_commuting_set[S][1]**2)
+
+            X_sk_and_theta_sk.update({key: {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], new_beta_S), 'gamma_l': normalised_anti_commuting_sets[key]['factor']}})
 
     return X_sk_and_theta_sk
 
