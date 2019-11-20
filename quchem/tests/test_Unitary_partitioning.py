@@ -62,7 +62,7 @@ def test_Get_beta_j_cofactors_constants():
 
         CORRECT_old_constants = [PauliWord_and_constant[1] for PauliWord_and_constant in ANTI_commuting_sets[key]] # ['PauliWords']]
 
-        calculating_old_constants = [np.sqrt(factor)*constant for PauliWord, constant in updated_anti_commuting_sets[key]['PauliWords']]
+        calculating_old_constants = [factor*constant for PauliWord, constant in updated_anti_commuting_sets[key]['PauliWords']]
 
         # NOTE this does NOT work if you do:
         # checking_old_constants = [np.sqrt(constant**2 *factor) for PauliWord, constant in updated_anti_commuting_sets[key]['PauliWords']]
@@ -98,7 +98,7 @@ def test_Get_beta_j_cofactors_manual():
             new_constant = constant/np.sqrt(factor)
             terms.append((PauliWord, new_constant))
 
-        CORRECT[key] = {'PauliWords': terms, 'factor': factor}
+        CORRECT[key] = {'PauliWords': terms, 'factor': np.sqrt(factor)}
 
     for key in CORRECT:
         summation = sum([constant**2 for PauliWord, constant in CORRECT[key]['PauliWords']])

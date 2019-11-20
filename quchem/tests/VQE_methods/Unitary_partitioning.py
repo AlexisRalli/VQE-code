@@ -46,7 +46,7 @@ def Get_beta_j_cofactors(anti_commuting_sets):
 
         # anti_commuting_sets[key] = [terms, ('factor', factor)] # can also have *terms
 
-        new_anti_commuting_sets[key] = {'PauliWords': terms, 'factor': factor}
+        new_anti_commuting_sets[key] = {'PauliWords': terms, 'factor': np.sqrt(factor)}
     # TODO (can make more efficient by missing terms with only 1 PauliWord)
     # do the following:
     #         if len(value)>1:
@@ -223,7 +223,7 @@ def convert_X_sk(X_sk):
     :return: Returns a list of tuples containing  (new PauliString, new constant)
     :rtype: list
 
-    e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
+    e.g. ('X0 X1 X2 Y3', (0.28527408634774526+0j))
 
     """
     convert_term ={
@@ -272,7 +272,9 @@ def convert_X_sk(X_sk):
         else:
             raise ValueError('qubit indexes do Not match. P_s index = {} and P_k index = {}'.format(qubitNo, PauliWord_k[i][1::]))
 
+    # needed for Pauli products!
     new_constant_SIGN = np.prod([factorpaulistring[0] for factorpaulistring, qubitNo in new_PauliWord])
+
     seperator = ' '
     new_PauliWord = seperator.join([factorpaulistring[1] + qubitNo for factorpaulistring, qubitNo in new_PauliWord])
 
@@ -801,7 +803,7 @@ def Get_quantum_circuits_and_constants(All_X_sk_terms, full_anstaz_circuit):
     for key in All_X_sk_terms.normalised_anti_commuting_sets:
         if key not in All_X_sk_terms.X_sk_Ops:
             PauliWord = All_X_sk_terms.normalised_anti_commuting_sets[key]['PauliWords'][0]
-            constant = All_X_sk_terms.normalised_anti_commuting_sets[key]['factor']
+            constant = All_X_sk_terms.normalised_anti_commuting_sets[key]['factor'] * All_X_sk_terms.normalised_anti_commuting_sets[key]['PauliWords'][0][1]
 
             Pauli_circuit_object = Perform_PauliWord_and_Measure(PauliWord)
             q_circuit_Pauliword = cirq.Circuit.from_ops(
