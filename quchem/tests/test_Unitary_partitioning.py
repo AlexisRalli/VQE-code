@@ -139,35 +139,42 @@ def test_Get_X_sk_operators_THETA_sk_values():
 
     # note that normalised_anti_commuting_sets[1]['PauliWords'][0][1] is beta_s
     # look at eq. (16) ArXiv 1908.08067
-    key1_tan_theta_01 = normalised_anti_commuting_sets[1]['PauliWords'][1][1]/normalised_anti_commuting_sets[1]['PauliWords'][0][1] #B_k/B_s
+    key1_beta_S = normalised_anti_commuting_sets[1]['PauliWords'][0][1]
+
+
+    key1_beta_kequal1 = normalised_anti_commuting_sets[1]['PauliWords'][1][1]
+    key1_tan_theta_01 = key1_beta_kequal1 / np.sqrt(key1_beta_S ** 2)  # B_k/(B_s^2)^0.5
     key1_theta_01 = np.arctan(key1_tan_theta_01)
-    beta_S_k1_NEW = np.sqrt(normalised_anti_commuting_sets[1]['PauliWords'][0][1]**2 + normalised_anti_commuting_sets[1]['PauliWords'][1][1]**2) # B_s^2 + B_k^2
+    key1_beta_j_summer = key1_beta_kequal1**2
 
-    key1_tan_theta_02 = normalised_anti_commuting_sets[1]['PauliWords'][2][1]/beta_S_k1_NEW #B_k/B_s
+    key1_beta_kequal2 = normalised_anti_commuting_sets[1]['PauliWords'][2][1]
+    key1_tan_theta_02 = key1_beta_kequal2 / np.sqrt(key1_beta_S ** 2 + key1_beta_j_summer**2)  # B_k2/(B_k1^2 + B_s^2)^0.5
     key1_theta_02 = np.arctan(key1_tan_theta_02)
-    # beta_S_k2_NEW = np.sqrt(
-    #     beta_S_k1_NEW + normalised_anti_commuting_sets[1]['PauliWords'][2][
-    #         1] ** 2)
-    # NOT needed... but included for reference!
+    key1_beta_j_summer+=key1_beta_kequal2**2
 
-    key2_tan_theta_01 =  normalised_anti_commuting_sets[2]['PauliWords'][1][1]/normalised_anti_commuting_sets[2]['PauliWords'][0][1] #B_k/B_s
+    key1_beta_S_NEW_Factor = np.sqrt(key1_beta_S**2 + key1_beta_j_summer**2)
+    print(key1_beta_S_NEW_Factor)
+########
+    key2_beta_kequal1 = normalised_anti_commuting_sets[2]['PauliWords'][1][1]
+    key2_beta_s = normalised_anti_commuting_sets[2]['PauliWords'][0][1]
+    key2_tan_theta_01 = key2_beta_kequal1/np.sqrt(key2_beta_s**2) #B_k/(B_s^2)^0.5
     key2_theta_01 = np.arctan(key2_tan_theta_01)
-    beta_S_k1_NEW = np.sqrt(
-        normalised_anti_commuting_sets[2]['PauliWords'][0][1] ** 2 + normalised_anti_commuting_sets[2]['PauliWords'][1][
-            1] ** 2)  # B_s^2 + B_k^2
 
-    key2_tan_theta_02 = normalised_anti_commuting_sets[2]['PauliWords'][2][1]/beta_S_k1_NEW #B_k/B_s
+    key2_beta_j_summer = key2_beta_kequal1**2
+
+    key2_beta_kequal2 = normalised_anti_commuting_sets[2]['PauliWords'][2][1]
+    key2_tan_theta_02 = key2_beta_kequal2 / np.sqrt(key2_beta_s ** 2 + key2_beta_j_summer**2)  # B_k2/(B_k1^2 + B_s^2)^0.5
     key2_theta_02 = np.arctan(key2_tan_theta_02)
-    beta_S_k2_NEW = np.sqrt(
-        beta_S_k1_NEW**2 + normalised_anti_commuting_sets[2]['PauliWords'][2][
-            1] ** 2)
+    key2_beta_j_summer += key2_beta_kequal2**2
 
-    key2_tan_theta_03 = normalised_anti_commuting_sets[2]['PauliWords'][3][1] / beta_S_k2_NEW  # B_k/B_s
+    key2_beta_kequal3 = normalised_anti_commuting_sets[2]['PauliWords'][3][1]
+    key2_tan_theta_03 = key2_beta_kequal3 / np.sqrt(key2_beta_s ** 2 + key2_beta_j_summer**2)  # B_k2/(B_k1^2 + B_k2^2 + B_s^2)^0.5
     key2_theta_03 = np.arctan(key2_tan_theta_03)
-    # beta_S_03_NEW = np.sqrt(
-    #     beta_S_k2_NEW + normalised_anti_commuting_sets[2]['PauliWords'][3][
-    #         1] ** 2)
-    # NOT needed... but included for reference!
+    key2_beta_j_summer += key2_beta_kequal3**2
+
+    key2_beta_S_NEW_Factor = np.sqrt(key2_beta_s ** 2 + key2_beta_j_summer ** 2)
+
+
 
     MANUAL_answer = {1: {'X_sk_theta_sk':
                                              [
@@ -179,7 +186,7 @@ def test_Get_X_sk_operators_THETA_sk_values():
                                                  ('X0 I1 I2 I3', (0.3198751585326103 + 0j))),
                                                  'theta_sk': (key1_theta_02)}
                                              ],
-                        'PauliWord_S':     normalised_anti_commuting_sets[1]['PauliWords'][S],
+                        'PauliWord_S':     (normalised_anti_commuting_sets[1]['PauliWords'][S][0], key1_beta_S_NEW_Factor),
                          'gamma_l': (0.9999999999999999+0j)
                         },
 
@@ -199,7 +206,7 @@ def test_Get_X_sk_operators_THETA_sk_values():
                          'theta_sk': (key2_theta_03)}
 
                     ],
-                    'PauliWord_S': normalised_anti_commuting_sets[2]['PauliWords'][S],
+                    'PauliWord_S': (normalised_anti_commuting_sets[2]['PauliWords'][S][0], key2_beta_S_NEW_Factor),
                     'gamma_l': (1.2913940071756902+0j)
                 }
     }

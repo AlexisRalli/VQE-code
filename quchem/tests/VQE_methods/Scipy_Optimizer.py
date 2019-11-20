@@ -1,21 +1,18 @@
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
-if __name__ == '__main__':
-    from Simulating_Quantum_Circuit import *
-else:
-    from .Simulating_Quantum_Circuit import *
-
-if __name__ == '__main__':
-    from Unitary_partitioning import *
-else:
-    from .Unitary_partitioning import *
-
 
 if __name__ == '__main__':
     from Ansatz_Generator_Functions import *
+    from Simulating_Quantum_Circuit import *
+    from Unitary_partitioning import *
 else:
     from .Ansatz_Generator_Functions import *
+    from .Simulating_Quantum_Circuit import *
+    from .Unitary_partitioning import *
+
+
+
 
 
 class Optimizer:
@@ -72,7 +69,8 @@ class Optimizer:
 
         quantum_circuit_dict = Get_quantum_circuits_and_constants(self.All_X_sk_terms, full_anstaz_circuit)
 
-        Energy = Calc_Energy(quantum_circuit_dict, self.num_shots)
+        sim = Simulation_Quantum_Circuit_Dict(quantum_circuit_dict, self.num_shots)
+        Energy = sim.Calc_energy()
 
         return Energy
 
