@@ -133,79 +133,6 @@ def Get_X_sk_operatorsOLD(normalised_anti_commuting_sets, S=0): # TODO write fun
 
     return X_sk_and_theta_sk
 
-def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write function to select 'best' S term!
-    """
-    Function takes in normalised_anti_commuting_sets and gets each R_sk operator according to
-    eq (11) in ArXiv:1908.08067.
-
-    Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
-    NOTE S is fixed here!!!
-
-    :param normalised_anti_commuting_sets: A dictionary of anti-commuting sets.
-     Note this is a dictionary of dictionaries where one dict is a tuple of (PauliWord, Constant). The other is
-     a dictionary containing the correction to the cofactor.
-    :type normalised_anti_commuting_sets: dict
-
-    :param S: Index of s in R_sk operator. Note that default is zero. TODO can automate this choice!
-    :type S: int
-    ...
-    :raises [ErrorType]: [ErrorDescription]
-    ...
-    :return: A dictionary containing each X_sk operators for each anti-commuting subset, with associated
-    theta_sk value and constant correction factor.
-
-    NOTE: each element of the outermost dict is a list of sub dictionaries - each associated to one sk term.
-
-    :rtype: dict
-    """
-    X_sk_and_theta_sk={}
-
-    for key in normalised_anti_commuting_sets:
-        anti_commuting_set = normalised_anti_commuting_sets[key]['PauliWords']
-
-        if len(anti_commuting_set) > 1:
-
-
-            k_indexes = [index for index in range(len(anti_commuting_set)) if
-                       index != S]
-
-            Op_list = []
-            beta_S = anti_commuting_set[S][1]
-
-            beta_j_sum = 0
-            for k in k_indexes:
-                X_sk_op =(anti_commuting_set[S], anti_commuting_set[k])
-
-                beta_K = anti_commuting_set[k][1]
-                if beta_j_sum == 0:
-                    tan_theta_sk = beta_K / np.sqrt(beta_S**2)
-                    beta_j_sum += beta_K**2
-                else:
-                    tan_theta_sk = beta_K / np.sqrt(beta_S**2 + beta_j_sum**2)# B_k/B_s
-                    beta_j_sum += beta_K**2
-
-                theta_sk = np.arctan(tan_theta_sk)
-
-                Op_list.append({'X_sk': X_sk_op, 'theta_sk': theta_sk})#, 'factor': normalised_anti_commuting_sets[key]['factor']})
-
-            new_beta_S = np.sqrt(beta_j_sum + anti_commuting_set[S][1]**2)
-
-            X_sk_and_theta_sk.update({key: {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], new_beta_S), 'gamma_l': normalised_anti_commuting_sets[key]['factor']}})
-
-    return X_sk_and_theta_sk
-
-# #test
-# if __name__ == '__main__':
-#     ww = Get_X_sk_operators(ll, S=0)
-#
-#     print(ww[7]['X_sk_theta_sk'][0]['X_sk'])
-#     print(ww[7]['X_sk_theta_sk'][0]['theta_sk'])
-#     print(ww[7]['gamma_l'])
-#
-#     print(ww[7]['X_sk_theta_sk'][1]['X_sk'])
-#     print(ww[7]['X_sk_theta_sk'][1]['theta_sk'])
-#     print(ww[7]['gamma_l'])
-
 
 
 def convert_X_sk(X_sk):
@@ -285,6 +212,84 @@ def convert_X_sk(X_sk):
 #     print(convert_X_sk(ww[7]['X_sk_theta_sk'][0]['X_sk']))
 
 
+
+def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write function to select 'best' S term!
+    """
+    Function takes in normalised_anti_commuting_sets and gets each R_sk operator according to
+    eq (11) in ArXiv:1908.08067.
+
+    Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
+    NOTE S is fixed here!!!
+
+    :param normalised_anti_commuting_sets: A dictionary of anti-commuting sets.
+     Note this is a dictionary of dictionaries where one dict is a tuple of (PauliWord, Constant). The other is
+     a dictionary containing the correction to the cofactor.
+    :type normalised_anti_commuting_sets: dict
+
+    :param S: Index of s in R_sk operator. Note that default is zero. TODO can automate this choice!
+    :type S: int
+    ...
+    :raises [ErrorType]: [ErrorDescription]
+    ...
+    :return: A dictionary containing each X_sk operators for each anti-commuting subset, with associated
+    theta_sk value and constant correction factor.
+
+    NOTE: each element of the outermost dict is a list of sub dictionaries - each associated to one sk term.
+
+    :rtype: dict
+    """
+    X_sk_and_theta_sk={}
+
+    for key in normalised_anti_commuting_sets:
+        anti_commuting_set = normalised_anti_commuting_sets[key]['PauliWords']
+
+        if len(anti_commuting_set) > 1:
+
+
+            k_indexes = [index for index in range(len(anti_commuting_set)) if
+                       index != S]
+
+            Op_list = []
+            beta_S = anti_commuting_set[S][1]
+
+            beta_j_sum = 0
+            for k in k_indexes:
+                X_sk_op =(anti_commuting_set[S], anti_commuting_set[k])
+
+                beta_K = anti_commuting_set[k][1]
+                if beta_j_sum == 0:
+                    tan_theta_sk = beta_K / np.sqrt(beta_S**2)
+                    beta_j_sum += beta_K**2
+                else:
+                    tan_theta_sk = beta_K / np.sqrt(beta_S**2 + beta_j_sum**2)# B_k/B_s
+                    beta_j_sum += beta_K**2
+
+                theta_sk = np.arctan(tan_theta_sk)
+
+                Op_list.append({'X_sk': convert_X_sk(X_sk_op), 'theta_sk': theta_sk})#, 'factor': normalised_anti_commuting_sets[key]['factor']})
+
+            new_beta_S = np.sqrt(beta_j_sum + anti_commuting_set[S][1]**2)
+
+            X_sk_and_theta_sk.update({key: {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], new_beta_S), 'gamma_l': normalised_anti_commuting_sets[key]['factor']}})
+
+    return X_sk_and_theta_sk
+
+# #test
+# if __name__ == '__main__':
+#     ww = Get_X_sk_operators(ll, S=0)
+#
+#     print(ww[7]['X_sk_theta_sk'][0]['X_sk'])
+#     print(ww[7]['X_sk_theta_sk'][0]['theta_sk'])
+#     print(ww[7]['gamma_l'])
+#
+#     print(ww[7]['X_sk_theta_sk'][1]['X_sk'])
+#     print(ww[7]['X_sk_theta_sk'][1]['theta_sk'])
+#     print(ww[7]['gamma_l'])
+
+
+
+
+
 class X_sk_terms():
     def __init__(self,anti_commuting_sets, S=0):
         self.anti_commuting_sets = anti_commuting_sets
@@ -317,12 +322,6 @@ class Change_of_Basis_initial_X_sk(cirq.Gate):
         :type X_sk: tuple
 
         e.g.: X_sk =
-                    (
-                        ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                        ('Y0 X1 X2 Y3', (0.3198751585326103+0j))
-                    )
-
-        Run convert_X_sk function... giving single term:
         e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
 
         Then build circuit!
@@ -335,11 +334,9 @@ class Change_of_Basis_initial_X_sk(cirq.Gate):
        """
         self.X_sk = X_sk
 
-        self.X_sk_converted_to_PauliWord = convert_X_sk(self.X_sk)
-
     def _decompose_(self, qubits):
 
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
 
         for PauliString in PauliWord:
             qubitOp = PauliString[0]
@@ -356,13 +353,13 @@ class Change_of_Basis_initial_X_sk(cirq.Gate):
 
     def _circuit_diagram_info_(self, args):
         Ansatz_basis_change_list = []
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
         for i in range(len(PauliWord)):
                 Ansatz_basis_change_list.append('Basis_change')
         return Ansatz_basis_change_list
 
     def num_qubits(self):
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
         return len(PauliWord)
 
 if __name__ == '__main__':
@@ -390,11 +387,10 @@ class Engtangle_initial_X_sk(cirq.Gate):
         :rtype: class
        """
         self.X_sk = X_sk
-        self.X_sk_converted_to_PauliWord = convert_X_sk(self.X_sk)
 
     def _decompose_(self, qubits):
 
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
 
         # note identity terms removed here
         qubitNo_qubitOp_list = [(int(PauliString[1::]), PauliString[0]) for PauliString in PauliWord if PauliString[0] != 'I']
@@ -412,14 +408,14 @@ class Engtangle_initial_X_sk(cirq.Gate):
 
     def _circuit_diagram_info_(self, args):
         string_list = []
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
         for i in range(len(PauliWord)):
                 string_list.append('Entangling circuit')
         return string_list
 
 
     def num_qubits(self):
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
         return len(PauliWord)
 
 
@@ -437,16 +433,12 @@ if __name__ == '__main__':
 
 
 class My_R_sk_Gate(cirq.SingleQubitGate):
-    def __init__(self, X_sk_converted_to_PauliWord, theta_sk, dagger=True):
+    def __init__(self, theta_sk, dagger=True):
         """""
     Circuit to build a R_sk^DAGGER gate ... eq (12) arXiv: 1908.08067
 
     :param theta_sk: Value of theta_sk angle.
     :type theta_sk: float
-
-
-    :param X_sk_converted_to_PauliWord: A tuple PauliWord: (PauliWord P, constant)
-    :type X_sk_converted_to_PauliWord: tuple
 
         e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
 
@@ -456,7 +448,6 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
     :return: A circuit object to be used by cirq.Circuit.from_ops
     :rtype: class
         """
-        self.X_sk_converted_to_PauliWord = X_sk_converted_to_PauliWord
         self.theta_sk = theta_sk
         self.dagger = dagger
 
@@ -486,7 +477,7 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
 if __name__ == '__main__':
     X_SK_Test = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']  # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
     theta_sk = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['theta_sk']
-    R_S = My_R_sk_Gate(convert_X_sk(X_SK_Test), theta_sk, dagger=True)
+    R_S = My_R_sk_Gate(theta_sk, dagger=True)
     w = R_S.on(cirq.LineQubit(1))
     print(cirq.Circuit.from_ops(w))
 
@@ -501,16 +492,8 @@ class R_sk_DAGGER(cirq.Gate):
     :type theta_sk: float
 
 
-    :param X_sk: A tuple of tuples: ((PauliWord P_s, constant), (PauliWord P_k)). note have P_s and P_k.
+    :param X_sk: A tuple of tuples: (PauliWord P, constant).
     :type X_sk: tuple
-
-    e.g.: X_sk =
-                (
-                    ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                    ('Y0 X1 X2 Y3', (0.3198751585326103+0j))
-                )
-
-        Run convert_X_sk function... giving single term:
         e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
 
     ...
@@ -521,7 +504,6 @@ class R_sk_DAGGER(cirq.Gate):
 
         """
         self.X_sk = X_sk
-        self.X_sk_converted_to_PauliWord = convert_X_sk(self.X_sk)
 
         self.theta_sk = theta_sk
         self.dagger = dagger
@@ -529,22 +511,22 @@ class R_sk_DAGGER(cirq.Gate):
 
     def _decompose_(self, qubits):
 
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
 
         # note identity terms removed here
         qubitNo_qubitOp_list = [(int(PauliString[1::]), PauliString[0]) for PauliString in PauliWord if PauliString[0] != 'I']
 
         control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list])
 
-        yield My_R_sk_Gate(self.X_sk_converted_to_PauliWord, self.theta_sk, dagger=self.dagger).on(qubits[control_qubit])
+        yield My_R_sk_Gate(self.theta_sk, dagger=self.dagger).on(qubits[control_qubit])
 
     def num_qubits(self):
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
         return len(PauliWord)
 
     def _circuit_diagram_info_(self, args):
         string_list = []
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
         for i in range(len(PauliWord)):
                 string_list.append('R_sk_rotation circuit')
         return string_list
@@ -576,11 +558,10 @@ class Engtangle_final_X_sk(cirq.Gate):
         :rtype: class
        """
         self.X_sk = X_sk
-        self.X_sk_converted_to_PauliWord = convert_X_sk(self.X_sk)
 
     def _decompose_(self, qubits):
 
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
 
         # note identity terms removed here
         qubitNo_qubitOp_list_REVERSE = [(int(PauliString[1::]), PauliString[0]) for PauliString in PauliWord if PauliString[0] != 'I'][::-1]
@@ -597,14 +578,14 @@ class Engtangle_final_X_sk(cirq.Gate):
 
     def _circuit_diagram_info_(self, args):
         string_list = []
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
         for i in range(len(PauliWord)):
                 string_list.append('Entangling circuit')
         return string_list
 
 
     def num_qubits(self):
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
         return len(PauliWord)
 
 
@@ -619,27 +600,75 @@ if __name__ == '__main__':
     print(
         cirq.Circuit.from_ops(cirq.decompose_once((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits()))))))
 
+class Change_of_Basis_final_X_sk(cirq.Gate):
+    def __init__(self, X_sk):
+        """
+         Circuit to perform change of basis in order to perform: e^(-i theta_sk/2 X_sk) ... eq (12) arXiv: 1908.08067
+
+        :param X_sk: A tuple of tuples: ((PauliWord P_s, constant), (PauliWord P_k)). note have P_s and P_k.
+        :type X_sk: tuple
+
+        e.g.: X_sk =
+        e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
+
+        Then build circuit!
+
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: A circuit object to be used by cirq.Circuit.from_ops
+        :rtype: class
+       """
+        self.X_sk = X_sk
+
+    def _decompose_(self, qubits):
+
+        PauliWord = self.X_sk[0].split(' ')
+
+        for PauliString in PauliWord:
+            qubitOp = PauliString[0]
+            qubitNo = int(PauliString[1::])
+
+            if qubitOp == 'X':
+                yield cirq.H(qubits[qubitNo])
+            elif qubitOp == 'Y':
+                 yield cirq.Rx(-np.pi / 2)(qubits[qubitNo])
+            elif qubitOp == 'Z' or 'I':
+                continue
+            else:
+                raise ValueError("Qubit Operation: {} is NOT a Pauli operation".format(qubitOp))
+
+    def _circuit_diagram_info_(self, args):
+        Ansatz_basis_change_list = []
+        PauliWord = self.X_sk[0].split(' ')
+        for i in range(len(PauliWord)):
+                Ansatz_basis_change_list.append('Basis_change')
+        return Ansatz_basis_change_list
+
+    def num_qubits(self):
+        PauliWord = self.X_sk[0].split(' ')
+        return len(PauliWord)
+
+if __name__ == '__main__':
+    #X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    X_SK_Test = All_X_sk_terms.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
+    #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
+
+    Basis_change_circuit = Change_of_Basis_final_X_sk(X_SK_Test)
+
+    print(cirq.Circuit.from_ops((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits())))))
+    print(
+        cirq.Circuit.from_ops(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
 
 class R_sk_full_circuit(cirq.Gate):
     def __init__(self, X_sk, theta_sk, dagger):
         """
-        :param X_sk:
+        :param X_sk: A tuple of tuples: (PauliWord P, constant).
         :type X_sk: tuple
-
-
-        e.g.
-         X_sk =
-                (
-                    ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                    ('Y0 X1 X2 Y3', (0.3198751585326103+0j))
-                )
+        e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
 
         :param theta_sk: angle
         :type theta_sk: complex float
-
-
-        note X_sk_converted_to_PauliWord: ('X0 X1 X2 Y3', (0.28527408634774526+0j))
-
 
 
         ...
@@ -649,7 +678,6 @@ class R_sk_full_circuit(cirq.Gate):
         :rtype: class
        """
         self.X_sk = X_sk
-        self.X_sk_converted_to_PauliWord = convert_X_sk(self.X_sk)
         self.theta_sk = theta_sk
         self.dagger = dagger
 
@@ -657,16 +685,18 @@ class R_sk_full_circuit(cirq.Gate):
     def _decompose_(self, qubits):
 
 
-        Basis_change_circuit = Change_of_Basis_initial_X_sk(self.X_sk)
+        Basis_change_initial_circuit = Change_of_Basis_initial_X_sk(self.X_sk)
         Ent_initial = Engtangle_initial_X_sk(self.X_sk)
         R_sk_rot_circuit = R_sk_DAGGER(self.X_sk, self.theta_sk, dagger=self.dagger)
         Ent_final = Engtangle_final_X_sk(self.X_sk)
 
-        basis_change_initial_gen = Basis_change_circuit._decompose_(qubits)
+        Basis_change_final_circuit = Change_of_Basis_final_X_sk(self.X_sk)
+
+        basis_change_initial_gen = Basis_change_initial_circuit._decompose_(qubits)
         Ent_initial_gen = Ent_initial._decompose_(qubits)
         R_sk_rot_circuit_gen = R_sk_rot_circuit._decompose_(qubits)
         Ent_final_gen = Ent_final._decompose_(qubits)
-        basis_change_final_gen = Basis_change_circuit._decompose_(qubits)
+        basis_change_final_gen = Basis_change_final_circuit._decompose_(qubits)
 
         list_generators = [basis_change_initial_gen, Ent_initial_gen, R_sk_rot_circuit_gen, Ent_final_gen,
                            basis_change_final_gen]
@@ -676,13 +706,13 @@ class R_sk_full_circuit(cirq.Gate):
 
     def _circuit_diagram_info_(self, args):
         string_list = []
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
         for i in range(len(PauliWord)):
                 string_list.append('R_sk_circuit')
         return string_list
 
     def num_qubits(self):
-        PauliWord = self.X_sk_converted_to_PauliWord[0].split(' ')
+        PauliWord = self.X_sk[0].split(' ')
         return len(PauliWord)
 
 
@@ -716,34 +746,31 @@ def Get_R_S_operators(X_sk_and_theta_sk, dagger=True):
 
     e.g.
         {
-        7: {'X_sk_theta_sk': [{'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-             ('Y0 X1 X2 Y3', (0.3198751585326103+0j))),
-            'theta_sk': (0.34438034648829496+0j)},
+            7: {'X_sk_theta_sk': [{'X_sk': ('X0 X1 X2 Y3', (0.28527408634774526+0j)),
+                'theta_sk': (0.34438034648829496+0j)},
 
-           {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-             ('X0 I1 I2 I3', (0.3198751585326103+0j))),
-            'theta_sk': (0.3423076794345934+0j)}],
+               {'X_sk': ('Y0 I1 I2 I3', (-0.28527408634774526+0j)),
+                'theta_sk': (0.3423076794345934+0j)}],
 
-          'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
-          'gamma_l': (0.023655254019369937+0j)},
+              'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
+              'gamma_l': (0.1538026463340925+0j)},
 
-         8: {'X_sk_theta_sk': [{'X_sk': (('I0 Z1 I2 I3', (0.9412848366792171+0j)),
-             ('Y0 Y1 X2 X3', (-0.33761347164735517+0j))),
-            'theta_sk': (-0.344380346488295+0j)}],
-          'PauliWord_S': ('I0 Z1 I2 I3', (1+0j)),
-          'gamma_l': (0.021234845659348932+0j)},
 
-         9: {'X_sk_theta_sk': [{'X_sk': (('I0 I1 Z2 I3', (-0.9355920202531878+0j)),
-             ('X0 X1 Y2 Y3', (-0.3530829529141257+0j))),
-            'theta_sk': (-0.36086425264176164+0j)}],
-          'PauliWord_S': ('I0 I1 Z2 I3', (1+0j)),
-          'gamma_l': (0.0194148993856907+0j)},
+             8: {'X_sk_theta_sk': [{'X_sk': ('Y0 X1 X2 X3', (-0.31779044152028424+0j)),
+                'theta_sk': (-0.344380346488295+0j)}],
+              'PauliWord_S': ('I0 Z1 I2 I3', (1+0j)),
+              'gamma_l': (0.14572180914107857+0j)},
 
-         10: {'X_sk_theta_sk': [{'X_sk': (('I0 I1 I2 Z3', (-0.9355920202531878+0j)),
-             ('X0 Y1 Y2 X3', (0.3530829529141257+0j))),
-            'theta_sk': (0.36086425264176164+0j)}],
-          'PauliWord_S': ('I0 I1 I2 Z3', (1+0j)),
-          'gamma_l': (0.0194148993856907+0j)}}
+             9: {'X_sk_theta_sk': [{'X_sk': ('X0 X1 X2 Y3', (0.33034159323388806+0j)),
+                'theta_sk': (-0.36086425264176164+0j)}],
+              'PauliWord_S': ('I0 I1 Z2 I3', (1+0j)),
+              'gamma_l': (0.13933735818397985+0j)},
+
+             10: {'X_sk_theta_sk': [{'X_sk': ('X0 Y1 Y2 Y3', (0.33034159323388806+0j)),
+                'theta_sk': (0.36086425264176164+0j)}],
+              'PauliWord_S': ('I0 I1 I2 Z3', (1+0j)),
+              'gamma_l': (0.13933735818397985+0j)}
+          }
 
     :return: dictionary of R_sk circuits with corresponding correction factor
     :rtype: dict
@@ -856,7 +883,10 @@ def Get_quantum_circuits_and_constants(All_X_sk_terms, full_anstaz_circuit):
                 ]
             )
 
-            circuits_and_constants[key] = {'circuit': full_circuit, 'factor': Pauliword_S[1]*All_X_sk_terms.X_sk_Ops[key]['gamma_l'],
+            # TODO not sure if this part of code is correct!!!
+            iX_sk_constant = np.prod([X_sk['X_sk'][1] for X_sk in All_X_sk_terms.X_sk_Ops[key]['X_sk_theta_sk']])
+
+            circuits_and_constants[key] = {'circuit': full_circuit, 'factor': Pauliword_S[1]*All_X_sk_terms.X_sk_Ops[key]['gamma_l']*iX_sk_constant,
                                            'PauliWord': Pauliword_S[0]}
     return circuits_and_constants
 
