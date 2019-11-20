@@ -73,7 +73,7 @@ def Get_beta_j_cofactors(anti_commuting_sets):
 #     print(ll[10]['factor'])
 
 
-def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write function to select 'best' S term!
+def Get_X_sk_operatorsOLD(normalised_anti_commuting_sets, S=0): # TODO write function to select 'best' S term!
     """
     Function takes in normalised_anti_commuting_sets and gets each R_sk operator according to
     eq (11) in ArXiv:1908.08067.
@@ -122,6 +122,68 @@ def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write functi
                     tan_theta_sk = anti_commuting_set[k][1] / beta_S # B_k/B_s
 
                 beta_S = np.sqrt(beta_S**2 + anti_commuting_set[k][1]**2) # beta_s_new = (B_s^2 + B_k^2)^0.5 ArXiv:1908.08067
+
+                theta_sk = np.arctan(tan_theta_sk)
+
+                #Op_list.append((X_sk_op, tan_theta_sk, normalised_anti_commuting_sets[key]['factor']))
+
+                Op_list.append({'X_sk': X_sk_op, 'theta_sk': theta_sk})#, 'factor': normalised_anti_commuting_sets[key]['factor']})
+
+            X_sk_and_theta_sk.update({key: {'X_sk_theta_sk': Op_list, 'PauliWord_S': anti_commuting_set[S], 'gamma_l': normalised_anti_commuting_sets[key]['factor']}})
+
+    return X_sk_and_theta_sk
+
+def Get_X_sk_operators(normalised_anti_commuting_sets, S=0): # TODO write function to select 'best' S term!
+    """
+    Function takes in normalised_anti_commuting_sets and gets each R_sk operator according to
+    eq (11) in ArXiv:1908.08067.
+
+    Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
+    NOTE S is fixed here!!!
+
+    :param normalised_anti_commuting_sets: A dictionary of anti-commuting sets.
+     Note this is a dictionary of dictionaries where one dict is a tuple of (PauliWord, Constant). The other is
+     a dictionary containing the correction to the cofactor.
+    :type normalised_anti_commuting_sets: dict
+
+    :param S: Index of s in R_sk operator. Note that default is zero. TODO can automate this choice!
+    :type S: int
+    ...
+    :raises [ErrorType]: [ErrorDescription]
+    ...
+    :return: A dictionary containing each X_sk operators for each anti-commuting subset, with associated
+    theta_sk value and constant correction factor.
+
+    NOTE: each element of the outermost dict is a list of sub dictionaries - each associated to one sk term.
+
+    :rtype: dict
+    """
+    X_sk_and_theta_sk={}
+
+    for key in normalised_anti_commuting_sets:
+        anti_commuting_set = normalised_anti_commuting_sets[key]['PauliWords']
+
+        if len(anti_commuting_set) > 1:
+
+
+            k_indexes = [index for index in range(len(anti_commuting_set)) if
+                       index != S]
+
+            Op_list = []
+            beta_S = anti_commuting_set[S][1]
+
+            beta_j_sum = 0
+            for k in k_indexes:
+
+                X_sk_op =(anti_commuting_set[S], anti_commuting_set[k])
+
+                beta_K = anti_commuting_set[k][1]
+                if beta_j_sum == 0:
+                    tan_theta_sk = beta_K / np.sqrt(beta_S + beta_j_sum)
+                    beta_j_sum += beta_K
+                else:
+                    tan_theta_sk = beta_K / np.sqrt(beta_S + beta_j_sum)# B_k/B_s
+                    beta_j_sum += beta_K
 
                 theta_sk = np.arctan(tan_theta_sk)
 
