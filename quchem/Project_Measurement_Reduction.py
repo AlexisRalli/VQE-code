@@ -138,14 +138,17 @@ circuits_and_constants = Get_quantum_circuits_and_constants(All_X_sk_terms, full
 #     ]
 #             ))
 
+from tests.VQE_methods.Simulating_Quantum_Circuit import *
+num_shots = 1000
+xx = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
+print(xx.Calc_energy())
 
 
-
-from tests.VQE_methods.Scipy_Optimizer import *
-max_iter = 50
-NM = Optimizer(1000, [0,1,2],
-                  HF_state_prep_circuit, HF_initial_state, All_X_sk_terms,
-                 noisy=True, store_values = True, optimized_result=None)
-NM.get_env(max_iter)
-#NM.plot_convergence()
-print(NM.optimized_result)
+# from tests.VQE_methods.Scipy_Optimizer import *
+# max_iter = 50
+# NM = Optimizer(1000, [0,1,2],
+#                   HF_state_prep_circuit, HF_initial_state, All_X_sk_terms,
+#                  noisy=True, store_values = True, optimized_result=None)
+# NM.get_env(max_iter)
+# #NM.plot_convergence()
+# print(NM.optimized_result)
