@@ -547,6 +547,65 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(
             cirq.decompose_once((Pauilword_Measure_circuit(*cirq.LineQubit.range(Pauilword_Measure_circuit.num_qubits()))))))
 
+
+class Change_Basis_and_Measure_PauliWord(cirq.Gate):
+    def __init__(self, PauliWord_and_cofactor):
+        """
+        blah
+
+        :param PauliWord_and_cofactor: (PauliWord, constant)
+        :type PauliWord_and_cofactor: tuple
+
+        :param theta: angle to rotate by
+        :type theta: float
+
+        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
+
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: A circuit object to be used by cirq.Circuit.from_ops
+        :rtype: class
+       """
+        self.PauliWord_and_cofactor = PauliWord_and_cofactor
+
+
+    def _decompose_(self, qubits):
+
+
+        change_basis_to_measure_circuit = Change_Basis_to_Measure_PauliWord(self.PauliWord_and_cofactor)
+        measurment_circuit = Measure_PauliWord(self.PauliWord_and_cofactor)
+
+
+        change_basis_to_measure_circuit_gen = change_basis_to_measure_circuit._decompose_(qubits)
+        measurment_circuit_gen = measurment_circuit._decompose_(qubits)
+
+
+        list_generators = [change_basis_to_measure_circuit_gen, measurment_circuit_gen]
+        yield list_generators
+
+
+    def _circuit_diagram_info_(self, args):
+        string_list = []
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        for i in range(len(PauliWord)):
+                string_list.append('change_Basis_PauliWord_and_measure')
+        return string_list
+
+    def num_qubits(self):
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        return len(PauliWord)
+
+if __name__ == '__main__':
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+    Pauilword_FULL_circuit = Change_Basis_and_Measure_PauliWord(PauliWord_test)
+
+    print(cirq.Circuit.from_ops((Pauilword_FULL_circuit(*cirq.LineQubit.range(Pauilword_FULL_circuit.num_qubits())))))
+    print(
+        cirq.Circuit.from_ops(
+            cirq.decompose_once((Pauilword_FULL_circuit(*cirq.LineQubit.range(Pauilword_FULL_circuit.num_qubits()))))))
+
+
 class Perform_PauliWord_and_Measure(cirq.Gate):
     def __init__(self, PauliWord_and_cofactor):
         """
