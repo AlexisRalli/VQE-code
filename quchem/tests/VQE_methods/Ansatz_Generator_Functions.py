@@ -491,8 +491,11 @@ def Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES):
     for i in range(len(T_Terms_Reformatted_Paulis_and_ANGLES)):
         angle = T_Terms_Reformatted_Paulis_and_ANGLES[i][1]
         sub_term_circuits = []
-        for PauliWord in T_Terms_Reformatted_Paulis_and_ANGLES[i][0]:
-            sub_term_circuits.append(full_exponentiated_PauliWord_circuit(PauliWord, angle))
+        for PauliWord, const in T_Terms_Reformatted_Paulis_and_ANGLES[i][0]:
+            if const.imag < 0:
+                sub_term_circuits.append(full_exponentiated_PauliWord_circuit((PauliWord, const), -1*angle))
+            else:
+                sub_term_circuits.append(full_exponentiated_PauliWord_circuit((PauliWord, const), angle))
         T_Term_Ansatz_circuits.append(sub_term_circuits)
 
     return T_Term_Ansatz_circuits
