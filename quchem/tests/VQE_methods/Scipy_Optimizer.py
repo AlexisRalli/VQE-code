@@ -70,7 +70,7 @@ class Optimizer:
         quantum_circuit_dict = Get_quantum_circuits_and_constants(self.All_X_sk_terms, full_anstaz_circuit)
 
         sim = Simulation_Quantum_Circuit_Dict(quantum_circuit_dict, self.num_shots)
-        Energy = sim.Calc_energy()
+        Energy = sim.Calc_energy_via_parity()
 
         return Energy
 
