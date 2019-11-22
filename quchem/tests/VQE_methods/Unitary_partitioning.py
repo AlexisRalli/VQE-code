@@ -854,7 +854,7 @@ def Get_quantum_circuits_and_constants(All_X_sk_terms, full_anstaz_circuit):
 
         else:
             term_reduction_circuits_first = [cirq.decompose_once(
-                 (circuit(*cirq.LineQubit.range(circuit.num_qubits())))) for circuit, constant in R_S_operators_by_key[key]]
+                 (circuit(*cirq.LineQubit.range(circuit.num_qubits())))) for circuit, constant in R_S_DAGGER_operators_by_key[key]]
 
             Pauliword_S = All_X_sk_terms.X_sk_Ops[key]['PauliWord_S']
             q_circuit_Pauliword_S_object = Perform_PauliWord(Pauliword_S)
@@ -864,7 +864,7 @@ def Get_quantum_circuits_and_constants(All_X_sk_terms, full_anstaz_circuit):
 
             term_reduction_circuits_LAST = [cirq.decompose_once(
                 (circuit(*cirq.LineQubit.range(circuit.num_qubits())))) for circuit, constant in
-                R_S_DAGGER_operators_by_key[key]]
+                R_S_operators_by_key[key]]
 
             q_circuit_change_basis_and_measure = Change_Basis_and_Measure_PauliWord(Pauliword_S)
 

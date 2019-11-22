@@ -206,6 +206,7 @@ def expectation_value_by_parity(binary_counter_result, Parity_Dic):
             total_no_measurements += binary_counter_result[state]
         else:
             raise ValueError('state {} not allowed'.format(state))
+    #print(binary_counter_result, total_no_measurements, Total)
     expectation_value = Total / total_no_measurements
     return expectation_value
 

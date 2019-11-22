@@ -9,18 +9,16 @@ import numpy as np
 
 ### Get Hamiltonian
 Molecule = 'H2'
+geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
 n_electrons = 2
 
 Hamilt = Hamiltonian(Molecule,
                      run_scf = 1, run_mp2 = 1, run_cisd = 0, run_ccsd = 0, run_fci = 1,
                  basis = 'sto-3g',
                  multiplicity = 1,
-                 geometry = None)
+                 geometry = geometry) # normally None!
 
 Hamilt.Get_all_info(get_FCI_energy=False)
-
-# TODO write function to find HF state!
-
 
 
 ### Ansatz
@@ -35,7 +33,7 @@ HF_state_prep_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
 
 # UCC
 
-UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=[-7.27091650e-05,  1.02335817e+00,  2.13607612e+00])#, T1_and_T2_theta_list=[0,np.pi,0.5*np.pi]) // [-7.27091650e-05,  1.02335817e+00,  2.13607612e+00]
+UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=[0,  1,  2])#, T1_and_T2_theta_list=[0,np.pi,0.5*np.pi]) // [-7.27091650e-05,  1.02335817e+00,  2.13607612e+00]
 UCC.complete_UCC_circuit()
 UCC_quantum_circuit =UCC.UCC_full_circuit
 #print(UCC_quantum_circuit)
@@ -52,11 +50,13 @@ full_anstaz_circuit = cirq.Circuit.from_ops(
 
 
 
+
+###### Build Graph --> to get anti-commuting sets
+
 Commuting_indices = Hamilt.Commuting_indices
 PauliWords = Hamilt.QubitHamiltonianCompleteTerms
 constants = Hamilt.HamiltonainCofactors
 
-### Build Graph
 HamiltGraph = BuildGraph_string(PauliWords, Commuting_indices, constants)
 HamiltGraph.Build_string_nodes()  # plot_graph=True)
 HamiltGraph.Build_string_edges()  # plot_graph=True)
@@ -372,9 +372,14 @@ class OptimizerNEW:
         # plt.savefig(dir_path + '/' + file)
 
 max_iter = 70
-NM = OptimizerNEW(1000, [-7.27091650e-05,  1.02335817e+00,  2.13607612e+00],
+NM = OptimizerNEW(1000, [2.374, 1.437 , 1.163],
                   HF_state_prep_circuit, HF_initial_state, PauliWords_and_constants,
                  noisy=True, store_values = True, optimized_result=None)
 NM.get_env(max_iter)
 #NM.plot_convergence()
 print(NM.optimized_result)
+
+# x = circuits_and_constants[7]['circuit']
+# text_file = open("quantum_circuit.txt", "w")
+# n = text_file.write(x.to_text_diagram(transpose=True))
+# text_file.close()

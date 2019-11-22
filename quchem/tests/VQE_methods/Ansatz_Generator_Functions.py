@@ -369,7 +369,7 @@ def Reformat_Pauli_terms(T_Terms_Paulis):
             seperator = ' '
             PauliWord = seperator.join(PauliStrings)
             temp_list.append((PauliWord, constant))
-        PauliWord_list.append(temp_list)
+        PauliWord_list.append(temp_list)        # TODO note reverse order of this temp_list may be SOLUTION to problem... BUT gates putting into correct
 
     return PauliWord_list
 
