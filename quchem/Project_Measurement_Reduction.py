@@ -66,77 +66,14 @@ HamiltGraph.colouring(plot_graph=False)
 anti_commuting_sets = HamiltGraph.anticommuting_sets
 
 ### Get Unitary Partition
-
-All_X_sk_terms = X_sk_terms(anti_commuting_sets, S=0)
-All_X_sk_terms.Get_all_X_sk_operator()
-
-# print(All_X_sk_terms.normalised_anti_commuting_sets)
-# print(All_X_sk_terms.X_sk_Ops)
-#R_S_operators_by_key = Get_R_S_operators(All_X_sk_terms.X_sk_Ops)
-# print(cirq.Circuit.from_ops(cirq.decompose_once(
-#     (R_S_operators_by_key[7][0][0](*cirq.LineQubit.range(R_S_operators_by_key[7][0][0].num_qubits()))))))
-
-circuits_and_constants = Get_quantum_circuits_and_constants(All_X_sk_terms, full_anstaz_circuit)
-# circuits_and_constants={}
-# for key in All_X_sk_terms.normalised_anti_commuting_sets:
-#     if key not in All_X_sk_terms.X_sk_Ops:
-#         PauliWord = All_X_sk_terms.normalised_anti_commuting_sets[key]['PauliWords'][0]
-#         constant = All_X_sk_terms.normalised_anti_commuting_sets[key]['factor']
-#
-#         Pauli_circuit_object = Perform_PauliWord_and_Measure(PauliWord)
-#         q_circuit_Pauliword = cirq.Circuit.from_ops(
-#             cirq.decompose_once(
-#                 (Pauli_circuit_object(*cirq.LineQubit.range(Pauli_circuit_object.num_qubits())))))
-#         circuit_ops = list(q_circuit_Pauliword.all_operations())
-#
-#         if circuit_ops == []:
-#             # deals with identity only circuit
-#             circuits_and_constants[key] = {'circuit': None,
-#                                            'factor': constant, 'PauliWord': PauliWord[0]}
-#         else:
-#             full_circuit = cirq.Circuit.from_ops(
-#                 [
-#                     *full_anstaz_circuit.all_operations(), # maybe make this a variable! (rather than repeated method)
-#                     *circuit_ops
-#                 ])
-#
-#             circuits_and_constants[key] = {'circuit': full_circuit,
-#                                            'factor': constant, 'PauliWord': PauliWord[0]}
-#
-#     else:
-#         term_reduction_circuits = [cirq.decompose_once(
-#              (circuit(*cirq.LineQubit.range(circuit.num_qubits())))) for circuit, constant in R_S_operators_by_key[key]]
-#
-#         Pauliword_S = All_X_sk_terms.X_sk_Ops[key]['PauliWord_S']
-#         q_circuit_Pauliword_S_object = Perform_PauliWord_and_Measure(Pauliword_S)
-#
-#         q_circuit_Pauliword_S = cirq.Circuit.from_ops(
-#             cirq.decompose_once((q_circuit_Pauliword_S_object(*cirq.LineQubit.range(q_circuit_Pauliword_S_object.num_qubits())))))
-#
-#         full_circuit = cirq.Circuit.from_ops(
-#             [
-#                 *full_anstaz_circuit.all_operations(),      #maybe make this a variable! (rather than repeated method)
-#                 *term_reduction_circuits,
-#                 *q_circuit_Pauliword_S.all_operations()
-#             ]
-#         )
-#
-#         circuits_and_constants[key] = {'circuit': full_circuit, 'factor': Pauliword_S[1]*All_X_sk_terms.X_sk_Ops[key]['gamma_l'],
-#                                        'PauliWord': Pauliword_S[0]}
+zz = UnitaryPartition(anti_commuting_sets, full_anstaz_circuit, S=0)
+zz.Get_Quantum_circuits_and_constants()
+circuits_and_constants = zz.circuits_and_constants
 
 
 
 
 
-
-
-# print(cirq.Circuit.from_ops(
-#     [
-#     cirq.decompose_once(T1_Ansatz_circuits[0][0](*cirq.LineQubit.range(T1_Ansatz_circuits[0][0].num_qubits()))),
-#     cirq.decompose_once(
-#             T1_Ansatz_circuits[0][1](*cirq.LineQubit.range(T1_Ansatz_circuits[0][1].num_qubits())))
-#     ]
-#             ))
 
 from tests.VQE_methods.Simulating_Quantum_Circuit import *
 num_shots = 1000
@@ -152,7 +89,6 @@ NM = Optimizer(1000, [0,1,2],
 NM.get_env(max_iter)
 #NM.plot_convergence()
 print(NM.optimized_result)
-
 
 
 
