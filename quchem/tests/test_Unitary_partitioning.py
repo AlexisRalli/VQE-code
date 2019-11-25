@@ -3,7 +3,7 @@ if __name__ == '__main__':
 else:
     from .VQE_methods.Unitary_partitioning import *
 
-
+import cirq
 import pytest
 import numpy as np
 # in Terminal run (LINUX!):
@@ -18,97 +18,50 @@ def test_Get_beta_j_cofactors_normalisation():
 
     :return:
     '''
-    ANTI_commuting_sets = {
-        0: [('Z0 I1 I2 I3', (0.1371657293179602 + 0j)), ('Y0 X1 X2 Y3', (0.04919764587885283 + 0j)),
-            ('X0 I1 I2 I3', (0.04919764587885283 + 0j))],
-        1: [('I0 Z1 I2 I3', (0.1371657293179602 + 0j)), ('Y0 Y1 X2 X3', (-0.04919764587885283 + 0j))],
-        2: [('Z0 I1 Z2 I3', (0.10622904488350779 + 0j))]
-    }
 
-    updated_anti_commuting_sets = Get_beta_j_cofactors(ANTI_commuting_sets)
+    anti_commuting_set =  [('Z0 I1 I2 I3', (0.1371657293179602+0j)), ('Y0 X1 X2 Y3', (0.04919764587885283+0j)), ('X0 I1 I2 I3', (0.04919764587885283+0j))]
 
-    summation_list=[]
-    for key in updated_anti_commuting_sets:
-        summation = sum([constant**2 for PauliWord, constant in updated_anti_commuting_sets[key]['PauliWords']])
+    normalised_anticommuting_set_DICT = Get_beta_j_cofactors(anti_commuting_set)
 
-        if not np.isclose(1+0j, summation, rtol=1e-09, atol=0.0):
-            raise ValueError('B_j^2 terms sum too {} rather than 1'.format(summation))
+    sum_squares = sum([constant ** 2 for PauliWord, constant in normalised_anticommuting_set_DICT['PauliWords']])
+    # if not np.isclose(1 + 0j, sum_squares, rtol=1e-09, atol=0.0):
+    #     raise ValueError('B_j^2 terms sum too {} rather than 1'.format(sum_squares))
+    assert np.isclose(1 + 0j, sum_squares, rtol=1e-09, atol=0.0)
 
-        summation_list.append(True)
-
-    assert all(summation_list) == True
-
-def test_Get_beta_j_cofactors_constants():
+def test_Get_beta_j_cofactors_GAMMA_L():
     '''
     Standard use case.
 
     Makes sure that factor can be used to re-gain old constant!
-    [old constant = (factor^0.5) * new_constant]
+    [old constant = [gamma_l * new_constant]
 
     :return:
     '''
-    ANTI_commuting_sets = {
-        0: [('Z0 I1 I2 I3', (0.1371657293179602 + 0j)), ('Y0 X1 X2 Y3', (0.04919764587885283 + 0j)),
-            ('X0 I1 I2 I3', (0.04919764587885283 + 0j))],
-        1: [('I0 Z1 I2 I3', (0.1371657293179602 + 0j)), ('Y0 Y1 X2 X3', (-0.04919764587885283 + 0j))],
-        2: [('Z0 I1 Z2 I3', (0.10622904488350779 + 0j))]
-    }
+    anti_commuting_set =  [('Z0 I1 I2 I3', (0.1371657293179602+0j)), ('Y0 X1 X2 Y3', (0.04919764587885283+0j)), ('X0 I1 I2 I3', (0.04919764587885283+0j))]
+    normalised_anticommuting_set_DICT = Get_beta_j_cofactors(anti_commuting_set)
 
-    updated_anti_commuting_sets = Get_beta_j_cofactors(ANTI_commuting_sets)
+    gamma_l = normalised_anticommuting_set_DICT['gamma_l']
+    regaining_old_term=[]
+    for PauliWord, constant in normalised_anticommuting_set_DICT['PauliWords']:
+        regaining_old_term.append((PauliWord, constant*gamma_l))
 
-    check_list=[]
-    for key in updated_anti_commuting_sets:
-        factor = updated_anti_commuting_sets[key]['factor']
+    assert regaining_old_term == anti_commuting_set
 
-        CORRECT_old_constants = [PauliWord_and_constant[1] for PauliWord_and_constant in ANTI_commuting_sets[key]] # ['PauliWords']]
-
-        calculating_old_constants = [factor*constant for PauliWord, constant in updated_anti_commuting_sets[key]['PauliWords']]
-
-        # NOTE this does NOT work if you do:
-        # checking_old_constants = [np.sqrt(constant**2 *factor) for PauliWord, constant in updated_anti_commuting_sets[key]['PauliWords']]
-        #                                      ^^^^^  note this part makes negative constants positive!!!
-
-        check_list.append(CORRECT_old_constants==calculating_old_constants)
-
-    assert all(check_list) == True
-
-def test_Get_beta_j_cofactors_manual():
+def test_Get_beta_j_cofactors_single_term():
     '''
-    Standard use case.
-    Takes in anti-commuting sets and returns same sets, but with cofactors obeying (sum_j B_j^2 = 1)
-
-    Function takes in anti_commuting_sets and returns anti-commuting sets, but with new coefcators that
-    obey eq (10) in ArXiv:1908.08067 (sum_j B_j^2 = 1)
+    test for when one thing in anti_commuting_set.
 
     :return:
     '''
-    ANTI_commuting_sets = {
-        0: [('Z0 I1 I2 I3', (0.1371657293179602 + 0j)), ('Y0 X1 X2 Y3', (0.04919764587885283 + 0j)),
-            ('X0 I1 I2 I3', (0.04919764587885283 + 0j))],
-        1: [('I0 Z1 I2 I3', (0.1371657293179602 + 0j)), ('Y0 Y1 X2 X3', (-0.04919764587885283 + 0j))],
-        2: [('Z0 I1 Z2 I3', (0.10622904488350779 + 0j))]
-    }
+    anti_commuting_set =  [('I0 I1 I2 I3', (-0.32760818995565577+0j))]
+    normalised_anticommuting_set_DICT = Get_beta_j_cofactors(anti_commuting_set)
 
-    CORRECT = {}
-    for key, value in ANTI_commuting_sets.items():
-        factor = sum([constant**2 for PauliWord, constant in value])
+    factor = anti_commuting_set[0][1]**2
+    new_constant = anti_commuting_set[0][1] / np.sqrt(factor)
+    expected = {'PauliWords': [(anti_commuting_set[0][0], new_constant)], 'gamma_l': np.sqrt(factor)}
 
-        terms = []
-        for PauliWord, constant in value:
-            new_constant = constant/np.sqrt(factor)
-            terms.append((PauliWord, new_constant))
+    assert normalised_anticommuting_set_DICT == expected
 
-        CORRECT[key] = {'PauliWords': terms, 'factor': np.sqrt(factor)}
-
-    for key in CORRECT:
-        summation = sum([constant**2 for PauliWord, constant in CORRECT[key]['PauliWords']])
-
-        if not np.isclose(1+0j, summation, rtol=1e-09, atol=0.0):
-            raise ValueError('B_j^2 terms sum too {} rather than 1'.format(summation))
-
-    updated_anti_commuting_sets = Get_beta_j_cofactors(ANTI_commuting_sets)
-
-    assert CORRECT == updated_anti_commuting_sets
 
 ###
 def test_Get_X_sk_operators_THETA_sk_values():
@@ -119,104 +72,42 @@ def test_Get_X_sk_operators_THETA_sk_values():
     """
     S = 0
 
+    normalised_anticommuting_set_DICT ={
+                                        'PauliWords': [   ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
+                                                          ('Y0 X1 X2 Y3', (0.3198751585326103+0j)),
+                                                          ('X0 I1 I2 I3', (0.3198751585326103+0j))   ],
+                                        'gamma_l': (0.1538026463340925+0j)
+                                    }
 
-    normalised_anti_commuting_sets ={
-         0: {'PauliWords': [('I0 I1 Z2 Z3', (1 + 0j))],
-             'factor': (1+0j)},
-
-         1: {'PauliWords': [('Z0 I1 I2 I3', (0.8918294488900189 + 0j)),
-                            ('Y0 X1 X2 Y3', (0.3198751585326103 + 0j)),
-                            ('X0 I1 I2 I3', (0.3198751585326103 + 0j))],
-             'factor': (0.9999999999999999+0j)},
-
-         2: {'PauliWords': [('I0 Z1 I2 I3', (0.8283076631253103+0j)),
-                            ('Y0 Y1 X2 X3', (-0.2970916080263448+0j)),
-                            ('I0 X1 I2 I3', (-0.2970916080263448+0j)),
-                            ('X0 Y1 I2 I3', (0.37064749842475486+0j))],
-             'factor': (1.2913940071756902+0j)},
-        }
-
+    X_sk_theta_sk = Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0)
+#
 
     # note that normalised_anti_commuting_sets[1]['PauliWords'][0][1] is beta_s
     # look at eq. (16) ArXiv 1908.08067
-    key1_beta_S = normalised_anti_commuting_sets[1]['PauliWords'][0][1]
+    PauliWord_S = normalised_anticommuting_set_DICT['PauliWords'][S]
+    beta_S = PauliWord_S[1]
 
+    beta_kequal1 = normalised_anticommuting_set_DICT['PauliWords'][1][1]
+    tan_theta_01 = beta_kequal1 / np.sqrt(beta_S ** 2)  # B_k/(B_s^2)^0.5
+    theta_01 = np.arctan(tan_theta_01)
+    beta_j_summer = beta_kequal1 ** 2
 
-    key1_beta_kequal1 = normalised_anti_commuting_sets[1]['PauliWords'][1][1]
-    key1_tan_theta_01 = key1_beta_kequal1 / np.sqrt(key1_beta_S ** 2)  # B_k/(B_s^2)^0.5
-    key1_theta_01 = np.arctan(key1_tan_theta_01)
-    key1_beta_j_summer = key1_beta_kequal1**2
+    beta_kequal2 = normalised_anticommuting_set_DICT['PauliWords'][2][1]
+    tan_theta_02 = beta_kequal2 / np.sqrt(beta_S ** 2 + beta_j_summer**2)  # B_k2/(B_k1^2 + B_s^2)^0.5
+    theta_02 = np.arctan(tan_theta_02)
+    beta_j_summer+=beta_kequal2**2
 
-    key1_beta_kequal2 = normalised_anti_commuting_sets[1]['PauliWords'][2][1]
-    key1_tan_theta_02 = key1_beta_kequal2 / np.sqrt(key1_beta_S ** 2 + key1_beta_j_summer**2)  # B_k2/(B_k1^2 + B_s^2)^0.5
-    key1_theta_02 = np.arctan(key1_tan_theta_02)
-    key1_beta_j_summer+=key1_beta_kequal2**2
+    new_beta_S = np.sqrt(beta_j_summer + beta_S ** 2)
 
-    key1_beta_S_NEW_Factor = np.sqrt(key1_beta_S**2 + key1_beta_j_summer**2)
-    print(key1_beta_S_NEW_Factor)
-########
-    key2_beta_kequal1 = normalised_anti_commuting_sets[2]['PauliWords'][1][1]
-    key2_beta_s = normalised_anti_commuting_sets[2]['PauliWords'][0][1]
-    key2_tan_theta_01 = key2_beta_kequal1/np.sqrt(key2_beta_s**2) #B_k/(B_s^2)^0.5
-    key2_theta_01 = np.arctan(key2_tan_theta_01)
+    expected = {'X_sk_theta_sk': [{'X_sk': convert_X_sk((PauliWord_S, normalised_anticommuting_set_DICT['PauliWords'][1])),
+                                   'theta_sk': theta_01},
+                                 {'X_sk': convert_X_sk((PauliWord_S, normalised_anticommuting_set_DICT['PauliWords'][2])),
+                                    'theta_sk': theta_02}],
 
-    key2_beta_j_summer = key2_beta_kequal1**2
+                'PauliWord_S': (PauliWord_S[0], new_beta_S),
+                'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}
 
-    key2_beta_kequal2 = normalised_anti_commuting_sets[2]['PauliWords'][2][1]
-    key2_tan_theta_02 = key2_beta_kequal2 / np.sqrt(key2_beta_s ** 2 + key2_beta_j_summer**2)  # B_k2/(B_k1^2 + B_s^2)^0.5
-    key2_theta_02 = np.arctan(key2_tan_theta_02)
-    key2_beta_j_summer += key2_beta_kequal2**2
-
-    key2_beta_kequal3 = normalised_anti_commuting_sets[2]['PauliWords'][3][1]
-    key2_tan_theta_03 = key2_beta_kequal3 / np.sqrt(key2_beta_s ** 2 + key2_beta_j_summer**2)  # B_k2/(B_k1^2 + B_k2^2 + B_s^2)^0.5
-    key2_theta_03 = np.arctan(key2_tan_theta_03)
-    key2_beta_j_summer += key2_beta_kequal3**2
-
-    key2_beta_S_NEW_Factor = np.sqrt(key2_beta_s ** 2 + key2_beta_j_summer ** 2)
-
-
-
-    MANUAL_answer = {1: {'X_sk_theta_sk':
-                                             [
-                                                 {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                                                 ('Y0 X1 X2 Y3', (0.3198751585326103 + 0j))),
-                                                 'theta_sk': (key1_theta_01)},
-
-                                                 {'X_sk': (('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                                                 ('X0 I1 I2 I3', (0.3198751585326103 + 0j))),
-                                                 'theta_sk': (key1_theta_02)}
-                                             ],
-                        'PauliWord_S':     (normalised_anti_commuting_sets[1]['PauliWords'][S][0], key1_beta_S_NEW_Factor),
-                         'gamma_l': (0.9999999999999999+0j)
-                        },
-
-
-                2:  { 'X_sk_theta_sk':
-                    [
-                        {'X_sk': (('I0 Z1 I2 I3', (0.8283076631253103+0j)),
-                               ('Y0 Y1 X2 X3', (-0.2970916080263448+0j))),
-                      'theta_sk': (key2_theta_01)},
-
-                        {'X_sk': (('I0 Z1 I2 I3', (0.8283076631253103+0j)),
-                                  ('I0 X1 I2 I3', (-0.2970916080263448+0j))),
-                         'theta_sk': (key2_theta_02)},
-
-                        {'X_sk': (('I0 Z1 I2 I3', (0.8283076631253103 + 0j)),
-                                  ('X0 Y1 I2 I3', (0.37064749842475486+0j))),
-                         'theta_sk': (key2_theta_03)}
-
-                    ],
-                    'PauliWord_S': (normalised_anti_commuting_sets[2]['PauliWords'][S][0], key2_beta_S_NEW_Factor),
-                    'gamma_l': (1.2913940071756902+0j)
-                }
-    }
-
-    X_sk_and_theta_sk = Get_X_sk_operators(normalised_anti_commuting_sets, S=S)
-
-
-
-    assert X_sk_and_theta_sk == MANUAL_answer
-
+    assert X_sk_theta_sk == expected
 
 ###
 def test_convert_X_sk_normal():
@@ -275,3 +166,67 @@ def test_convert_X_sk_non_pauli():
         assert convert_X_sk(X_sk) in excinfo.value
 
 ###
+def test_My_R_sk_Gate_NON_DAGGER():
+    theta_sk = np.pi
+    R_S = My_R_sk_Gate(theta_sk, dagger=False)
+    R_S_matrix = R_S._unitary_()
+
+    circuit_NON_DAGGER = cirq.Rz(theta_sk)
+    matrix_NON_DAGGER = circuit_NON_DAGGER._unitary_()
+
+    assert np.isclose(matrix_NON_DAGGER, R_S_matrix).all()
+
+def test_My_R_sk_Gate_DAGGER():
+    theta_sk = np.pi
+    R_S_DAGGER = My_R_sk_Gate(theta_sk, dagger=True)
+    R_S_DAGGER_matrix = R_S_DAGGER._unitary_()
+
+    circuit_DAGGER = cirq.Rz(theta_sk)**-1
+    matrix_DAGGER = circuit_DAGGER._unitary_()
+
+    assert np.isclose(matrix_DAGGER, R_S_DAGGER_matrix).all()
+
+###
+
+def test_Get_R_S_operators():
+    """
+    # currently WRONG
+    This is due to my R_sk gate having a different HASH. Actually is correct!
+    #check outputs!
+
+    :return:
+    """
+
+    X_sk_and_theta_sk = {'X_sk_theta_sk': [{'X_sk': ('X0 X1 X2 Y3', (0.28527408634774526 + 0j)),
+                            'theta_sk': (0.34438034648829496 + 0j)},
+                           {'X_sk': ('Y0 I1 I2 I3', (-0.28527408634774526 + 0j)),
+                            'theta_sk': (0.3423076794345934 + 0j)}],
+         'PauliWord_S': ('Z0 I1 I2 I3', (1 + 0j)),
+         'gamma_l': (0.1538026463340925 + 0j)}
+
+    dagger = False
+
+    R_S_operators = Get_R_S_operators(X_sk_and_theta_sk, dagger=dagger)
+
+    for i in range(len(R_S_operators)):
+        circ_gen = R_S_operators[i]['q_circuit']
+        circuit = cirq.Circuit.from_ops(cirq.decompose_once(
+            (circ_gen(*cirq.LineQubit.range(circ_gen.num_qubits())))))
+        circuit_oper = list(circuit.all_operations())
+
+        R_S_operators[i]['q_circuit'] = circuit_oper
+
+
+
+    list_quantum_circuits_and_gammal = []
+    for terms in X_sk_and_theta_sk['X_sk_theta_sk']:
+        R_s_k_circuit_instance = R_sk_full_circuit(terms['X_sk'], terms['theta_sk'], dagger=dagger)
+
+        circuit = cirq.Circuit.from_ops(cirq.decompose_once(
+            (R_s_k_circuit_instance(*cirq.LineQubit.range(R_s_k_circuit_instance.num_qubits())))))
+        circuit_oper = list(circuit.all_operations())
+
+        correction_factor = X_sk_and_theta_sk['gamma_l']
+        list_quantum_circuits_and_gammal.append({'q_circuit': circuit_oper, 'gamma_l': correction_factor})
+
+    assert R_S_operators == list_quantum_circuits_and_gammal

@@ -132,7 +132,7 @@ def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): # TODO write fun
                 'PauliWords': [   ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
                                   ('Y0 X1 X2 Y3', (0.3198751585326103+0j)),
                                   ('X0 I1 I2 I3', (0.3198751585326103+0j))   ],
-                'factor': (0.1538026463340925+0j)
+                'gamma_l': (0.1538026463340925+0j)
             }
 
     :param S: Index of s in R_sk operator. Note that default is zero. TODO can automate this choice!
@@ -375,15 +375,17 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
     def _unitary_(self):
         if self.dagger:
             R_sk_dag = np.array([
-                        [np.e** (-0.5j * (self.theta_sk)), 0],
-                        [0, np.e** (+0.5j * (self.theta_sk))]
+                        [np.e** (0.5j * (self.theta_sk)), 0],
+                        [0, np.e** (-0.5j * (self.theta_sk))]
                     ])
+            #R_sk_dag = cirq.Rz(self.theta_sk)**-1
             return R_sk_dag
         else:
             R_sk = np.array([
-                [np.e ** (+0.5j * (self.theta_sk)), 0],
-                [0, np.e ** (-0.5j * (self.theta_sk))]
+                [np.e ** (-0.5j * (self.theta_sk)), 0],
+                [0, np.e ** (+0.5j * (self.theta_sk))]
             ])
+            #R_sk = cirq.Rz(self.theta_sk)
             return R_sk
 
     def num_qubits(self):

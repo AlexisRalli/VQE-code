@@ -181,6 +181,9 @@ def Get_parity_of_Binary_counter(binary_counter_result):
     for key in binary_counter_result:
         bit_sum = 0
         for bit in key:
+            if int(bit) not in [0,1]:
+                raise ValueError('state {} not allowed'.format(key))
+
             bit_sum += int(bit)
             Parity_Dic[key] = bit_sum % 2
     return Parity_Dic
@@ -265,7 +268,7 @@ class Simulation_Quantum_Circuit_Dict():
                 counter_results_raw_dict[key]=  Simulate_Quantum_Circuit(self.circuits_factor_PauliWord_dict[key]['circuit'],
                                                             self.num_shots, self.hist_key_dict[key])
             else:
-                self.Identity_result_dict[key]= (self.circuits_factor_PauliWord_dict[key]['PauliWord'], self.circuits_factor_PauliWord_dict[key]['factor'])
+                self.Identity_result_dict[key]= (self.circuits_factor_PauliWord_dict[key]['PauliWord'], self.circuits_factor_PauliWord_dict[key]['gamma_l'])
 
         self.counter_results_raw_dict = counter_results_raw_dict
 
@@ -314,7 +317,7 @@ class Simulation_Quantum_Circuit_Dict():
         Energy_list =[]
         for key in self.circuits_factor_PauliWord_dict:
             exp_val = self.expect_results_dict[key]
-            factor = self.circuits_factor_PauliWord_dict[key]['factor']
+            factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
             Energy_list.append((exp_val*factor))
 
         self.Energy = sum(Energy_list)
