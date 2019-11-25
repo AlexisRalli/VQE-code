@@ -1,73 +1,5 @@
 import cirq
 
-# ##circuits_and_constants
-# def Simulate_Quantum_Circuit(quantum_circuit_dict, num_shots):
-#
-#     """
-#
-#     :param quantum_circuit_dict:
-#     :type quantum_circuit_dict: dict
-#
-#     e.g.
-#     {
-# 0: {'circuit': None,
-#   'factor': (0.10732712612602104+0j),
-#   'PauliWord': 'I0 I1 I2 I3'},
-#
-# 1: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H────
-#                  │                        │                         │                        │
-# 1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────
-#                      │                │                                 │                │                  │
-# 2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────
-#                                                                                                                 │
-# 3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───Rz
-#   'factor': (0.024523755706991564+0j)
-#    'PauliWord': 'Z0 Z1 I2 I3'},
-#
-#  2: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H────
-#                  │                        │                         │                        │
-# 1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────
-#                      │                │                                 │                │                  │
-# 2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────
-#                                                                                                                 │
-# 3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───Rz
-#   'factor': (0.011284609976862313+0j)
-#   'PauliWord': 'Z0 I1 Z2 I3'},
-#  3: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H────
-#                  │                        │                         │                        │
-# 1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────
-#                      │                │                                 │                │                  │
-# 2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────
-#                                                                                                                 │
-# 3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───Rz
-#   'factor': (0.024157456201338485+0j)
-#   'PauliWord': 'Z0 I1 I2 Z3'},
-#  4: {'circuit': 0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H─────
-#                  │                        │                         │                        │
-# 1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────@─
-#                      │                │                                 │                │                  │         │
-# 2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────X─
-#                                                                                                                 │
-# 3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───────
-#   'factor': (0.024157456201338485+0j)
-#   'PauliWord': 'I0 Z1 Z2 I3'},
-#
-#   ... etc ...
-#
-#     :return:
-#     """
-#
-#     simulator = cirq.Simulator()
-#
-#     for key in quantum_circuit_dict:
-#
-#         if quantum_circuit_dict[key]['circuit'] == None:
-#             continue
-#         else:
-#             circuit = quantum_circuit_dict[key]['circuit']
-#             yield simulator.run(circuit, repetitions=num_shots)
-
-
 def Get_Histogram_key(PauliWord):
     """
 
@@ -110,13 +42,13 @@ def Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string):
     :type histogram_string: str
 
 
-0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H────────────────────
-                 │                        │                         │                        │
-1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@─────────
-                     │                │                                 │                │                  │
-2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@─────
-                                                                                                                │
-3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───Rz
+0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H──────────────────M
+                 │                        │                         │                        │                      │
+1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@───────M
+                     │                │                                 │                │                  │       │
+2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@───M
+                                                                                                                │   │
+3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───M
 
 
     :return: Return counter result
@@ -196,8 +128,6 @@ def expectation_value_by_parity(binary_counter_result, Parity_Dic):
 
     :return:
     """
-    num_ones = 0
-    num_zeros = 0
     Total = 0
     total_no_measurements = 0
     for state in binary_counter_result:
@@ -272,7 +202,6 @@ class Simulation_Quantum_Circuit_Dict():
 
         self.counter_results_raw_dict = counter_results_raw_dict
 
-
     def Get_binary_results_dict(self):
         if self.counter_results_raw_dict == None:
             self.Get_counter_results_dict()
@@ -283,7 +212,6 @@ class Simulation_Quantum_Circuit_Dict():
                                                          self.circuits_factor_PauliWord_dict[key]['PauliWord'])
         self.binary_results_dict = binary_results_dict
 
-
     def Get_parity_results_dict(self):
         if self.binary_results_dict == None:
             self.Get_binary_results_dict()
@@ -292,7 +220,6 @@ class Simulation_Quantum_Circuit_Dict():
         for key in self.binary_results_dict:
             parity_results_dict[key] = Get_parity_of_Binary_counter(self.binary_results_dict[key])
         self.parity_results_dict = parity_results_dict
-
 
     def Get_expectation_value_via_parity(self):
         if self.parity_results_dict == None:
