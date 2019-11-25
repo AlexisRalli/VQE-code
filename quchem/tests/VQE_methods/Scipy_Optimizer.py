@@ -20,13 +20,12 @@ class Optimizer:
     Base class for optimizers. To specify a new optimization technique simply define a new objective function
     '''
 
-    def __init__(self, num_shots, theta_guess_list, HF_state_prep_circuit, HF_initial_state, All_X_sk_terms,
+    def __init__(self, num_shots, theta_guess_list, HF_state_prep_circuit, HF_initial_state,
                 noisy=True, store_values=False, optimized_result=None):
 
         self.num_shots = num_shots
         self.initial_guess = theta_guess_list
         self.HF_state_prep_circuit = HF_state_prep_circuit
-        self.All_X_sk_terms = All_X_sk_terms
         self.HF_initial_state = HF_initial_state
 
 
@@ -67,7 +66,9 @@ class Optimizer:
             ]
         )
 
-        quantum_circuit_dict = Get_quantum_circuits_and_constants(self.All_X_sk_terms, full_anstaz_circuit)
+        UnitaryPart = UnitaryPartition(anti_commuting_sets, full_anstaz_circuit, S=0)
+        UnitaryPart.Get_Quantum_circuits_and_constants()
+        quantum_circuit_dict = UnitaryPart.circuits_and_constants
 
         sim = Simulation_Quantum_Circuit_Dict(quantum_circuit_dict, self.num_shots)
         Energy = sim.Calc_energy_via_parity()
