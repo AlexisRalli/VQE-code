@@ -89,6 +89,7 @@ def Get_PauliWord_strings_and_constant(PauliWords, constants):
 def Get_quantum_circuits_and_constants_NORMAL(full_anstaz_circuit, PauliWords_and_constants):
 
     circuits_and_constants={}
+    ansatz_circ = list(full_anstaz_circuit.all_operations())
     for key in range(len(PauliWords_and_constants)):
 
         PauliWord_constant = PauliWords_and_constants[key]
@@ -106,7 +107,7 @@ def Get_quantum_circuits_and_constants_NORMAL(full_anstaz_circuit, PauliWords_an
         else:
             full_circuit = cirq.Circuit.from_ops(
                 [
-                    *full_anstaz_circuit.all_operations(), # maybe make this a variable! (rather than repeated method)
+                    *ansatz_circ,
                     *circuit_ops
                 ])
 

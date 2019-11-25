@@ -7,11 +7,15 @@ from tests.VQE_methods.quantum_circuit_functions import *
 import numpy as np
 
 
-### Get Hamiltonian
+
+### Variable Parameters
 Molecule = 'H2'
 geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
 n_electrons = 2
+num_shots = 10000
+####
 
+### Get Hamiltonian
 Hamilt = Hamiltonian(Molecule,
                      run_scf = 1, run_mp2 = 1, run_cisd = 0, run_ccsd = 0, run_fci = 1,
                  basis = 'sto-3g',
@@ -74,14 +78,15 @@ circuits_and_constants = zz.circuits_and_constants
 
 
 from tests.VQE_methods.Simulating_Quantum_Circuit import *
-num_shots = 1000
 xx = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
 print(xx.Calc_energy_via_parity())
 
 
+
+
 from tests.VQE_methods.Scipy_Optimizer import *
 max_iter = 50
-NM = Optimizer(1000, [0,1,2],
+NM = Optimizer(num_shots, [0,1,2],
                   HF_state_prep_circuit, HF_initial_state,
                  noisy=True, store_values = True, optimized_result=None)
 NM.get_env(max_iter)
@@ -97,8 +102,10 @@ standard_dict = Get_quantum_circuits_and_constants_NORMAL(full_anstaz_circuit, P
 yy = Simulation_Quantum_Circuit_Dict(standard_dict, num_shots)
 print(yy.Calc_energy_via_parity())
 
+
+
 max_iter = 70
-NM = OptimizerSTANDARD(1000, [2.374, 1.437 , 1.163],
+NM = OptimizerSTANDARD(num_shots, [2.374, 1.437 , 1.163],
                   HF_state_prep_circuit, HF_initial_state, PauliWords_and_constants,
                  noisy=True, store_values = True, optimized_result=None)
 NM.get_env(max_iter)
