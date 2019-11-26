@@ -1,5 +1,6 @@
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 if __name__ == '__main__':
@@ -36,13 +37,13 @@ class Optimizer:
         self.optimized_result = optimized_result
         self.theta_params = None
 
+        # self.log_ANGLES = True
+        # self.store_values_ANGLES = [] #can append to here
+
     def set_noise(self, _bool):
         self.noisy = _bool
         self.store_values = _bool
 
-    def set_theta_params(self, params):
-        # params will be numpy array of
-        self.theta_params = params
 
     def set_reps(self, reps):
         self.reps = reps
@@ -75,6 +76,7 @@ class Optimizer:
         if self.noisy:
             print(f'{self.iters}: angles: {xk}: Energy{val}')  # self.iters and xk
         self.iters += 1
+
 
     #    def AngleBounds(self):
     #        b = (0, 2*math.pi)
