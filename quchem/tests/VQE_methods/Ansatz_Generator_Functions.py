@@ -439,19 +439,33 @@ import random
 import math
 
 def combined_T1_T2_theta_list(T1_formatted, T2_formatted, T1_and_T2_theta_list=[]):
+    """
+    Get theta_T1 list and theta_T2 list from a list of [T1_theta, T2_theta]
+
+    :param T1_formatted:
+    :param T2_formatted:
+    :param T1_and_T2_theta_list:
+    :return:
+    """
 
     if T1_and_T2_theta_list== []:
         T1_theta_list = [random.uniform(0, 2*math.pi) for i in range(len(T1_formatted))]
         T2_theta_list = [random.uniform(0, 2*math.pi) for i in range(len(T2_formatted))]
     else:
         length_T1 = len(T1_formatted)
+        length_T2 = len(T2_formatted)
+
+        if len(T1_and_T2_theta_list) != length_T1 + length_T2:
+            raise ValueError('Not enough angles defined. Have {} instead of {} angles.'
+                             'ALTERNATIVELY one can use an empty list to generate random angles.'.format(len(T1_and_T2_theta_list), (length_T1 + length_T2)))
+
         T1_theta_list = [T1_and_T2_theta_list[i] for i in range(length_T1)]
-        T2_theta_list = [T1_and_T2_theta_list[i + length_T1] for i in range(len(T2_formatted))]
+        T2_theta_list = [T1_and_T2_theta_list[i + length_T1] for i in range(length_T2)]
 
     return T1_theta_list, T2_theta_list
 
 
-def Set_circuit_angles(T_Terms_Reformatted_Paulis, theta_list=None):
+def Set_circuit_angles(T_Terms_Reformatted_Paulis, theta_list=[]):
     """
 
     :param T_Terms_Reformatted_Paulis: list of PauliWords and constants
@@ -474,7 +488,7 @@ def Set_circuit_angles(T_Terms_Reformatted_Paulis, theta_list=None):
          ]
     """
 
-    if theta_list == None:
+    if theta_list == []:
         theta_list = [random.uniform(0, 2*math.pi) for i in range(len(T_Terms_Reformatted_Paulis))]
 
     return list(zip(T_Terms_Reformatted_Paulis, theta_list))

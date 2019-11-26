@@ -90,7 +90,7 @@ print(yy.Calc_energy_via_parity())
 
 max_iter = 70
 NM = OptimizerSTANDARD(num_shots, [2.374, 1.437 , 1.163],
-                  HF_state_prep_circuit, HF_initial_state, PauliWords_and_constants,
+                  HF_initial_state, PauliWords_and_constants,
                  noisy=True, store_values = True, optimized_result=None)
 NM.get_env(max_iter)
 #NM.plot_convergence()
