@@ -8,6 +8,7 @@ import pytest
 # in Terminal run (LINUX!):
 # py.test /home/alexisr/Documents/PhD/Code/PhD\ Code/test_Ansatz_Circuit_Functions.py
 
+###
 def test_Get_Occupied_and_Unoccupied_sites_H2():
 
     """
@@ -74,7 +75,7 @@ def test_Get_Occupied_and_Unoccupied_sites_WRONG_NOTATION():
 
         assert exc_info is Get_Occupied_and_Unoccupied_sites(HF_State)
 
-
+###
 def test_Get_ia_and_ijab_terms_H2():
 
     """
@@ -98,7 +99,6 @@ def test_Get_ia_and_ijab_terms_H2():
     ia_terms, ijab_terms = Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc)
 
     assert np.array_equal(ia_terms_true, ia_terms) and np.array_equal(ijab_terms_true, ijab_terms)
-
 
 def test_Get_ia_and_ijab_terms_8_sites():
 
@@ -171,7 +171,7 @@ def test_Get_ia_and_ijab_terms_8_sites():
 
     assert np.array_equal(ia_terms_true, ia_terms) and np.array_equal(ijab_terms_true, ijab_terms)
 
-
+###
 def test_Get_T1_terms_list():
     from openfermion.ops import FermionOperator
 
@@ -187,8 +187,7 @@ def test_Get_T1_terms_list():
 
     assert T1_terms == True_T1_terms
 
-
-
+####
 def test_Get_T2_terms_list():
     from openfermion.ops import FermionOperator
 
@@ -206,7 +205,7 @@ def test_Get_T2_terms_list():
 
     assert T2_terms == True_T2_terms
 
-
+####
 def test_dagger_T_list_T1_terms():
     from openfermion.ops import FermionOperator
 
@@ -238,7 +237,7 @@ def test_dagger_T_list_T2_terms():
     assert T2_dagger == T2_hermitian_conjugate_True
 
 
-
+#####
 def test_JW_transform_T1():
     from openfermion.ops import FermionOperator
 
@@ -273,7 +272,6 @@ def test_JW_transform_T1():
 
     assert T1_paulis_True == T1_Term_paulis
 
-
 def test_JW_transform_T2():
     from openfermion.ops import FermionOperator
 
@@ -304,8 +302,69 @@ def test_JW_transform_T2():
 
     assert T2_paulis_True == T2_Term_paulis
 
+####
+def test_combined_T1_T2_theta_list_RANDOM_ANGLES():
+    T1_formatted= [
+                    [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
+
+                    [('I0 Y1 Z2 X3', 0.125j), ('I0 X1 Z2 Y3', -0.125j)]
+                   ]
+
+    T2_formatted = [
+                      [('X0 X1 Y2 X3', 0.03125j), ('Y0 Y1 Y2 X3', -0.03125j), ('Y0 X1 X2 X3', -0.03125j),
+                       ('X0 Y1 X2 X3', -0.03125j), ('Y0 X1 Y2 Y3', 0.03125j), ('X0 Y1 Y2 Y3', 0.03125j),
+                       ('X0 X1 X2 Y3', 0.03125j), ('Y0 Y1 X2 Y3', -0.03125j)]
+                    ]
+
+    T1_theta_list, T2_theta_list = combined_T1_T2_theta_list(T1_formatted, T2_formatted, T1_and_T2_theta_list=[])
+
+    T1_check = [angle for angle in T1_theta_list if isinstance(angle, float) or isinstance(angle, int)]
+    T2_check = [angle for angle in T2_theta_list if isinstance(angle, float) or isinstance(angle, int)]
+
+    assert len(T1_check) == len(T1_theta_list) and len(T2_check) == len(T2_theta_list)
+
+def test_combined_T1_T2_theta_list_DEFINED_ANGLES():
+    T1_formatted = [
+        [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
+
+        [('I0 Y1 Z2 X3', 0.125j), ('I0 X1 Z2 Y3', -0.125j)]
+    ]
+
+    T2_formatted = [
+        [('X0 X1 Y2 X3', 0.03125j), ('Y0 Y1 Y2 X3', -0.03125j), ('Y0 X1 X2 X3', -0.03125j),
+         ('X0 Y1 X2 X3', -0.03125j), ('Y0 X1 Y2 Y3', 0.03125j), ('X0 Y1 Y2 Y3', 0.03125j),
+         ('X0 X1 X2 Y3', 0.03125j), ('Y0 Y1 X2 Y3', -0.03125j)]
+    ]
+
+    COMBINED_theta_list = [1,2,3]
+
+    T1_theta_list, T2_theta_list = combined_T1_T2_theta_list(T1_formatted, T2_formatted, T1_and_T2_theta_list=COMBINED_theta_list)
 
 
+    assert T1_theta_list == [i for i in COMBINED_theta_list[0:len(T1_formatted)]] and T2_theta_list == [i for i in COMBINED_theta_list[len(T1_formatted):len(T2_formatted)+len(T1_formatted)]]
+
+def test_combined_T1_T2_theta_list_INNCORRECT_NUM_ANGLES():
+    T1_formatted = [
+        [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
+
+        [('I0 Y1 Z2 X3', 0.125j), ('I0 X1 Z2 Y3', -0.125j)]
+    ]
+
+    T2_formatted = [
+        [('X0 X1 Y2 X3', 0.03125j), ('Y0 Y1 Y2 X3', -0.03125j), ('Y0 X1 X2 X3', -0.03125j),
+         ('X0 Y1 X2 X3', -0.03125j), ('Y0 X1 Y2 Y3', 0.03125j), ('X0 Y1 Y2 Y3', 0.03125j),
+         ('X0 X1 X2 Y3', 0.03125j), ('Y0 Y1 X2 Y3', -0.03125j)]
+    ]
+
+
+    COMBINED_theta_list = [1,2] # SHOULD HAVE 3 ANGLES DEFINED!
+
+
+    with pytest.raises(ValueError) as exc_info:
+        assert exc_info is combined_T1_T2_theta_list(T1_formatted, T2_formatted, T1_and_T2_theta_list=COMBINED_theta_list)
+
+
+###########
 def test_commutation():
 
     """
