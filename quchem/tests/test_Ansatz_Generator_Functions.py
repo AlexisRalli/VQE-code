@@ -75,7 +75,6 @@ def test_Get_Occupied_and_Unoccupied_sites_WRONG_NOTATION():
         assert exc_info is Get_Occupied_and_Unoccupied_sites(HF_State)
 
 
-
 def test_Get_ia_and_ijab_terms_H2():
 
     """
