@@ -786,7 +786,8 @@ class UnitaryPartition(X_sk_terms):
                 )
 
                 # TODO not sure if this part of code is correct!!!
-                iX_sk_constant = np.prod([X_sk['X_sk'][1] for X_sk in self.X_sk_Ops[key]['X_sk_theta_sk']])
+                #iX_sk_constant = np.prod([X_sk['X_sk'][1] for X_sk in self.X_sk_Ops[key]['X_sk_theta_sk']])
+                iX_sk_constant=1
 
                 circuits_and_constants[key] = {'circuit': full_circuit,
                                                'gamma_l': Pauliword_S[1] * self.X_sk_Ops[key][

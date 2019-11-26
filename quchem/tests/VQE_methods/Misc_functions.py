@@ -15,7 +15,7 @@ def Save_result_as_csv(file_name, dict_results, folder=None):
 
     timestr = time.strftime(" %H|%M|%S %d-%m-%Y")
     file_name = file_name + timestr + '.csv'
-    dataframe = pd.DataFrame(data=dict_results, columns=dict_results.keys())
+    dataframe = pd.DataFrame(data=dict_results, columns=dict_results.keys()) #, ignore_index=True)
 
     if folder== None:
         current_dir = os.getcwd()

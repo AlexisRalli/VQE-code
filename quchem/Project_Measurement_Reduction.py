@@ -68,41 +68,49 @@ print(xx.Calc_energy_via_parity())
 
 
 
-from tests.VQE_methods.Scipy_Optimizer import *
-max_iter = 50
-NM = Optimizer(num_shots, [0,1,2],
-                  HF_initial_state,
-                 noisy=True, store_values = True, optimized_result=None)
-NM.get_env(max_iter)
-#NM.plot_convergence()
-print(NM.optimized_result)
+# from tests.VQE_methods.Scipy_Optimizer import *
+# max_iter = 50
+# NM = Optimizer(num_shots, [0,1,2],
+#                   HF_initial_state,
+#                  noisy=True, store_values = True, optimized_result=None)
+# NM.get_env(max_iter)
+# #NM.plot_convergence()
+# print(NM.optimized_result)
 
 
 
 ################# OLD APPROACH
 from tests.VQE_methods.standard_method import *
 PauliWords_and_constants = Get_PauliWord_strings_and_constant(Hamilt.QubitHamiltonianCompleteTerms, Hamilt.HamiltonainCofactors)
+
+# P_words_and_consts=[]
+# for key in anti_commuting_sets:
+#     for term in anti_commuting_sets[key]:
+#         P_words_and_consts.append(term)
+
 standard_dict = Get_quantum_circuits_and_constants_NORMAL(full_anstaz_circuit, PauliWords_and_constants)
 yy = Simulation_Quantum_Circuit_Dict(standard_dict, num_shots)
 print(yy.Calc_energy_via_parity())
 
 
 
-max_iter = 70
-theta_guess_list = [2.374, 1.437 , 1.163]
-NM = OptimizerSTANDARD(num_shots, theta_guess_list,
-                  HF_initial_state, PauliWords_and_constants,
-                 noisy=True, store_values = True, optimized_result=None)
-NM.get_env(max_iter)
-#NM.plot_convergence()
-print(NM.optimized_result)
-
-
-
-
-
-
-# x = circuits_and_constants[7]['circuit']
-# text_file = open("quantum_circuit.txt", "w")
-# n = text_file.write(x.to_text_diagram(transpose=True))
-# text_file.close()
+# max_iter = 70
+# theta_guess_list = [2.374, 1.437 , 1.163]
+# NM = OptimizerSTANDARD(num_shots, theta_guess_list,
+#                   HF_initial_state, PauliWords_and_constants,
+#                  noisy=True, store_values = True, optimized_result=None)
+# NM.get_env(max_iter)
+# #NM.plot_convergence()
+# print(NM.optimized_result)
+#
+#
+# from tests.VQE_methods.Misc_functions import *
+# #Save_result_as_csv('test', {'Energy': NM.obj_fun_values, 'initial_angles': theta_guess_list, 'Molecule': Molecule, 'num_shots': num_shots, 'geometry': geometry}, folder='Results')
+# Save_result_as_csv('test', {'Energy': NM.obj_fun_values}, folder='Results')
+#
+#
+#
+# # x = circuits_and_constants[7]['circuit']
+# # text_file = open("quantum_circuit.txt", "w")
+# # n = text_file.write(x.to_text_diagram(transpose=True))
+# # text_file.close()
