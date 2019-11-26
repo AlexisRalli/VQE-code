@@ -89,12 +89,18 @@ print(yy.Calc_energy_via_parity())
 
 
 max_iter = 70
-NM = OptimizerSTANDARD(num_shots, [2.374, 1.437 , 1.163],
+theta_guess_list = [2.374, 1.437 , 1.163]
+NM = OptimizerSTANDARD(num_shots, theta_guess_list,
                   HF_initial_state, PauliWords_and_constants,
                  noisy=True, store_values = True, optimized_result=None)
 NM.get_env(max_iter)
 #NM.plot_convergence()
 print(NM.optimized_result)
+
+
+
+
+
 
 # x = circuits_and_constants[7]['circuit']
 # text_file = open("quantum_circuit.txt", "w")
