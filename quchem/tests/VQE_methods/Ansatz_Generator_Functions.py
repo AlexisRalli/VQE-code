@@ -1,4 +1,5 @@
 import numpy as np
+import cirq
 
 def HF_state_generator(n_electrons, n_qubits):
     occupied = np.ones(n_electrons)
@@ -196,7 +197,6 @@ def Get_T1_terms_list(ia_terms):
         T1_terms.append(term)
     return T1_terms
 
-
 def Get_T2_terms_list(ijab_terms):
     """
     Gives list of T2 terms from defined ia_terms.
@@ -385,10 +385,12 @@ def Reformat_Pauli_terms(T_Terms_Paulis):
 #         Pauli_Word_list.append(*x)
 #     print(Pauli_Word_list)
 
-
+if __name__ == '__main__':
+    from quantum_circuit_functions import State_Prep
+# else:
+#     from .VQE_methods.quantum_circuit_functions import State_Prep
 
 class UCC_Terms():
-
 
     def __init__(self, HF_State):
 
@@ -423,6 +425,15 @@ class UCC_Terms():
         self.T1_formatted = Reformat_Pauli_terms(self.T1_Term_paulis)
         self.T2_formatted = Reformat_Pauli_terms(self.T2_Term_paulis)
 
+        self.HF_prep_quantum_circuit = None
+
+    def Get_HF_quantum_circuit(self):
+        HF_state_prep = State_Prep(self.HF_State)
+        HF_state_prep_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
+            (HF_state_prep(*cirq.LineQubit.range(HF_state_prep.num_qubits())))))
+
+        self.HF_prep_quantum_circuit =  HF_state_prep_circuit.all_operations()
+
 
 import random
 import math
@@ -438,7 +449,6 @@ def combined_T1_T2_theta_list(T1_formatted, T2_formatted, T1_and_T2_theta_list=[
         T2_theta_list = [T1_and_T2_theta_list[i + length_T1] for i in range(len(T2_formatted))]
 
     return T1_theta_list, T2_theta_list
-
 
 
 def Set_circuit_angles(T_Terms_Reformatted_Paulis, theta_list=None):
@@ -484,6 +494,18 @@ def Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES):
         ([('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)], 5.575564289159186),
         ([('I0 Y1 Z2 X3', 0.125j), ('I0 X1 Z2 Y3', -0.125j)], 4.075039042485969)
          ]
+
+         and
+
+         [([('X0 X1 Y2 X3', 0.03125j),
+           ('Y0 Y1 Y2 X3', -0.03125j),
+           ('Y0 X1 X2 X3', -0.03125j),
+           ('X0 Y1 X2 X3', -0.03125j),
+           ('Y0 X1 Y2 Y3', 0.03125j),
+           ('X0 Y1 Y2 Y3', 0.03125j),
+           ('X0 X1 X2 Y3', 0.03125j),
+           ('Y0 Y1 X2 Y3', -0.03125j)],
+          1.5707963267948966)]
     :return:
     """
     T_Term_Ansatz_circuits = []
@@ -491,7 +513,8 @@ def Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES):
     for i in range(len(T_Terms_Reformatted_Paulis_and_ANGLES)):
         angle = T_Terms_Reformatted_Paulis_and_ANGLES[i][1]
         sub_term_circuits = []
-        for PauliWord, const in T_Terms_Reformatted_Paulis_and_ANGLES[i][0]:
+        for PauliWord, const in T_Terms_Reformatted_Paulis_and_ANGLES[i][0][::-1]:
+            # note reverse order here due to QM notation going from right to left!
             if const.imag < 0:
                 sub_term_circuits.append(full_exponentiated_PauliWord_circuit((PauliWord, const), -1*angle))
             else:
@@ -622,9 +645,12 @@ class Full_state_prep_circuit(UCC_Terms):
     def __init__(self, HF_State,  T1_and_T2_theta_list=[]):
         super().__init__(HF_State)
 
+        if self.HF_prep_quantum_circuit ==None:
+            self.Get_HF_quantum_circuit()
+
         self.theta_T1_list, self.theta_T2_list = combined_T1_T2_theta_list(self.T1_formatted, self.T2_formatted, T1_and_T2_theta_list=T1_and_T2_theta_list)
 
-        self.T1_PauliWords_and_circuits_ANGLES =  Set_circuit_angles(self.T1_formatted,
+        self.T1_PauliWords_and_circuits_ANGLES = Set_circuit_angles(self.T1_formatted,
                                                        theta_list=self.theta_T1_list)
 
         self.T1_Ansatz_circuits = Get_T_term_circuits(self.T1_PauliWords_and_circuits_ANGLES)
@@ -668,6 +694,7 @@ class Full_state_prep_circuit(UCC_Terms):
 
         full_circuit = cirq.Circuit.from_ops(
             [
+                *self.HF_prep_quantum_circuit,
                 *self.T1_full_circuit,
                 *self.T2_full_circuit
             ]

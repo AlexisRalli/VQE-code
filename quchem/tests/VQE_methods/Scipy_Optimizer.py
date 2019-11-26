@@ -20,12 +20,11 @@ class Optimizer:
     Base class for optimizers. To specify a new optimization technique simply define a new objective function
     '''
 
-    def __init__(self, num_shots, theta_guess_list, HF_state_prep_circuit, HF_initial_state,
+    def __init__(self, num_shots, theta_guess_list, HF_initial_state,
                 noisy=True, store_values=False, optimized_result=None):
 
         self.num_shots = num_shots
         self.initial_guess = theta_guess_list
-        self.HF_state_prep_circuit = HF_state_prep_circuit
         self.HF_initial_state = HF_initial_state
 
 
@@ -55,16 +54,11 @@ class Optimizer:
         Returns Energy value... to be minimized!
 
          """
-        UCC = Full_state_prep_circuit(self.HF_initial_state, T1_and_T2_theta_list=param_obj_fun)
-        UCC.complete_UCC_circuit()
-        UCC_quantum_circuit = UCC.UCC_full_circuit
 
-        full_anstaz_circuit = cirq.Circuit.from_ops(
-            [
-                cirq.decompose_once(self.HF_state_prep_circuit),
-                cirq.decompose_once(UCC_quantum_circuit)
-            ]
-        )
+        HF_UCC = Full_state_prep_circuit(self.HF_initial_state, T1_and_T2_theta_list=param_obj_fun)
+        HF_UCC.complete_UCC_circuit()
+        full_anstaz_circuit = HF_UCC.UCC_full_circuit
+
 
         UnitaryPart = UnitaryPartition(anti_commuting_sets, full_anstaz_circuit, S=0)
         UnitaryPart.Get_Quantum_circuits_and_constants()

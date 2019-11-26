@@ -30,26 +30,10 @@ HF_initial_state= HF_state_generator(n_electrons, Hamilt.MolecularHamiltonian.n_
 #HF_initial_state = [0, 0, 1, 1]
 #HF_initial_state = [0., 0., 0., 0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]
 
-# HF
-HF_state_prep = State_Prep(HF_initial_state)
-HF_state_prep_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
-    (HF_state_prep(*cirq.LineQubit.range(HF_state_prep.num_qubits())))))
 
-# UCC
-
-UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=[0,  1,  2])#, T1_and_T2_theta_list=[0,np.pi,0.5*np.pi]) // [-7.27091650e-05,  1.02335817e+00,  2.13607612e+00]
-UCC.complete_UCC_circuit()
-UCC_quantum_circuit =UCC.UCC_full_circuit
-#print(UCC_quantum_circuit)
-
-
-full_anstaz_circuit = cirq.Circuit.from_ops(
-                                            [
-                                            cirq.decompose_once(HF_state_prep_circuit),
-                                            cirq.decompose_once(UCC_quantum_circuit)
-                                            ]
-                                            )
-
+HF_UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=[0,  1,  2])#, T1_and_T2_theta_list=[0,np.pi,0.5*np.pi]) // [-7.27091650e-05,  1.02335817e+00,  2.13607612e+00]
+HF_UCC.complete_UCC_circuit()
+full_anstaz_circuit =HF_UCC.UCC_full_circuit
 #print(full_anstaz_circuit)
 
 
@@ -87,7 +71,7 @@ print(xx.Calc_energy_via_parity())
 from tests.VQE_methods.Scipy_Optimizer import *
 max_iter = 50
 NM = Optimizer(num_shots, [0,1,2],
-                  HF_state_prep_circuit, HF_initial_state,
+                  HF_initial_state,
                  noisy=True, store_values = True, optimized_result=None)
 NM.get_env(max_iter)
 #NM.plot_convergence()
