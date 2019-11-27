@@ -31,7 +31,7 @@ HF_initial_state= HF_state_generator(n_electrons, Hamilt.MolecularHamiltonian.n_
 #HF_initial_state = [0., 0., 0., 0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]
 
 
-HF_UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=[0,  1,  2])#, T1_and_T2_theta_list=[0,np.pi,0.5*np.pi]) // [-7.27091650e-05,  1.02335817e+00,  2.13607612e+00]
+HF_UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=[1.55957373, 1.57789987, 0.78561344])#, T1_and_T2_theta_list=[0,np.pi,0.5*np.pi]) // [1.55957373, 1.57789987, 0.78561344]
 HF_UCC.complete_UCC_circuit()
 full_anstaz_circuit =HF_UCC.UCC_full_circuit
 #print(full_anstaz_circuit)
@@ -67,7 +67,7 @@ print(xx.Calc_energy_via_parity())
 
 
 
-
+#
 # from tests.VQE_methods.Scipy_Optimizer import *
 # max_iter = 50
 # NM = Optimizer(num_shots, [0,1,2],
@@ -83,12 +83,12 @@ print(xx.Calc_energy_via_parity())
 from tests.VQE_methods.standard_method import *
 PauliWords_and_constants = Get_PauliWord_strings_and_constant(Hamilt.QubitHamiltonianCompleteTerms, Hamilt.HamiltonainCofactors)
 
-# P_words_and_consts=[]
-# for key in anti_commuting_sets:
-#     for term in anti_commuting_sets[key]:
-#         P_words_and_consts.append(term)
+P_words_and_consts=[]
+for key in anti_commuting_sets:
+    for term in anti_commuting_sets[key]:
+        P_words_and_consts.append(term)
 
-standard_dict = Get_quantum_circuits_and_constants_NORMAL(full_anstaz_circuit, PauliWords_and_constants)
+standard_dict = Get_quantum_circuits_and_constants_NORMAL(full_anstaz_circuit, P_words_and_consts) #P_words_and_consts puts in same order as anti-commuting sets (PauliWords_and_constants in different order)!
 yy = Simulation_Quantum_Circuit_Dict(standard_dict, num_shots)
 print(yy.Calc_energy_via_parity())
 
