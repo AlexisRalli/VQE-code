@@ -354,14 +354,15 @@ if __name__ == '__main__':
 
 
 class My_R_sk_Gate(cirq.SingleQubitGate):
-    def __init__(self, theta_sk, dagger=True):
+    def __init__(self, theta_sk, dagger=True, correction_factor=1):
         """""
     Circuit to build a R_sk^DAGGER gate ... eq (12) arXiv: 1908.08067
 
     :param theta_sk: Value of theta_sk angle.
     :type theta_sk: float
 
-        e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
+    NOTE that for iPsPk term = X_sk = ('X0 X1 X2 Y3', -0.28527408634774526j)
+                                                        ^^^^^^ this is the correction factor!
 
     ...
     :raises [ErrorType]: [ErrorDescription]
@@ -371,19 +372,23 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
         """
         self.theta_sk = theta_sk
         self.dagger = dagger
+        self.correction_factor = correction_factor
 
     def _unitary_(self):
+        full_exponent_term = self.correction_factor * self.theta_sk
+        # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
+        # Takes into account PauliWord constant.
         if self.dagger:
             R_sk_dag = np.array([
-                        [np.e** (0.5j * (self.theta_sk)), 0],
-                        [0, np.e** (-0.5j * (self.theta_sk))]
+                        [np.e** (-0.5j * full_exponent_term), 0],
+                        [0, np.e** (+0.5j * full_exponent_term)]
                     ])
             #R_sk_dag = cirq.Rz(self.theta_sk)**-1
             return R_sk_dag
         else:
             R_sk = np.array([
-                [np.e ** (-0.5j * (self.theta_sk)), 0],
-                [0, np.e ** (+0.5j * (self.theta_sk))]
+                [np.e ** (+0.5j * full_exponent_term), 0],
+                [0, np.e ** (-0.5j * full_exponent_term)]
             ])
             #R_sk = cirq.Rz(self.theta_sk)
             return R_sk
@@ -392,22 +397,80 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
         return 1
 
     def _circuit_diagram_info_(self, args):
+        full_exponent_term = self.correction_factor * self.theta_sk
+        # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
+        # Takes into account PauliWord constant.
+
         if self.dagger:
-            return 'R_sk_DAGGER = {} rad'.format(self.theta_sk)
+            return 'R_sk_DAGGER = {} rad'.format(full_exponent_term)
         else:
-            return 'R_sk = {} rad'.format(self.theta_sk)
+            return 'R_sk = {} rad'.format(full_exponent_term)
+
+
+# class My_R_sk_Gate(cirq.SingleQubitGate):
+#     def __init__(self, theta_sk, dagger=True, correction_factor=1):
+#         """""
+#     Circuit to build a R_sk^DAGGER gate ... eq (12) arXiv: 1908.08067
+#
+#     :param theta_sk: Value of theta_sk angle.
+#     :type theta_sk: float
+#
+#     NOTE that for iPsPk term = X_sk = ('X0 X1 X2 Y3', -0.28527408634774526j)
+#                                                         ^^^^^^ this is the correction factor!
+#
+#     ...
+#     :raises [ErrorType]: [ErrorDescription]
+#     ...
+#     :return: A circuit object to be used by cirq.Circuit.from_ops
+#     :rtype: class
+#         """
+#         self.theta_sk = theta_sk
+#         self.dagger = dagger
+#         self.correction_factor = correction_factor
+#
+#     def _unitary_(self):
+#         full_exponent_term = self.correction_factor * self.theta_sk
+#         # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
+#         # Takes into account PauliWord constant.
+#         if self.dagger:
+#             # R_sk_dag = np.array([
+#             #             [np.e** (+0.5j * full_exponent_term), 0],
+#             #             [0, np.e** (-0.5j * full_exponent_term)]
+#             #         ])
+#             R_sk_dag = cirq.Rz(full_exponent_term)
+#             return R_sk_dag._unitary_()
+#         else:
+#             # R_sk = np.array([
+#             #     [np.e ** (-0.5j * full_exponent_term), 0],
+#             #     [0, np.e ** (+0.5j * full_exponent_term)]
+#             # ])
+#             R_sk = cirq.Rz(full_exponent_term)**-1
+#             return R_sk._unitary_()
+#
+#     def num_qubits(self):
+#         return 1
+#
+#     def _circuit_diagram_info_(self, args):
+#         full_exponent_term = self.correction_factor * self.theta_sk
+#         # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
+#         # Takes into account PauliWord constant.
+#
+#         if self.dagger:
+#             return 'R_sk_DAGGER = {} rad'.format(full_exponent_term)
+#         else:
+#             return 'R_sk = {} rad'.format(full_exponent_term)
 
 if __name__ == '__main__':
     X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
     theta_sk = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['theta_sk']
-    R_S = My_R_sk_Gate(theta_sk, dagger=True)
+    R_S = My_R_sk_Gate(theta_sk, dagger=True, correction_factor=X_SK_Test[1])
     w = R_S.on(cirq.LineQubit(1))
     print(cirq.Circuit.from_ops(w))
 
 
 class R_sk_DAGGER(cirq.Gate):
 
-    def __init__(self, X_sk, theta_sk, dagger = True):
+    def __init__(self, X_sk, theta_sk, dagger=True):
         """""
     Circuit to build a R_sk^DAGGER gate ... eq (12) arXiv: 1908.08067
 
@@ -441,7 +504,7 @@ class R_sk_DAGGER(cirq.Gate):
 
         control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list])
 
-        yield My_R_sk_Gate(self.theta_sk, dagger=self.dagger).on(qubits[control_qubit])
+        yield My_R_sk_Gate(self.theta_sk, dagger=self.dagger, correction_factor=self.X_sk[1]).on(qubits[control_qubit])
 
     def num_qubits(self):
         PauliWord = self.X_sk[0].split(' ')
@@ -790,8 +853,7 @@ class UnitaryPartition(X_sk_terms):
                 iX_sk_constant=1
 
                 circuits_and_constants[key] = {'circuit': full_circuit,
-                                               'gamma_l': Pauliword_S[1] * self.X_sk_Ops[key][
-                                                   'gamma_l'] * iX_sk_constant,
+                                               'gamma_l': self.X_sk_Ops[key]['gamma_l'], #Pauliword_S[1], # * self.X_sk_Ops[key]['gamma_l'] * iX_sk_constant,
                                                'PauliWord': Pauliword_S[0]}
 
             self.circuits_and_constants = circuits_and_constants
@@ -956,9 +1018,8 @@ if __name__ == '__main__':
                            cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(1)),
                            cirq.H.on(cirq.LineQubit(2)),
                            cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(3))]
-    ANSATZ = cirq.Circuit.from_ops(full_anstaz_circuit)
+    ANSATZ = cirq.Circuit.from_ops(*full_anstaz_circuit)
     zz = UnitaryPartition(anti_commuting_sets, ANSATZ, S=0)
     zz.Get_Quantum_circuits_and_constants()
     zz.circuits_and_constants
-
 
