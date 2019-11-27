@@ -84,7 +84,7 @@ def convert_X_sk(X_sk):
     }
 
     # arXiv 1908.08067 eq (11)
-    new_constant = 1j * X_sk[0][1] * X_sk[1][1]
+    new_constant = 1j
 
     PauliWord_s = X_sk[0][0].split(' ')
     PauliWord_k = X_sk[1][0].split(' ')
@@ -375,36 +375,35 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
         self.correction_factor = correction_factor
 
     def _unitary_(self):
-        full_exponent_term = self.correction_factor * self.theta_sk
         # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
         # Takes into account PauliWord constant.
         if self.dagger:
+
             R_sk_dag = np.array([
-                        [np.e** (-0.5j * full_exponent_term), 0],
-                        [0, np.e** (+0.5j * full_exponent_term)]
+                        [np.e** (-0.5j * self.theta_sk * self.correction_factor), 0],
+                        [0, np.e** (+0.5j * self.theta_sk * self.correction_factor)]
                     ])
-            #R_sk_dag = cirq.Rz(self.theta_sk)**-1
+            #R_sk_dag = cirq.Rz(self.theta_sk)._unitary_()
             return R_sk_dag
         else:
             R_sk = np.array([
-                [np.e ** (+0.5j * full_exponent_term), 0],
-                [0, np.e ** (-0.5j * full_exponent_term)]
+                [np.e ** (+0.5j * self.theta_sk * self.correction_factor), 0],
+                [0, np.e ** (-0.5j * self.theta_sk * self.correction_factor)]
             ])
-            #R_sk = cirq.Rz(self.theta_sk)
+            #R_sk = (cirq.Rz(self.theta_sk)**-1)._unitary_()
             return R_sk
 
     def num_qubits(self):
         return 1
 
     def _circuit_diagram_info_(self, args):
-        full_exponent_term = self.correction_factor * self.theta_sk
         # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
         # Takes into account PauliWord constant.
 
         if self.dagger:
-            return 'R_sk_DAGGER = {} rad'.format(full_exponent_term)
+            return 'R_sk_DAGGER = {} rad'.format(self.theta_sk)
         else:
-            return 'R_sk = {} rad'.format(full_exponent_term)
+            return 'R_sk = {} rad'.format(self.theta_sk)
 
 
 # class My_R_sk_Gate(cirq.SingleQubitGate):
