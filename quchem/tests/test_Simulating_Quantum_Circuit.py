@@ -117,8 +117,9 @@ def test_Return_as_binary_double_H():
     assert expected == binary_counter_result
 
 ###
-def test_Get_parity_of_Binary_counter_PauliWord():
 
+
+def test_calc_parity_PauliWord():
     PauliWord_and_cofactor = ('Z0 X1 Y2 I3 X4', -0.28527408634774526j)
     num_shots = 1000
     circuit_gen = Perform_PauliWord_and_Measure(PauliWord_and_cofactor)
@@ -127,22 +128,21 @@ def test_Get_parity_of_Binary_counter_PauliWord():
     counter_result = Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string)
     binary_counter_result = Return_as_binary(counter_result, PauliWord_and_cofactor[0])
 
-    binary_parity = Get_parity_of_Binary_counter(binary_counter_result)
+    test={}
+    expected = {}
+    for state in binary_counter_result:
+        test[state] = calc_parity(state)
 
-    expected={}
-    for key in binary_counter_result:
-        sum_of_bits = sum([int(bit) for bit in key])
+        sum_of_bits = sum([int(bit) for bit in state])
         parity = sum_of_bits%2
-        expected[key] = parity
+        expected[state] = parity
 
-    assert expected == binary_parity
+    assert expected == test
 
-def test_Get_parity_of_Binary_counter_incorrected_state():
-
-    binary_counter_result = {'5500': 236, '0110': 242, '0011': 258, '0111': 264}
-       #                     ^^^^^ HERE
+def test_calc_parity_incorrect_quantum_State():
+    quantum_state = '5500'
     with pytest.raises(ValueError) as exc_info:
-        assert exc_info is Get_parity_of_Binary_counter(binary_counter_result)
+        assert exc_info is calc_parity(quantum_state)
 
 ###
 def test_expectation_value_by_parity_PauliWord():
@@ -153,16 +153,16 @@ def test_expectation_value_by_parity_PauliWord():
     histogram_string = Get_Histogram_key(PauliWord_and_cofactor[0])
     counter_result = Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string)
     binary_counter_result = Return_as_binary(counter_result, PauliWord_and_cofactor[0])
-    Parity_Dic = Get_parity_of_Binary_counter(binary_counter_result)
 
-    expectation_value = expectation_value_by_parity(binary_counter_result, Parity_Dic)
+    expectation_value = expectation_value_by_parity(binary_counter_result)
 
 
     Total = 0
     for state in binary_counter_result:
-        if Parity_Dic[state] == 0:
+        parity = calc_parity(state)
+        if parity == 0:
             Total += binary_counter_result[state]
-        elif Parity_Dic[state] == 1:
+        elif parity == 1:
             Total -= binary_counter_result[state]
     expected = Total / num_shots
 
@@ -177,15 +177,15 @@ def test_expectation_value_by_parity_double_H():
     counter_result = Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string)
     Gates = 'H0, H1'
     binary_counter_result = Return_as_binary(counter_result, Gates)
-    Parity_Dic = Get_parity_of_Binary_counter(binary_counter_result)
 
-    expectation_value = expectation_value_by_parity(binary_counter_result, Parity_Dic)
+    expectation_value = expectation_value_by_parity(binary_counter_result)
 
     Total = 0
     for state in binary_counter_result:
-        if Parity_Dic[state] == 0:
+        parity = calc_parity(state)
+        if parity == 0:
             Total += binary_counter_result[state]
-        elif Parity_Dic[state] == 1:
+        elif parity == 1:
             Total -= binary_counter_result[state]
     expected = Total / num_shots
 
