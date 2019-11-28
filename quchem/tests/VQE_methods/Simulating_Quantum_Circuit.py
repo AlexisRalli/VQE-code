@@ -28,7 +28,6 @@ def Get_Histogram_key(PauliWord):
 
     return histogram_string
 
-
 def Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string):
     """
     :param num_shots: number of repetitions of Q circuit
@@ -64,7 +63,6 @@ def Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string):
 
     return hist_result
 
-
 def Return_as_binary(counter_result, PauliWord):
     """
     Takes in counter_result and gives result with keys as quantum states (binary)
@@ -91,50 +89,59 @@ def Return_as_binary(counter_result, PauliWord):
 
     return state_dictionary
 
-
-def Get_parity_of_Binary_counter(binary_counter_result):
+def calc_parity(state):
     """
+    Takes in a state and returns its parity (even = 0 , odd = 1)
 
-    :param binary_counter_result:
+    :param state:
+    :type state: str
 
-    e.g.
-         {'10': 485, '00': 515}
-
-    :return:
-    e.g.
-         {'10': 1, '00': 0}
-
-   NOTE:
-        0 = even parity
-        1 = odd parity
-
+    :return: parity of state
+    :rtype: int
     """
-    Parity_Dic = {}
-    for key in binary_counter_result:
-        bit_sum = 0
-        for bit in key:
-            if int(bit) not in [0,1]:
-                raise ValueError('state {} not allowed'.format(key))
+    bit_sum = 0
+    for bit in state:
+        if int(bit) not in [0,1]:
+            raise ValueError('state {} not allowed'.format(state))
+        bit_sum += int(bit)
+    parity = bit_sum % 2
+    return parity
 
-            bit_sum += int(bit)
-            Parity_Dic[key] = bit_sum % 2
-    return Parity_Dic
-
-
-def expectation_value_by_parity(binary_counter_result, Parity_Dic):
+def expectation_value_by_parity(binary_counter_result):
     """
 
     < Z >  = (num_0 - num_1) / total_num_measurements = (num_0 - num_1) / (num_0 + num_1)
 
-    :return:
+    note that for multiple qubits one multiplies <Z> on each line. Therefore can calculate value from parity
+    of output bit string
+
+    :param binary_counter_result:
+    :type binary_counter_result: dict
+    e.g.
+        {
+            1: {'11': 10000},
+            2: {'10': 9998, '01': 2},
+            3: {'10': 10000},
+            4: {'10': 10000},
+            5: {'10': 10000},
+            6: {'00': 9995, '01': 4, '10': 1},
+            7: {'1': 9334, '0': 666},
+            8: {'1': 9351, '0': 649},
+            9: {'0': 9606, '1': 394},
+            10: {'0': 9594, '1': 406}
+        }
+
+    :return: expectation value <Z>
+    :rtype: float
     """
     Total = 0
     total_no_measurements = 0
     for state in binary_counter_result:
-        if Parity_Dic[state] == 0:
+        parity = calc_parity(state)
+        if parity == 0:
             Total += binary_counter_result[state]
             total_no_measurements += binary_counter_result[state]
-        elif Parity_Dic[state] == 1:
+        elif parity == 1:
             Total -= binary_counter_result[state]
             total_no_measurements += binary_counter_result[state]
         else:
@@ -142,29 +149,6 @@ def expectation_value_by_parity(binary_counter_result, Parity_Dic):
     #print(binary_counter_result, total_no_measurements, Total)
     expectation_value = Total / total_no_measurements
     return expectation_value
-
-
-def expectation_value(binary_counter_result):
-    """
-
-    < Z >  = (num_0 - num_1) / total_num_measurements = (num_0 - num_1) / (num_0 + num_1)
-
-    :return:
-    """
-    pass
-#     num_ones = 0
-#     num_zeros = 0
-#     for state in binary_counter_result:
-#         individual_bits_in_state = [int(bit) for bit in state]
-#         for bit in individual_bits_in_state:
-#             if bit == 1:
-#                 num_ones += binary_counter_result[state]
-#             elif bit == 0:
-#                 num_zeros += binary_counter_result[state]
-#             else:
-#                 raise ValueError('outcomes not in binary {}'.format(individual_bits_in_state))
-#     expectation_value = (num_zeros - num_ones) / (num_zeros + num_ones)
-#     return expectation_value
 
 
 class Simulation_Quantum_Circuit_Dict():
@@ -177,7 +161,6 @@ class Simulation_Quantum_Circuit_Dict():
         self.counter_results_raw_dict = None
         self.Identity_result_dict = {}
         self.binary_results_dict = None
-        self.parity_results_dict = None
         self.expect_results_dict = None
 
     def Get_Histkey_dict(self):
@@ -195,7 +178,7 @@ class Simulation_Quantum_Circuit_Dict():
 
             if self.hist_key_dict[key] != '':
                 #checks for non identity ciruict
-                counter_results_raw_dict[key]=  Simulate_Quantum_Circuit(self.circuits_factor_PauliWord_dict[key]['circuit'],
+                counter_results_raw_dict[key] = Simulate_Quantum_Circuit(self.circuits_factor_PauliWord_dict[key]['circuit'],
                                                             self.num_shots, self.hist_key_dict[key])
             else:
                 self.Identity_result_dict[key]= (self.circuits_factor_PauliWord_dict[key]['PauliWord'], self.circuits_factor_PauliWord_dict[key]['gamma_l'])
@@ -212,18 +195,9 @@ class Simulation_Quantum_Circuit_Dict():
                                                          self.circuits_factor_PauliWord_dict[key]['PauliWord'])
         self.binary_results_dict = binary_results_dict
 
-    def Get_parity_results_dict(self):
+    def Get_expectation_value_via_parity(self):
         if self.binary_results_dict == None:
             self.Get_binary_results_dict()
-
-        parity_results_dict = {}
-        for key in self.binary_results_dict:
-            parity_results_dict[key] = Get_parity_of_Binary_counter(self.binary_results_dict[key])
-        self.parity_results_dict = parity_results_dict
-
-    def Get_expectation_value_via_parity(self):
-        if self.parity_results_dict == None:
-            self.Get_parity_results_dict()
 
         expect_results_dict = {}
         for key in self.circuits_factor_PauliWord_dict:
@@ -232,7 +206,7 @@ class Simulation_Quantum_Circuit_Dict():
                 expect_results_dict[key] = 1
 
             else:
-                expect_results_dict[key] = expectation_value_by_parity(self.binary_results_dict[key], self.parity_results_dict[key])
+                expect_results_dict[key] = expectation_value_by_parity(self.binary_results_dict[key])
 
 
         self.expect_results_dict = expect_results_dict
@@ -250,38 +224,3 @@ class Simulation_Quantum_Circuit_Dict():
         self.Energy = sum(Energy_list)
 
         return self.Energy
-
-    def Get_expectation_value_dict(self):
-        pass
-        # if  self.binary_results_dict == None:
-        #     self.Get_binary_results_dict()
-        #
-        # expect_results_dict = {}
-        # for key in self.circuits_factor_PauliWord_dict:
-        #
-        #     if key in self.Identity_result_dict.keys():
-        #         expect_results_dict[key] = 1
-        #
-        #     else:
-        #         expect_results_dict[key] = expectation_value(self.binary_results_dict[key])
-        #
-        #
-        # self.expect_results_dict = expect_results_dict
-
-    def Calc_energy(self):
-        pass
-        # if self.expect_results_dict == None:
-        #     self.Get_expectation_value_dict()
-        # Energy_list =[]
-        # for key in self.circuits_factor_PauliWord_dict:
-        #     exp_val = self.expect_results_dict[key]
-        #     factor = self.circuits_factor_PauliWord_dict[key]['factor']
-        #     Energy_list.append((exp_val*factor))
-        #
-        # self.Energy = sum(Energy_list)
-        #
-        # return self.Energy
-
-
-# xx = Simulation_Quantum_Circuit_Dict(circuits_and_constants, 2000)
-# xx.Calc_energy_via_parity()
