@@ -115,6 +115,80 @@ def convert_X_sk(X_sk):
 
     return (new_PauliWord, new_constant_SIGN*new_constant)
 
+# def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): # TODO write function to select 'best' S term!
+#     """
+#     Function takes in normalised_anti_commuting_set and gets each R_sk operator according to
+#     eq (11) in ArXiv:1908.08067.
+#
+#     Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
+#     NOTE S is fixed here!!!
+#
+#     :param normalised_anticommuting_set_DICT: A dictionary containing a list of tuples: (PauliWord, normalised_Constant)
+#                                             AND normalisation correction factor.
+#     :type normalised_anticommuting_set_DICT: dict
+#
+#     e.g.
+#             {
+#                 'PauliWords': [   ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
+#                                   ('Y0 X1 X2 Y3', (0.3198751585326103+0j)),
+#                                   ('X0 I1 I2 I3', (0.3198751585326103+0j))   ],
+#                 'gamma_l': (0.1538026463340925+0j)
+#             }
+#
+#     :param S: Index of s in R_sk operator. Note that default is zero. TODO can automate this choice!
+#     :type S: int
+#     ...
+#     :raises [ErrorType]: [ErrorDescription]
+#     ...
+#     :return: A dictionary containing each X_sk operators, (as a list) with associated
+#             theta_sk value, the PauliWord_S and the correction factor gamma_l
+#
+#     {
+#     'X_sk_theta_sk':    [     {'X_sk': ('X0 X1 X2 Y3', (0.28527408634774526+0j)),
+#                               'theta_sk': (0.34438034648829496+0j)},
+#
+#                              {'X_sk': ('Y0 I1 I2 I3', (-0.28527408634774526+0j)),
+#                                 'theta_sk': (0.3423076794345934+0j)}       ],
+#
+#      'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
+#      'gamma_l': (0.1538026463340925+0j)
+#      }
+#
+#
+#     NOTE: each element of the outermost dict is a list of sub dictionaries - each associated to one sk term.
+#
+#     :rtype: dict
+#     """
+#
+#     anti_commuting_set = normalised_anticommuting_set_DICT['PauliWords']
+#
+#     if len(anti_commuting_set) > 1:
+#
+#         k_indexes = [index for index in range(len(anti_commuting_set)) if
+#                    index != S]
+#
+#         Op_list = []
+#         beta_S = anti_commuting_set[S][1]
+#
+#         beta_j_sum = 0
+#         for k in k_indexes:
+#             X_sk_op =(anti_commuting_set[S], anti_commuting_set[k])
+#
+#             beta_K = anti_commuting_set[k][1]
+#             if beta_j_sum == 0:
+#                 tan_theta_sk = beta_K / np.sqrt(beta_S**2)
+#                 beta_j_sum += beta_K**2
+#             else:
+#                 tan_theta_sk = beta_K / np.sqrt(beta_S**2 + beta_j_sum**2)# B_k/B_s
+#                 beta_j_sum += beta_K**2
+#
+#             theta_sk = np.arctan(tan_theta_sk)
+#
+#             Op_list.append({'X_sk': convert_X_sk(X_sk_op), 'theta_sk': theta_sk})#, 'factor': normalised_anti_commuting_sets[key]['factor']})
+#
+#         new_beta_S = np.sqrt(beta_j_sum + anti_commuting_set[S][1]**2)
+#
+#         return {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], new_beta_S), 'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}
 def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): # TODO write function to select 'best' S term!
     """
     Function takes in normalised_anti_commuting_set and gets each R_sk operator according to
@@ -175,20 +249,17 @@ def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): # TODO write fun
             X_sk_op =(anti_commuting_set[S], anti_commuting_set[k])
 
             beta_K = anti_commuting_set[k][1]
-            if beta_j_sum == 0:
-                tan_theta_sk = beta_K / np.sqrt(beta_S**2)
-                beta_j_sum += beta_K**2
-            else:
-                tan_theta_sk = beta_K / np.sqrt(beta_S**2 + beta_j_sum**2)# B_k/B_s
-                beta_j_sum += beta_K**2
 
+            tan_theta_sk = beta_K / beta_S
             theta_sk = np.arctan(tan_theta_sk)
+            Op_list.append({'X_sk': convert_X_sk(X_sk_op),
+                            'theta_sk': theta_sk})  # , 'factor': normalised_anti_commuting_sets[key]['factor']})
 
-            Op_list.append({'X_sk': convert_X_sk(X_sk_op), 'theta_sk': theta_sk})#, 'factor': normalised_anti_commuting_sets[key]['factor']})
+            beta_S = beta_K*np.sin(theta_sk) + beta_S*np.cos(theta_sk)
 
-        new_beta_S = np.sqrt(beta_j_sum + anti_commuting_set[S][1]**2)
 
-        return {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], new_beta_S), 'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}
+
+        return {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], beta_S), 'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}
 
 if __name__ == '__main__':
     ww = Get_X_sk_operators(vv)
@@ -852,7 +923,7 @@ class UnitaryPartition(X_sk_terms):
                 iX_sk_constant=1
 
                 circuits_and_constants[key] = {'circuit': full_circuit,
-                                               'gamma_l': self.X_sk_Ops[key]['gamma_l'], #Pauliword_S[1], # * self.X_sk_Ops[key]['gamma_l'] * iX_sk_constant,
+                                               'gamma_l': self.X_sk_Ops[key]['gamma_l']*Pauliword_S[1], # note multiplying by factor in front of pauliword!
                                                'PauliWord': Pauliword_S[0]}
 
             self.circuits_and_constants = circuits_and_constants
