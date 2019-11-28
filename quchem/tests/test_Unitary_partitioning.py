@@ -144,7 +144,7 @@ def test_convert_X_sk_normal():
         'ZZ': (1,'I')
     }
     cofactor_SIGN = np.prod([Pauli_factor_string[0] for PauliCombo, Pauli_factor_string in convert_term.items()])
-    cofactor = 1j * X_sk[0][1] * X_sk[1][1]
+    cofactor = 1j
 
     Correct_New_Pauli = ('I0 X1 Y2 Z3 X4 I5 Z6 Y7 Y8 Z9 I10 X11 Z12 Y13 X14 I15', cofactor * cofactor_SIGN)
 
@@ -171,7 +171,7 @@ def test_My_R_sk_Gate_NON_DAGGER():
     R_S = My_R_sk_Gate(theta_sk, dagger=False)
     R_S_matrix = R_S._unitary_()
 
-    circuit_NON_DAGGER = cirq.Rz(theta_sk)
+    circuit_NON_DAGGER = cirq.Rz(theta_sk)**-1
     matrix_NON_DAGGER = circuit_NON_DAGGER._unitary_()
 
     assert np.isclose(matrix_NON_DAGGER, R_S_matrix).all()
@@ -181,7 +181,7 @@ def test_My_R_sk_Gate_DAGGER():
     R_S_DAGGER = My_R_sk_Gate(theta_sk, dagger=True)
     R_S_DAGGER_matrix = R_S_DAGGER._unitary_()
 
-    circuit_DAGGER = cirq.Rz(theta_sk)**-1
+    circuit_DAGGER = cirq.Rz(theta_sk)
     matrix_DAGGER = circuit_DAGGER._unitary_()
 
     assert np.isclose(matrix_DAGGER, R_S_DAGGER_matrix).all()
@@ -230,3 +230,26 @@ def test_Get_R_S_operators():
         list_quantum_circuits_and_gammal.append({'q_circuit': circuit_oper, 'gamma_l': correction_factor})
 
     assert R_S_operators == list_quantum_circuits_and_gammal
+
+###
+
+def test_unitary_partitioning_method():
+    anti_commuting_set = [('I0 I1 I2 Z3', (-0.2234315367466397+0j)),
+                            ('X0 Y1 Y2 X3', (0.04530261550868928+0j))]
+
+    normalised_set = Get_beta_j_cofactors(anti_commuting_set)
+
+    P_s = normalised_set['PauliWords'][0]
+    P_k = normalised_set['PauliWords'][1]
+
+    gamma_l = normalised_set['gamma_l']
+    i_Xsk = convert_X_sk((P_s, P_k))
+    theta_sk = np.arctan(P_k[1]/P_s[1])
+
+    # new beta_s
+    beta_s = P_k[1]*np.sin(theta_sk) + P_s[1]*np.cos(theta_sk)
+
+    # new beta_constant
+    P_s[1] = np.sqrt((P_s[1]** 2 + P_k[1]**2))
+
+    check = Get_X_sk_operators(normalised_set, S=0)
