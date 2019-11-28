@@ -88,23 +88,22 @@ def test_Get_X_sk_operators_THETA_sk_values():
     beta_S = PauliWord_S[1]
 
     beta_kequal1 = normalised_anticommuting_set_DICT['PauliWords'][1][1]
-    tan_theta_01 = beta_kequal1 / np.sqrt(beta_S ** 2)  # B_k/(B_s^2)^0.5
-    theta_01 = np.arctan(tan_theta_01)
-    beta_j_summer = beta_kequal1 ** 2
+    tan_theta_S1 = beta_kequal1 / beta_S
+    theta_01 = np.arctan(tan_theta_S1)
+    beta_S = beta_kequal1*np.sin(theta_01) + beta_S*np.cos(theta_01)
+
 
     beta_kequal2 = normalised_anticommuting_set_DICT['PauliWords'][2][1]
-    tan_theta_02 = beta_kequal2 / np.sqrt(beta_S ** 2 + beta_j_summer**2)  # B_k2/(B_k1^2 + B_s^2)^0.5
-    theta_02 = np.arctan(tan_theta_02)
-    beta_j_summer+=beta_kequal2**2
-
-    new_beta_S = np.sqrt(beta_j_summer + beta_S ** 2)
+    tan_theta_S2 = beta_kequal2 / beta_S
+    theta_02 = np.arctan(tan_theta_S2)
+    beta_S = beta_kequal1*np.sin(theta_02) + beta_S*np.cos(theta_02)
 
     expected = {'X_sk_theta_sk': [{'X_sk': convert_X_sk((PauliWord_S, normalised_anticommuting_set_DICT['PauliWords'][1])),
                                    'theta_sk': theta_01},
                                  {'X_sk': convert_X_sk((PauliWord_S, normalised_anticommuting_set_DICT['PauliWords'][2])),
                                     'theta_sk': theta_02}],
 
-                'PauliWord_S': (PauliWord_S[0], new_beta_S),
+                'PauliWord_S': (PauliWord_S[0], beta_S),
                 'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}
 
     assert X_sk_theta_sk == expected
