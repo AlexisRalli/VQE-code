@@ -249,7 +249,9 @@ def test_unitary_partitioning_method():
     # new beta_s
     beta_s = P_k[1]*np.sin(theta_sk) + P_s[1]*np.cos(theta_sk)
 
-    # new beta_constant
-    P_s[1] = np.sqrt((P_s[1]** 2 + P_k[1]**2))
+    # # WRONG method to get new beta_s
+    # P_s[1] = np.sqrt((P_s[1]** 2 + P_k[1]**2))
 
     check = Get_X_sk_operators(normalised_set, S=0)
+
+    assert check['PauliWord_S'] == (P_s[0], beta_s) and check['X_sk_theta_sk'][0]['theta_sk'] == theta_sk and check['gamma_l'] == gamma_l and check['X_sk_theta_sk'][0]['X_sk'] == i_Xsk
