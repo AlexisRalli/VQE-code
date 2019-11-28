@@ -221,6 +221,7 @@ class Simulation_Quantum_Circuit_Dict():
             factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
             Energy_list.append((exp_val*factor))
 
+        self.Energy_list = Energy_list
         self.Energy = sum(Energy_list)
 
         return self.Energy
