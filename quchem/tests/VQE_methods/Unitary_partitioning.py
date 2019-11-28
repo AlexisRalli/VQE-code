@@ -454,14 +454,14 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
                         [np.e** (-0.5j * self.theta_sk * self.correction_factor), 0],
                         [0, np.e** (+0.5j * self.theta_sk * self.correction_factor)]
                     ])
-            #R_sk_dag = cirq.Rz(self.theta_sk)._unitary_()
+            #R_sk_dag = cirq.Rz(self.theta_sk * self.correction_factor)._unitary_()
             return R_sk_dag
         else:
             R_sk = np.array([
                 [np.e ** (+0.5j * self.theta_sk * self.correction_factor), 0],
                 [0, np.e ** (-0.5j * self.theta_sk * self.correction_factor)]
             ])
-            #R_sk = (cirq.Rz(self.theta_sk)**-1)._unitary_()
+            #R_sk = (cirq.Rz(self.theta_sk * self.correction_factor)**-1)._unitary_()
             return R_sk
 
     def num_qubits(self):
