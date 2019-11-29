@@ -102,6 +102,24 @@ if __name__ == '__main__':
 
     test.optimize(20)
 
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+    from mpl_toolkits.mplot3d import Axes3D
+    import numpy as np
+
+    x = np.arange(-10, 10, 0.25)
+    y = np.arange(-10, 10, 0.25)
+    const = 2
+
+    x, y = np.meshgrid(x, y)
+    z = x ** 2 + y ** 2 + const
+
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap=cm.viridis)
+    plt.show()
+    print('Minimum should be:', 2.0)
+
 
 
 
@@ -116,126 +134,8 @@ else:
 
 
 
-
-
-
-
-
-class VQE_optimizer(TensorFlow_Optimizer):
-
-    def __init__(self, num_shots, theta_guess_list, HF_initial_state, anti_commuting_sets,
-                 optimizer='GradientDescent'):
-
-        self.num_shots = num_shots
-        self.initial_guess = theta_guess_list
-        self.HF_initial_state = HF_initial_state
-        self.anti_commuting_sets = anti_commuting_sets
-
-        self.optimizer = optimizer
-
-    def Objective_Function_input(self):
-        input_dict = {'variables': self.initial_guess}#, 'constants': self.HF_initial_state}
-        return input_dict
-
-    def Energy_obj_Funct(self, *theta_list):
-        HF_UCC = Full_state_prep_circuit(self.HF_initial_state, T1_and_T2_theta_list=theta_list)
-        HF_UCC.complete_UCC_circuit()
-        full_anstaz_circuit = HF_UCC.UCC_full_circuit
-
-        UnitaryPart = UnitaryPartition(self.anti_commuting_sets, full_anstaz_circuit, S=0)
-        UnitaryPart.Get_Quantum_circuits_and_constants()
-        quantum_circuit_dict = UnitaryPart.circuits_and_constants
-
-        sim = Simulation_Quantum_Circuit_Dict(quantum_circuit_dict, self.num_shots)
-        Energy = sim.Calc_energy_via_parity()
-
-        return Energy.real
-
-
-    def Gradient_angles_setup(self, T1_and_T2_theta_list):
-        """
-        Args:
-            theta_guess_list = List of T1 guesses followed by T2 guesses
-                                e.g. [a,b,c] (e.g. [1,0,3])
-
-            circuit_label_dictionary = Dict of symbols and values
-                        e.g.{'T1_20': a,   'T1_31': b,   T2_3210': c}
-
-        Returns:
-            A list of cirq.ParamResolvers
-            Each list gives the partial derivative for one variable!
-            (aka one variable changed by pi/4 and -pi/4 the rest kept constant!)
-
-            Note this is a cirq.ParamResolver
-            note: dH(θ)/dθ = H(θ+ pi/4) - H(θ - pi/4)
-
-          e.g:
-
-          [ {'T1_20': a +pi/4,   'T1_31': b,   T2_3210': c}
-            {'T1_20': a,   'T1_31': b +pi/4,   T2_3210': c}
-            {'T1_20': a,   'T1_31': b,   T2_3210': c +pi/4}
-          ]
-
-          and
-
-          [ {'T1_20': a -pi/4,   'T1_31': b,   T2_3210': c}
-            {'T1_20': a,   'T1_31': b -pi/4,   T2_3210': c}
-            {'T1_20': a,   'T1_31': b,   T2_3210': c -pi/4}
-          ]
-
-        """
-
-        Plus_parameter_list = []
-        Minus_parameter_list = []
-
-        for theta in T1_and_T2_theta_list:
-            Plus_parameter_list.update(theta + (np.pi / 4))
-            Minus_parameter_list.update(theta - (np.pi / 4))
-
-        return Plus_parameter_list, Minus_parameter_list
-
-
-    def Gradient_funct(self, theta_guess_list):
-
-        theta_guess_list_PLUS, theta_guess_list_MINUS = self.Gradient_angles_setup(theta_guess_list)
-
-        partial_gradient_list = []
-        for j in range(len(theta_guess_list)):
-            for i in range(len(theta_guess_list)):
-                theta_list_PLUS = theta_guess_list
-                theta_list_PLUS[j] = theta_guess_list_PLUS[j]
-                Ham_PLUS = self.Energy_obj_Funct(theta_list_PLUS)
-
-                theta_list_MINUS = theta_guess_list
-                theta_list_MINUS[j] = theta_guess_list_MINUS[j]
-                Ham_MINUS = self.Energy_obj_Funct(theta_list_MINUS)
-
-                Gradient = (Ham_PLUS - Ham_MINUS)  # /2
-                partial_gradient_list.append((Gradient, theta_guess_list[j]))
-        return partial_gradient_list
-
-
-    def Optimize(self, max_iter):
-        input_dict = self.Objective_Function_input()
-
-        test = TensorFlow_Optimizer(self.Energy_obj_Funct, self.Gradient_funct, input_dict,
-                                    optimizer=self.optimizer, learning_rate=0.55)
-
-
-        test.optimize(max_iter)
-
-
-# from tests.VQE_methods.TensorFlow_Optimizer import *
-# OP = VQE_optimizer(num_shots, [0,1,2], HF_initial_state, anti_commuting_sets,
-#                  optimizer='GradientDescent')
-# OP.Optimize(10)
-
-
-
-
-
-def Energy_obj_Funct(*theta_list):
-    HF_UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=theta_list)
+def Energy_obj_Funct(*theta_list, num_shots=10000):
+    HF_UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=[*theta_list])
     HF_UCC.complete_UCC_circuit()
     full_anstaz_circuit = HF_UCC.UCC_full_circuit
 
@@ -245,8 +145,8 @@ def Energy_obj_Funct(*theta_list):
 
     sim = Simulation_Quantum_Circuit_Dict(quantum_circuit_dict, num_shots)
     Energy = sim.Calc_energy_via_parity()
-
     return Energy
+
 def Gradient_angles_setup(*theta_list):
     """
     Args:
@@ -310,5 +210,24 @@ def Gradient_funct(*theta_guess_list):
     return partial_gradient_list
 
 
-test = TensorFlow_Optimizer(Energy_obj_Funct, Gradient_funct, {'variables':[0,1,2]},#, 'constants':1000},
+# ### note
+# 1. run project_measurement)reduction_scipt
+# 2. try running the above functions!
+# 3 e.g. Energy_obj_Funct(0,1,2)
+
+
+tf.reset_default_graph()
+test = TensorFlow_Optimizer(Energy_obj_Funct, Gradient_funct, {'variables':[0,1,2]},#, 'constants':[10000]},
                             optimizer='GradientDescent', learning_rate=0.55)
+
+
+
+
+
+
+# ## NOTE
+# vv = tf.Variable(22, dtype=tf.float32)
+# sess = tf.Session()
+# init = tf.global_variables_initializer()  # for some reason i need to repeat this!
+# sess.run(init)
+# print(sess.run(vv))
