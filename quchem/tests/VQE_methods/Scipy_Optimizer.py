@@ -21,7 +21,7 @@ class Optimizer:
     Base class for optimizers. To specify a new optimization technique simply define a new objective function
     '''
 
-    def __init__(self, num_shots, theta_guess_list, HF_initial_state,
+    def __init__(self, num_shots, theta_guess_list, HF_initial_state, anti_commuting_sets,
                 noisy=True, store_values=False, optimized_result=None):
 
         self.num_shots = num_shots
@@ -36,6 +36,7 @@ class Optimizer:
         self.store_values = store_values
         self.optimized_result = optimized_result
         self.theta_params = None
+        self.anti_commuting_sets = anti_commuting_sets
 
         # self.log_ANGLES = True
         # self.store_values_ANGLES = [] #can append to here
@@ -61,7 +62,7 @@ class Optimizer:
         full_anstaz_circuit = HF_UCC.UCC_full_circuit
 
 
-        UnitaryPart = UnitaryPartition(anti_commuting_sets, full_anstaz_circuit, S=0)
+        UnitaryPart = UnitaryPartition(self.anti_commuting_sets, full_anstaz_circuit, S=0)
         UnitaryPart.Get_Quantum_circuits_and_constants()
         quantum_circuit_dict = UnitaryPart.circuits_and_constants
 
