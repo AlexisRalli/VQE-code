@@ -71,7 +71,7 @@ print(xx.Calc_energy_via_parity())
 # from tests.VQE_methods.Scipy_Optimizer import *
 # max_iter = 50
 # NM = Optimizer(num_shots, [0,1,2],
-#                   HF_initial_state,
+#                   HF_initial_state, anti_commuting_sets,
 #                  noisy=True, store_values = True, optimized_result=None)
 # NM.get_env(max_iter)
 # #NM.plot_convergence()
