@@ -56,7 +56,6 @@ def Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string):
     e.g.
     Counter({1: 654, 0: 346})
     """
-
     simulator = cirq.Simulator()
     raw_result = simulator.run(quantum_circuit, repetitions=num_shots)
     hist_result = raw_result.histogram(key=histogram_string)
