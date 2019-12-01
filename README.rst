@@ -1,5 +1,6 @@
-Welcome to QuChem's documentation!
-==================================
+#######
+QuChem
+#######
 
 .. image:: docs//Media/WelcomeGif.gif
 
@@ -9,12 +10,17 @@ Welcome to QuChem's documentation!
    contain the root `toctree` directive.
 
 
-`quchem <https://github.com/AlexisRalli/VQE-code>`_ is a python library for quantum chemistry VQE calculations.
-Continue...
+`quchem <https://github.com/AlexisRalli/VQE-code>`_ is a python library for quantum chemistry VQE simulations.
 
-The ''quchem'' module:
-* uses PSI4
-* builds quantum circuits using Google's cirq library
+
+The ``quchem`` module:
+
+* Uses `Psi4 <http://www.psicode.org/>`_ to obtain the molecular Hamiltonian of a system of interest
+* The `openfermion <https://github.com/quantumlib/OpenFermion>`_ library converts this to a qubit Hamiltonian
+   * Currently only the Jordan-Wigner transform is used
+* Google's `cirq <https://github.com/quantumlib/Cirq>`_ library is used to build quantum circuits
+   * Hartree-Fock (HF) + Unitary Coupled Cluster Single Double (UCCSD) excitations are currently used as the Ansatz
+   * Each quantum  circuit is simulated using a wrapper for `cirq <https://github.com/quantumlib/Cirq>`_'s optimizer
 
 To Install
 ^^^^^^^^^^
@@ -23,5 +29,5 @@ First clone github repo then run:
 
 .. code-block:: bash
 
-    python setup.py devolop
+    python setup.py develop
 

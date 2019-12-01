@@ -5,7 +5,40 @@ from openfermionpsi4 import run_psi4
 
 
 class Hamiltonian():
+    """
 
+    The UCC_Terms object calculates and retains all the unitary coupled cluster terms.
+
+    Args:
+        MoleculeName (str): Name of Molecule
+        run_scf (int, optional): Bool to run
+        run_mp2 (int, optional):
+        run_cisd (int, optional):
+        run_ccsd (int, optional):
+        run_fci (int, optional):
+        basis (int, optional):
+        multiplicity (int, optional):
+        geometry (int, optional):
+
+    Attributes:
+        molecule (openfermion.hamiltonians._molecular_data.MolecularData):
+        MolecularHamiltonian (openfermion.ops._interaction_operator.InteractionOperator): Molecular Hamiltonian
+
+        QubitHamiltonian (openfermion.ops._qubit_operator.QubitOperator):
+        HF_Energy (numpy.ndarray):
+        PSI4_FCI_Energy (numpy.ndarray):
+
+
+        QubitHamiltonianCompleteTerms (list):
+        QubitOperator (scipy.sparse.csr.csr_matrix):
+        full_CI_energy (numpy.complex128):
+        eig_values (numpy.ndarray):
+        eig_vectors (numpy.ndarray):
+        QWC_indices (list):
+        Commuting_indices (list):
+        HamiltonainCofactors (list):
+
+    """
     def __init__(self, MoleculeName,
                  run_scf = 1, run_mp2 = 1, run_cisd = 0, run_ccsd = 0, run_fci = 1,
                  basis = 'sto-3g',
@@ -92,11 +125,16 @@ class Hamiltonian():
         self.geometry = geometry
 
     def Get_Qubit_Hamiltonian_terms(self):
+
         """
-        Function fills in identity terms in Qubit Hamiltonian
+
+        Method fills in identity terms in Qubit Hamiltonian
 
 
-        (  [PauliWord, constant in self.QubitHamiltonian.terms.items()]   )
+        Returns:
+             QubitHamiltonianCompleteTerms (list): list of tuples of (qubitNo, PauliString)
+             HamiltonainCofactors (list): List of cofactors from Hamiltonian
+
 
         PauliWords =
           [
@@ -116,15 +154,6 @@ class Hamiltonian():
               [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')],
               [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
           ]
-
-        :/param initial_state: A dictionary of Pauli words... keys are PauliWord and constant term is value
-        :/type dict
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A filled Operation list, with operation on each qubit
-        :rtype: class
         """
 
         if self.QubitHamiltonian == None:
@@ -157,37 +186,134 @@ class Hamiltonian():
 
     def Get_qubit_Hamiltonian_matrix(self):
         """
-        e.g.
 
-        Function turns Pauli letter list into SINGLE paulimatrix list... For example
+        Method gets matrix of qubit Hamiltonian. Output is a sparse matrix of (2^num_qubits x 2^num_qubits)
 
-        self.QubitHamiltonianCompleteTerms =
-             [
 
-                [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
-                [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
-            ]
+        Returns:
+             QubitOperator (scipy.sparse.csr.csr_matrix): Matrix of qubit operator. Use todense() method to get
+                                                          full matrix
 
-        becomes:
+        .. code-block:: python
+           :emphasize-lines: 18
 
-        PauliWord_list_matrices =
+           from quchem.Hamiltonian_Generator_Functions import *
+            QubitHamiltonianCompleteTerms =  [
+                                                [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
+                                                [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
+                                            ]
+            # PauliWord_list_matrices =
+            #     [
+            #         [ array([[1, 0],     array([[1, 0],    array([[1, 0],     array([[1, 0],
+            #                  [0, 1]]),          [0, -1]]),         [0, 1]]),          [0, 1]]) ],
+            #
+            #         [ array([[0, -1j],     array([[0, 1],    array([[0, 1],     array([[0, -1j],
+            #                  [1j, 0]]),           [1, 0]]),         [1, 0]]),          [1j, 0]]) ]
+            #     ]
 
-            [
-                [ array([[1, 0],     array([[1, 0],    array([[1, 0],     array([[1, 0],
-                         [0, 1]]),          [0, -1]]),         [0, 1]]),          [0, 1]]) ],
 
-                [ array([[0, -1j],     array([[0, 1],    array([[0, 1],     array([[0, -1j],
-                         [1j, 0]]),           [1, 0]]),         [1, 0]]),          [1j, 0]]) ]
-            ]
+            # Each row is tensored together and mulitplied by cofactor. Then added together.
 
-        :/param initial_state: List Pauliwords (where each Pauliword is a list of tuples)
-        :/type list
+            >> <16x16 sparse matrix of type <class 'numpy.complex128'>
+                with 32 stored elements in Compressed Sparse Row format>
 
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A list of Pauliwords, where each pauliword is a a list of numpy matrices
-        :rtype: list
+            #using todense method:
+            matrix([[ 0.13716573+0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                     -0.04919765+0.j],
+                    [ 0.        +0.j,  0.13716573+0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.04919765+0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.13716573+0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j, -0.04919765+0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.13716573+0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.04919765+0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j, -0.13716573+0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j, -0.04919765+0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j, -0.13716573+0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.04919765+0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                     -0.13716573+0.j,  0.        +0.j,  0.        +0.j,
+                     -0.04919765+0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j, -0.13716573+0.j,  0.04919765+0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.04919765+0.j,  0.13716573+0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                     -0.04919765+0.j,  0.        +0.j,  0.        +0.j,
+                      0.13716573+0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.04919765+0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.13716573+0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j, -0.04919765+0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.13716573+0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.04919765+0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                     -0.13716573+0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.        +0.j, -0.04919765+0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j, -0.13716573+0.j,  0.        +0.j,
+                      0.        +0.j],
+                    [ 0.        +0.j,  0.04919765+0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j, -0.13716573+0.j,
+                      0.        +0.j],
+                    [-0.04919765+0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                      0.        +0.j,  0.        +0.j,  0.        +0.j,
+                     -0.13716573+0.j]])
         """
 
         if self.QubitHamiltonianCompleteTerms == None:
@@ -259,7 +385,19 @@ class Hamiltonian():
 
 
     def Get_FCI_Energy(self):
+        """
 
+        Method calculates energy from qubit operator (FCI).
+
+        Raises:
+            ValueError: FCI caculated from Qubit Operator does not match PSI4 calculation
+
+        Returns:
+            full_CI_energy (numpy.complex128):
+            eig_values (numpy.ndarray):
+            eig_vectors (numpy.ndarray):
+
+        """
         if np.array_equal(self.QubitOperator, np.zeros(1)):
             self.Get_qubit_Hamiltonian_matrix()
 
@@ -286,10 +424,13 @@ class Hamiltonian():
 
     def Get_QWC_terms(self):
         """
-        Function ... TODO
-        Function takes in a qubit Hamiltonian... which is a list of Pauliwords that are lists of tuples.
-        And returns each index in qubit Hamiltonian and a list of corresonding indicies that the PauliWord qubit
-        wise commutes (QWC) with.
+
+        Method takes in qubit Hamiltonian as a list of Pauliwords that are lists of tuples (qubitNo, PauliString).
+        Returns each index in qubit Hamiltonian and a list of corresponding indices that the PauliWord qubit wise
+        commutes (QWC) with.
+
+        Returns:
+            QWC_indices (list):
 
 
         self.QubitHamiltonianCompleteTerms =
@@ -301,17 +442,15 @@ class Hamiltonian():
                  [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'Z')]
              ]
 
-
-
         Returns a List of Tuples that have index of PauliWord and index of terms in the Hamiltonian that it commutes with
 
         index_of_commuting_terms =
 
             [
                 (0, [1, 2, 3]),
-                (1, [0, [], 3]),
-                (2, [0, [], []]),
-                (3, [0, 1, []])
+                (1, [0, 3]),
+                (2, [0,]),
+                (3, [0, 1])
             ]
 
         """
@@ -350,7 +489,8 @@ class Hamiltonian():
                 if j_list != []:
                     QWC_indexes.append(*j_list)
                 else:
-                    QWC_indexes.append(j_list)
+                    # QWC_indexes.append(j_list)      # <--- commented out! uneeded memory taken
+                    continue
 
             commuting_Terms_indices = (i, QWC_indexes)
 
@@ -361,10 +501,11 @@ class Hamiltonian():
 
     def Get_commuting_indices(self):
         """
-        Function ... TODO
-        Function takes in a qubit Hamiltonian... which is a list of Pauliwords that are lists of tuples.
-        And returns each index in qubit Hamiltonian and a list of corresonding indicies that the PauliWord commut with
+        Method takes in qubit Hamiltonian as a list of Pauliwords that are lists of tuples (qubitNo, PauliString).
+        Returns each index in qubit Hamiltonian and a list of corresponding indices that the PauliWord commutes with.
 
+        Returns:
+            Commuting_indices (list):
 
         self.QubitHamiltonianCompleteTerms =
 
@@ -443,6 +584,28 @@ class Hamiltonian():
         self.Commuting_indices = index_of_commuting_terms
 
     def Get_all_info(self, get_FCI_energy = False):
+
+        """
+        The UCC_Terms object calculates and retains all the unitary coupled cluster terms.
+
+        Args:
+            get_FCI_energy (bool, optional): Bool to calculate FCI energy, by diagonalising qubit hamiltonian matrix.
+                                             note this is memory intensive!
+
+
+        Returns:
+            QWC_indices (list):
+            Commuting_indices (list):
+
+            QubitOperator (scipy.sparse.csr.csr_matrix, optional): Matrix of qubit operator. Use todense() method to get
+                                                                      full matrix
+
+            full_CI_energy(numpy.complex128, optional):
+            eig_values(numpy.ndarray, optional):
+            eig_vectors(numpy.ndarray, optional):
+
+        """
+
         self.Get_Qubit_Hamiltonian_Openfermion()
 
         if get_FCI_energy == True:
@@ -476,3 +639,68 @@ if __name__ == '__main__':
     constants = X.HamiltonainCofactors
 
 
+# def Get_qubit_Hamiltonian_matrix(QubitHamiltonianCompleteTerms, n_qubits, QubitHamiltonian):
+#     from scipy.sparse import bsr_matrix
+#
+#     X = bsr_matrix(np.array([[0, 1],
+#                              [1, 0]])
+#                    )
+#
+#     Y = bsr_matrix(np.array([[0, -1j],
+#                              [1j, 0]])
+#                    )
+#
+#     Z = bsr_matrix(np.array([[1, 0],
+#                              [0, -1]])
+#                    )
+#     I = bsr_matrix(np.array([[1, 0],
+#                              [0, 1]])
+#                    )
+#
+#     OperatorsKeys = {
+#         'X': X,
+#         'Y': Y,
+#         'Z': Z,
+#         'I': I,
+#     }
+#
+#     PauliWord_list_matrices = []
+#     for PauliWord in QubitHamiltonianCompleteTerms:
+#         PauliWord_matrix_instance = []
+#         for qubitNo, qubitOp in PauliWord:
+#             PauliWord_matrix_instance.append(OperatorsKeys[qubitOp])
+#         PauliWord_list_matrices.append(PauliWord_matrix_instance)
+#
+#     ############
+#
+#     # Next tensor together each row...:
+#     from functools import reduce
+#     from tqdm import tqdm
+#     from scipy.sparse import csr_matrix
+#     QubitOperator = csr_matrix((2 ** n_qubits, 2 ** n_qubits))
+#
+#     Constants_list = [Constant for PauliWord, Constant in QubitHamiltonian.terms.items()]
+#     from scipy.sparse import kron
+#     for i in tqdm(range(len(PauliWord_list_matrices)), ascii=True, desc='Getting QubitOperator MATRIX'):
+#         PauliWord_matrix = PauliWord_list_matrices[i]
+#
+#         tensored_PauliWord = reduce(kron, PauliWord_matrix)
+#
+#         constant_factor = Constants_list[i]
+#
+#         QubitOperator += constant_factor * tensored_PauliWord
+#
+#     return QubitOperator
+#
+#
+# QubitHamiltonianCompleteTerms = [
+#     [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
+#     [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')]
+# ]
+# n_qubits = 4
+# from openfermion.ops._qubit_operator import QubitOperator
+#
+# QubitHamiltonian = QubitOperator('Z1', 0.1371657293179602 + 0j) + QubitOperator('Y0 X1 X2 Y3',
+#                                                                                 (0.04919764587885283 + 0j))
+# answer = Get_qubit_Hamiltonian_matrix(QubitHamiltonianCompleteTerms, n_qubits, QubitHamiltonian)
+# answer.todense()
