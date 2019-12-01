@@ -1,9 +1,4 @@
-if __name__ == '__main__':
-    from VQE_methods.Graph import BuildGraph_string
-else:
-    from .VQE_methods.Graph import BuildGraph_string
-
-
+from quchem.Graph import BuildGraph_string
 import pytest
 
 PauliWords = [[(0, 'I'), (1, 'I'), (2, 'I'), (3, 'I')],

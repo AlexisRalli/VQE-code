@@ -3,15 +3,9 @@ import tensorflow as tf
 import random
 import numpy as np
 
-if __name__ == '__main__':
-    from Ansatz_Generator_Functions import *
-    from Simulating_Quantum_Circuit import *
-    from Unitary_partitioning import *
-else:
-    from .Ansatz_Generator_Functions import *
-    from .Simulating_Quantum_Circuit import *
-    from .Unitary_partitioning import *
-
+from quchem.Simulating_Quantum_Circuit import *
+from quchem.quantum_circuit_functions import *
+from quchem.Ansatz_Generator_Functions import *
 
 
 def Wrapper_Objective_Function(anotherfunc, extraArgs):

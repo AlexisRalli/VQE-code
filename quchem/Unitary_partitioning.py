@@ -838,13 +838,7 @@ if __name__ == '__main__':
         (qq[0]['q_circuit'](*cirq.LineQubit.range(qq[0]['q_circuit'].num_qubits()))))))
 
 
-if __name__ == '__main__':
-    from quantum_circuit_functions import *
-else:
-    #from quantum_circuit_functions import *
-    from tests.VQE_methods.quantum_circuit_functions import *
-
-
+from quchem.quantum_circuit_functions import *
 
 class UnitaryPartition(X_sk_terms):
     def __init__(self, anti_commuting_sets, full_anstaz_circuit, S=0):
