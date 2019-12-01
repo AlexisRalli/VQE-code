@@ -1,12 +1,6 @@
-if __name__ == '__main__':
-    from VQE_methods.Simulating_Quantum_Circuit import *
-    from VQE_methods.quantum_circuit_functions import *
-else:
-    from .VQE_methods.Simulating_Quantum_Circuit import *
-    from .VQE_methods.quantum_circuit_functions import *
-
+from quchem.Simulating_Quantum_Circuit import *
+from quchem.quantum_circuit_functions import *
 import cirq
-
 import pytest
 # in terminal type: py.test -v
 
