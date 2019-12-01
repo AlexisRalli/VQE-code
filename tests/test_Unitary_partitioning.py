@@ -1,7 +1,4 @@
-if __name__ == '__main__':
-    from VQE_methods.Unitary_partitioning import *
-else:
-    from .VQE_methods.Unitary_partitioning import *
+from quchem.Unitary_partitioning import *
 
 import cirq
 import pytest
