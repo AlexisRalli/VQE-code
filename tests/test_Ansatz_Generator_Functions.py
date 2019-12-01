@@ -1,7 +1,4 @@
-if __name__ == '__main__':
-    from VQE_methods.Ansatz_Generator_Functions import *
-else:
-    from .VQE_methods.Ansatz_Generator_Functions import *
+from quchem.Ansatz_Generator_Functions import *
 
 
 import pytest

@@ -11,6 +11,9 @@
 
 .idea/*
 
+# egg files
+#*egg*
+
 # IPython
 profile_default/
 ipython_config.py

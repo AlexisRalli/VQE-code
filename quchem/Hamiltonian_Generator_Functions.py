@@ -1,5 +1,8 @@
 import numpy as np
 from functools import reduce
+from openfermion.hamiltonians import MolecularData
+from openfermionpsi4 import run_psi4
+
 
 class Hamiltonian():
 
@@ -36,8 +39,7 @@ class Hamiltonian():
         self.HamiltonainCofactors = None
 
     def Get_Molecular_Hamiltonian(self):
-        from openfermion.hamiltonians import MolecularData
-        from openfermionpsi4 import run_psi4
+
         delete_input = True
         delete_output = True
 

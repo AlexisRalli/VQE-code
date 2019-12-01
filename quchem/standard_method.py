@@ -1,11 +1,7 @@
-if __name__ == '__main__':
-    from VQE_methods.Simulating_Quantum_Circuit import *
-    from VQE_methods.quantum_circuit_functions import *
-    from VQE_methods.Ansatz_Generator_Functions import *
-else:
-    from tests.VQE_methods.Simulating_Quantum_Circuit import *
-    from tests.VQE_methods.quantum_circuit_functions import *
-    from tests.VQE_methods.Ansatz_Generator_Functions import *
+from quchem.Simulating_Quantum_Circuit import *
+from quchem.quantum_circuit_functions import *
+from quchem.Ansatz_Generator_Functions import *
+
 
 def Get_PauliWord_strings_and_constant(PauliWords, constants):
     """

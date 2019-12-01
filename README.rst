@@ -16,28 +16,10 @@ The ''quchem'' module:
 
 To Install
 ^^^^^^^^^^
-First clone github repo, then run:
+
+First clone github repo then run:
 
 .. code-block:: bash
 
     python setup.py devolop
 
-
-
-Guide
-^^^^^^
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-.. automodule:: quchem.Ansatz_Generator_Functions
-   :members:
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

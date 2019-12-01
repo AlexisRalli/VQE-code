@@ -2,18 +2,9 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 import pandas as pd
 
-
-if __name__ == '__main__':
-    from Ansatz_Generator_Functions import *
-    from Simulating_Quantum_Circuit import *
-    from Unitary_partitioning import *
-else:
-    from .Ansatz_Generator_Functions import *
-    from .Simulating_Quantum_Circuit import *
-    from .Unitary_partitioning import *
-
-
-
+from quchem.Ansatz_Generator_Functions import *
+from quchem.Simulating_Quantum_Circuit import *
+from quchem.Unitary_partitioning import *
 
 
 class Optimizer:
