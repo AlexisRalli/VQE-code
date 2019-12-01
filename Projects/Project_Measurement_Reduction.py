@@ -1,9 +1,8 @@
-#from .tests.VQE_methods.Hamiltonian_Generator_Functions import
-from tests.VQE_methods.Hamiltonian_Generator_Functions import Hamiltonian
-from tests.VQE_methods.Graph import BuildGraph_string
-from tests.VQE_methods.Unitary_partitioning import *
-from tests.VQE_methods.Ansatz_Generator_Functions import *
-from tests.VQE_methods.quantum_circuit_functions import *
+from quchem.Hamiltonian_Generator_Functions import Hamiltonian
+from quchem.Graph import BuildGraph_string
+from quchem.Unitary_partitioning import *
+from quchem.Ansatz_Generator_Functions import *
+from quchem.quantum_circuit_functions import *
 import numpy as np
 
 
@@ -61,7 +60,7 @@ circuits_and_constants = zz.circuits_and_constants
 
 
 
-from tests.VQE_methods.Simulating_Quantum_Circuit import *
+from quchem.Simulating_Quantum_Circuit import *
 xx = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
 print(xx.Calc_energy_via_parity())
 
@@ -80,7 +79,7 @@ print(xx.Calc_energy_via_parity())
 
 
 ################# OLD APPROACH
-from tests.VQE_methods.standard_method import *
+from quchem.standard_method import *
 PauliWords_and_constants = Get_PauliWord_strings_and_constant(Hamilt.QubitHamiltonianCompleteTerms, Hamilt.HamiltonainCofactors)
 
 P_words_and_consts=[]

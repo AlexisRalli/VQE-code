@@ -10,7 +10,7 @@ Welcome to QuChem's documentation!
 `quchem <https://github.com/AlexisRalli/VQE-code>`_ is a python library for quantum chemistry VQE calculations.
 Continue...
 
-The ''quchem'' module:
+The `quchem` module:
 * uses PSI4
 * builds quantum circuits using Google's cirq library
 
@@ -28,10 +28,15 @@ Guide
 ^^^^^^
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-.. automodule:: quchem.Ansatz_Generator_Functions
-   :members:
+  :numbered:
+  :maxdepth: 1
+  :caption: Contents:
+
+  LICENSE
+  Installation
+  Ansatz_Generator_Functions
+  Graph
+
 
 
 

@@ -588,25 +588,39 @@ def Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES):
         T_Term_Ansatz_circuits (list): list of cirq circuit generators.
 
 
-    from openfermion.ops._qubit_operator import QubitOperator
-    T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
-                        (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
+.. code-block:: python
+   :emphasize-lines: 18
 
+   from openfermion.ops._qubit_operator import QubitOperator
+   import numpy as np
 
-    T_Terms_Reformatted_Paulis_and_ANGLES = Set_circuit_angles(T1_Terms_Paulis)
-        # [
-        #     ([('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)], 5.575564289159186),
-        #     ([('I0 Y1 Z2 X3', 0.125j), ('I0 X1 Z2 Y3', -0.125j)], 4.075039042485969)
-        #  ]
+   T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
+    (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
 
-        Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES)
+    >> [
+        -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
+        -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
+       ]
 
-        # [
-        #     [<quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfb38>,
-        #     <quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfac8>],
-        #     [<quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfbe0>,
-        #     <quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfb00>]
-        # ]
+    T1_Reformatted_Paulis = Reformat_Pauli_terms(T1_Terms_Paulis)
+    >> [
+            [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
+            [('Y1 Z2 X3', 0.125j), ('X1 Z2 Y3', -0.125j)]
+        ]
+
+    T_Terms_Reformatted_Paulis_and_ANGLES = Set_circuit_angles(T1_Reformatted_Paulis, theta_list=[np.pi, 0.1])
+    >> [
+            ([('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)], 3.141592653589793),
+            ([('I0 Y1 Z2 X3', 0.125j), ('I0 X1 Z2 Y3', -0.125j)], 0.1)
+        ]
+
+    Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES)
+    >> [
+            [<quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfb38>,
+            <quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfac8>],
+            [<quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfbe0>,
+            <quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfb00>]
+        ]
     """
 
 
