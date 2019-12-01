@@ -1,27 +1,36 @@
 import cirq
 import numpy as np
 
+
 class State_Prep(cirq.Gate):
+    """
 
+    Class to generate cirq circuit that creates input state, which is
+    defined in occupation number basis (canonical orbitals).
+
+    Args:
+        initial_state (list): List in occupation number basis... e.g. |0011>  =  [0,0,1,1]
+
+    Attributes:
+        state (list): List in occupation number basis... e.g. |0011>  =  [0,0,1,1]
+
+    """
     def __init__(self, initial_state):
-        """""
-    Circuit to obtain given initial state
-    e.g. |0011>  =  [0,0,1,1]
 
-    :param initial_state: A list description of HF state... note that indexing from far right to left.
-    :type initial_state: list, (numpy.array, tuple)
-
-    ...
-    :raises [ErrorType]: [ErrorDescription]
-    ...
-    :return: A circuit object to be used by cirq.Circuit.from_ops
-    :rtype: class
-
-        """
         self.state = initial_state
 
 
     def _decompose_(self, qubits):
+        """
+        Args:
+            qubits (cirq.line.line_qubit.LineQubit): cirq qubits (given to decompose method by cirq)
+
+        Raises:
+            ValueError: State not in occupation number basis
+
+        Yields:
+            cirq.circuits.circuit.Circuit: cirq circuit generator!
+        """
 
         for i in range(len(self.state)):
             state = self.state[i]

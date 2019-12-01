@@ -12,13 +12,13 @@ def HF_state_generator(n_electrons, n_qubits):
     Returns:
         np.array: HF singlet ground state in occupation number basis
 
-.. code-block:: python
-   :emphasize-lines: 2
+    .. code-block:: python
+       :emphasize-lines: 2
 
-   from quchem.Ansatz_Generator_Functions import *
-   state = HF_state_generator(2, 4)
-   print(state)
-   >> [0. 0. 1. 1.]
+       from quchem.Ansatz_Generator_Functions import *
+       state = HF_state_generator(2, 4)
+       print(state)
+       >> [0. 0. 1. 1.]
     """
     occupied = np.ones(n_electrons)
     unoccupied = np.zeros(n_qubits-n_electrons)
@@ -341,23 +341,23 @@ def Reformat_Pauli_terms(T_Terms_Paulis):
     T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
         (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
 
-.. code-block:: python
-   :emphasize-lines: 10
+    .. code-block:: python
+       :emphasize-lines: 10
 
-   from openfermion.ops._qubit_operator import QubitOperator
-   T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
-    (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
+       from openfermion.ops._qubit_operator import QubitOperator
+       T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
+        (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
 
-    >> [
-        -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
-        -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
-       ]
+        >> [
+            -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
+            -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
+           ]
 
-    Reformat_Pauli_terms(T1_Terms_Paulis)
-    >> [
-            [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
-            [('Y1 Z2 X3', 0.125j), ('X1 Z2 Y3', -0.125j)]
-        ]
+        Reformat_Pauli_terms(T1_Terms_Paulis)
+        >> [
+                [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
+                [('Y1 Z2 X3', 0.125j), ('X1 Z2 Y3', -0.125j)]
+            ]
     """
 
     PauliWord_list = []
@@ -538,37 +538,37 @@ def Set_circuit_angles(T_Terms_Reformatted_Paulis, theta_list=[]):
     Args:
         T_Terms_Reformatted_Paulis (list): list of PauliWords and constants
 
-        theta_list (list): List of theta angles corresponding to each term in T_term. Note if none given, then a
+        theta_list (list, optional): List of theta angles corresponding to each term in T_term. Note if none given, then a
                            randomly generated sequence of numbers if given.
 
     Returns:
         List of T term and corresponding angle.
 
-.. code-block:: python
-   :emphasize-lines: 18
+    .. code-block:: python
+       :emphasize-lines: 18
 
-   from openfermion.ops._qubit_operator import QubitOperator
-   import numpy as np
+       from openfermion.ops._qubit_operator import QubitOperator
+       import numpy as np
 
-   T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
-    (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
+       T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
+        (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
 
-    >> [
-        -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
-        -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
-       ]
+        >> [
+            -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
+            -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
+           ]
 
-    T1_Reformatted_Paulis = Reformat_Pauli_terms(T1_Terms_Paulis)
-    >> [
-            [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
-            [('Y1 Z2 X3', 0.125j), ('X1 Z2 Y3', -0.125j)]
-        ]
+        T1_Reformatted_Paulis = Reformat_Pauli_terms(T1_Terms_Paulis)
+        >> [
+                [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
+                [('Y1 Z2 X3', 0.125j), ('X1 Z2 Y3', -0.125j)]
+            ]
 
-    Set_circuit_angles(T1_Reformatted_Paulis, theta_list=[np.pi, 0.1])
-    >> [
-            ([('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)], 3.141592653589793),
-            ([('I0 Y1 Z2 X3', 0.125j), ('I0 X1 Z2 Y3', -0.125j)], 0.1)
-        ]
+        Set_circuit_angles(T1_Reformatted_Paulis, theta_list=[np.pi, 0.1])
+        >> [
+                ([('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)], 3.141592653589793),
+                ([('I0 Y1 Z2 X3', 0.125j), ('I0 X1 Z2 Y3', -0.125j)], 0.1)
+            ]
     """
 
     if theta_list == []:
@@ -588,39 +588,39 @@ def Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES):
         T_Term_Ansatz_circuits (list): list of cirq circuit generators.
 
 
-.. code-block:: python
-   :emphasize-lines: 18
+    .. code-block:: python
+       :emphasize-lines: 18
 
-   from openfermion.ops._qubit_operator import QubitOperator
-   import numpy as np
+       from openfermion.ops._qubit_operator import QubitOperator
+       import numpy as np
 
-   T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
-    (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
+       T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
+        (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
 
-    >> [
-        -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
-        -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
-       ]
+        >> [
+            -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
+            -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
+           ]
 
-    T1_Reformatted_Paulis = Reformat_Pauli_terms(T1_Terms_Paulis)
-    >> [
-            [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
-            [('Y1 Z2 X3', 0.125j), ('X1 Z2 Y3', -0.125j)]
-        ]
+        T1_Reformatted_Paulis = Reformat_Pauli_terms(T1_Terms_Paulis)
+        >> [
+                [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
+                [('Y1 Z2 X3', 0.125j), ('X1 Z2 Y3', -0.125j)]
+            ]
 
-    T_Terms_Reformatted_Paulis_and_ANGLES = Set_circuit_angles(T1_Reformatted_Paulis, theta_list=[np.pi, 0.1])
-    >> [
-            ([('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)], 3.141592653589793),
-            ([('I0 Y1 Z2 X3', 0.125j), ('I0 X1 Z2 Y3', -0.125j)], 0.1)
-        ]
+        T_Terms_Reformatted_Paulis_and_ANGLES = Set_circuit_angles(T1_Reformatted_Paulis, theta_list=[np.pi, 0.1])
+        >> [
+                ([('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)], 3.141592653589793),
+                ([('I0 Y1 Z2 X3', 0.125j), ('I0 X1 Z2 Y3', -0.125j)], 0.1)
+            ]
 
-    Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES)
-    >> [
-            [<quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfb38>,
-            <quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfac8>],
-            [<quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfbe0>,
-            <quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfb00>]
-        ]
+        Get_T_term_circuits(T_Terms_Reformatted_Paulis_and_ANGLES)
+        >> [
+                [<quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfb38>,
+                <quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfac8>],
+                [<quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfbe0>,
+                <quchem.quantum_circuit_functions.full_exponentiated_PauliWord_circuit at 0x7f5921dbfb00>]
+            ]
     """
 
 

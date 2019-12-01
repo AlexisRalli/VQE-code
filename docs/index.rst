@@ -14,8 +14,9 @@ Welcome to QuChem's documentation!
 Continue...
 
 The `quchem` module:
-* uses PSI4
-* builds quantum circuits using Google's cirq library
+
+*  uses PSI4
+*  builds quantum circuits using Google's cirq library
 
 To Install
 ^^^^^^^^^^
@@ -39,6 +40,7 @@ Guide
   Installation
   Ansatz_Generator_Functions
   Graph
+  Hamiltonian_Generator_Functions
 
 
 
