@@ -4,7 +4,39 @@ import numpy as np
 #from tqdm import tqdm
 
 class BuildGraph_string():
+    """
 
+    The BuildGraph string object calculates and retains all the unitary coupled cluster terms.
+
+    Args:
+        PauliWords (list): List of tuples as (qubitNo (int), PauliString (str)) of Hamiltonian
+        indices (list): List of Tuples as (Index of PauliWord, list_of_indices PauliWord commutes with)
+        HamiltonianCofactors (list): List of Hamiltonian constants. Should match order of PauliWords arg.
+
+    Attributes:
+
+        PauliWords (list): List of tuples as (qubitNo (int), PauliString (str)) of Hamiltonian
+        indices (list): List of Tuples as (Index of PauliWord, list_of_indices PauliWord commutes with)
+        HamiltonianCofactors (list): List of Hamiltonian constants. Should match order of PauliWords arg.
+
+
+        G_string (networkx.classes.graph.Graph): NetworkX graph - where each node is PauliWord and connected by edge
+                                                 if node (another PauliWord) commutes with it.
+
+        node_string_set (list): List of PauliWords (str)
+
+        node_string_set_and_HamiltonianCofactors (dict): Dictionary of PauliWord (key) and HamiltonianCofactors (value).
+                                                         Important to set node attributes.
+
+        G_string_comp (networkx.classes.graph.Graph): Complementary graph of G_string. Nodes now connected if they
+                                                      anti-commute
+
+        greedy_string (list):
+        colour_key_for_nodes_string (list):
+
+        anticommuting_sets (list):
+
+    """
     def __init__(self, PauliWords, indices, HamiltonainCofactors):
 
         self.PauliWords = PauliWords
