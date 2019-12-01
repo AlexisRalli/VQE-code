@@ -1,6 +1,9 @@
 Welcome to QuChem's documentation!
 ==================================
 
+.. image:: /Media/WelcomeGif.gif
+
+
 .. QuChem documentation master file, created by
    sphinx-quickstart on Thu Nov 28 23:07:38 2019.
    You can adapt this file completely to your liking, but it should at least
