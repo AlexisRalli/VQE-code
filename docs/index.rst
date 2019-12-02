@@ -62,6 +62,7 @@ Guide
   Ansatz_Generator_Functions
   Graph
   Hamiltonian_Generator_Functions
+  Unitary_partitioning
 
 
 

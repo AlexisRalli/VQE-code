@@ -251,3 +251,244 @@ def test_unitary_partitioning_method():
     check = Get_X_sk_operators(normalised_set, S=0)
 
     assert check['PauliWord_S'] == (P_s[0], beta_s) and check['X_sk_theta_sk'][0]['theta_sk'] == theta_sk and check['gamma_l'] == gamma_l and check['X_sk_theta_sk'][0]['X_sk'] == i_Xsk
+
+
+# def test_R_sk_full_circuit():
+#
+#     anti_commuting_set = [('I0 I1 I2 Z3', (-0.2234315367466397+0j)),
+#                             ('X0 Y1 Y2 X3', (0.04530261550868928+0j))]
+#
+#     normalised_set = Get_beta_j_cofactors(anti_commuting_set)
+#
+#     X_sk_Ops = Get_X_sk_operators(normalised_set, S=0)
+#
+#     X_SK_Test = X_sk_Ops['X_sk_theta_sk'][0]['X_sk']
+#     theta_sk = X_sk_Ops['X_sk_theta_sk'][0]['theta_sk']
+#
+#     R_sk_full_DAGGER = R_sk_full_circuit(X_SK_Test, theta_sk, dagger=True)
+#     # print(cirq.Circuit.from_ops(cirq.decompose_once((R_sk_full(*cirq.LineQubit.range(R_sk_full.num_qubits()))))))
+
+def test_unitary_partitioning_method_VS_STANDARD():
+    from quchem.quantum_circuit_functions import *
+    import cirq
+    num_shots=10000
+
+    anti_commuting_set = [('I0 I1 I2 Z3', (-0.2234315367466397+0j)),
+                            ('X0 Y1 Y2 X3', (0.04530261550868928+0j))]
+
+    normalised_set = Get_beta_j_cofactors(anti_commuting_set)
+
+    X_sk_Ops = Get_X_sk_operators(normalised_set, S=0)
+
+    R_sk_full_DAGGER = Get_R_S_operators(X_sk_Ops, dagger=True)
+    R_sk_full = Get_R_S_operators(X_sk_Ops, dagger=False)
+
+    ANSATZ = [cirq.X.on(cirq.LineQubit(2)),
+                           cirq.X.on(cirq.LineQubit(3)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(0)),
+                           cirq.H.on(cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.Rz(np.pi * 0.0).on(cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(0)),
+                           cirq.H.on(cirq.LineQubit(2)),
+                           cirq.H.on(cirq.LineQubit(0)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.Rz(np.pi * 0.0).on(cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(0)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(2)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.Rz(np.pi * 0.3183098861837907).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(3)),
+                           cirq.H.on(cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.Rz(np.pi * -0.3183098861837907).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.H.on(cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(3)),
+                           cirq.H.on(cirq.LineQubit(0)),
+                           cirq.H.on(cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(2)),
+                           cirq.H.on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.Rz(np.pi * 0.6366197723675814).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(0)),
+                           cirq.H.on(cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(2)),
+                           cirq.H.on(cirq.LineQubit(3)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(0)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(2)),
+                           cirq.H.on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.Rz(np.pi * -0.6366197723675814).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(0)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(2)),
+                           cirq.H.on(cirq.LineQubit(3)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(0)),
+                           cirq.H.on(cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(2)),
+                           cirq.H.on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.Rz(np.pi * -0.6366197723675814).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(0)),
+                           cirq.H.on(cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(2)),
+                           cirq.H.on(cirq.LineQubit(3)),
+                           cirq.H.on(cirq.LineQubit(0)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(2)),
+                           cirq.H.on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.Rz(np.pi * -0.6366197723675814).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(0)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(2)),
+                           cirq.H.on(cirq.LineQubit(3)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(0)),
+                           cirq.H.on(cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(2)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.Rz(np.pi * 0.6366197723675814).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(0)),
+                           cirq.H.on(cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(2)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(3)),
+                           cirq.H.on(cirq.LineQubit(0)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(2)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.Rz(np.pi * 0.6366197723675814).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(0)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(2)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(3)),
+                           cirq.H.on(cirq.LineQubit(0)),
+                           cirq.H.on(cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(2)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.Rz(np.pi * 0.6366197723675814).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(0)),
+                           cirq.H.on(cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(2)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(3)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(0)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(2)),
+                           cirq.Rx(np.pi * 0.5).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.Rz(np.pi * -0.6366197723675814).on(cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
+                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
+                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(0)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(1)),
+                           cirq.H.on(cirq.LineQubit(2)),
+                           cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(3))]
+    full_anstaz_circuit = cirq.Circuit.from_ops(*ANSATZ)
+
+
+    term_reduction_circuits_first = [cirq.decompose_once(
+    (term['q_circuit'](*cirq.LineQubit.range(term['q_circuit'].num_qubits())))) for term in R_sk_full_DAGGER]
+
+    Pauliword_S = X_sk_Ops['PauliWord_S']
+    q_circuit_Pauliword_S_object = Perform_PauliWord(Pauliword_S)
+
+    q_circuit_Pauliword_S = cirq.Circuit.from_ops(
+        cirq.decompose_once((q_circuit_Pauliword_S_object(
+            *cirq.LineQubit.range(q_circuit_Pauliword_S_object.num_qubits())))))
+
+
+    term_reduction_circuits_LAST = [cirq.decompose_once(
+        (term['q_circuit'](*cirq.LineQubit.range(term['q_circuit'].num_qubits())))) for term in R_sk_full]
+
+    q_circuit_change_basis_and_measure = Change_Basis_and_Measure_PauliWord(Pauliword_S)
+
+    q_circuit_Pauliword_S_change_basis_and_measure = cirq.Circuit.from_ops(
+        cirq.decompose_once(
+            (q_circuit_change_basis_and_measure(
+                *cirq.LineQubit.range(q_circuit_change_basis_and_measure.num_qubits())))))
+
+    full_circuit = cirq.Circuit.from_ops(
+        [
+            *full_anstaz_circuit.all_operations(),
+            *term_reduction_circuits_first,
+            *q_circuit_Pauliword_S.all_operations(),
+            *term_reduction_circuits_LAST,
+            *q_circuit_Pauliword_S_change_basis_and_measure.all_operations()
+        ]
+    )
+
+    unintary_part_dict = {0: {'circuit': full_circuit, 'PauliWord': Pauliword_S[0],
+                              'gamma_l': normalised_set['gamma_l']*Pauliword_S[1]}
+                          }
+    UP = Simulation_Quantum_Circuit_Dict(unintary_part_dict, num_shots)
+    print(UP.Calc_energy_via_parity())
+
+    from quchem.standard_method import *
+    standard_method = Get_quantum_circuits_and_constants_NORMAL(full_anstaz_circuit, anti_commuting_set)
+
+    SM = Simulation_Quantum_Circuit_Dict(standard_method, num_shots)
+    print(SM.Calc_energy_via_parity())
+
+    # print(
+    #     cirq.Circuit.from_ops(
+    #         cirq.decompose_once((R_sk_full_DAGGER[0]['q_circuit'](
+    #             *cirq.LineQubit.range(R_sk_full_DAGGER[0]['q_circuit'].num_qubits()))))))
+
