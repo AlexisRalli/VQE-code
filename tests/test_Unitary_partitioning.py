@@ -1,4 +1,6 @@
 from quchem.Unitary_partitioning import *
+from quchem.standard_method import *
+from quchem.quantum_circuit_functions import *
 
 import cirq
 import pytest
@@ -268,13 +270,14 @@ def test_unitary_partitioning_method():
 #     R_sk_full_DAGGER = R_sk_full_circuit(X_SK_Test, theta_sk, dagger=True)
 #     # print(cirq.Circuit.from_ops(cirq.decompose_once((R_sk_full(*cirq.LineQubit.range(R_sk_full.num_qubits()))))))
 
+
+
 def test_unitary_partitioning_method_VS_STANDARD():
-    from quchem.quantum_circuit_functions import *
-    import cirq
     num_shots=10000
 
     anti_commuting_set = [('I0 I1 I2 Z3', (-0.2234315367466397+0j)),
-                            ('X0 Y1 Y2 X3', (0.04530261550868928+0j))]
+                            ('X0 Y1 Y2 X3', (0.04530261550868928+0j)),
+                          ('X0 X1 X2 Z3', (0.04530261550868928+0j))]
 
     normalised_set = Get_beta_j_cofactors(anti_commuting_set)
 
@@ -481,7 +484,6 @@ def test_unitary_partitioning_method_VS_STANDARD():
     UP = Simulation_Quantum_Circuit_Dict(unintary_part_dict, num_shots)
     print(UP.Calc_energy_via_parity())
 
-    from quchem.standard_method import *
     standard_method = Get_quantum_circuits_and_constants_NORMAL(full_anstaz_circuit, anti_commuting_set)
 
     SM = Simulation_Quantum_Circuit_Dict(standard_method, num_shots)

@@ -479,7 +479,7 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
 
     def __init__(self, theta_sk, dagger=True, correction_factor=1):
 
-        self.theta_sk = theta_sk
+        self.theta_sk = theta_sk/2
         self.dagger = dagger
         self.correction_factor = correction_factor
 
