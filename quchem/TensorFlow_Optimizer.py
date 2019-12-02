@@ -43,7 +43,7 @@ class TensorFlow_Optimizer():
         elif self.optimizer == 'GradientDescent':
             optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.learning_rate)
         else:
-            raise print('Optimizer Not defined')
+            raise ValueError('Optimizer Not defined') #raise Error
 
         train = optimizer.apply_gradients(grads_and_vars)
 

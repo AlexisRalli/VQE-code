@@ -1,0 +1,35 @@
+language: python
+python:
+  - "3.7"
+
+os:
+  - linux
+
+install:
+# https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/use-conda-with-travis-ci.html
+  - sudo apt-get update
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - source "$HOME/miniconda/etc/profile.d/conda.sh"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda info -a
+#packages
+  - conda create -q -n test-environment python=3.7
+  - conda activate test-environment
+  - conda install psi4 psi4-rt python=3.7 -c psi4
+  - python -m pip install --user openfermion
+  - python -m pip install --user openfermioncirq
+  - python -m pip install cirq
+  - pip install tensorflow
+  - pip install tqdm
+  - pip install pytest
+#get github
+  - sudo apt-get install git
+  - git clone https://github.com/AlexisRalli/VQE-code.git
+#installing github library
+  - python setup.py develop
+
+#used to run unit tests
+#script:

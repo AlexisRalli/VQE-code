@@ -260,7 +260,7 @@ class TensorFlowOptimizer:
         elif self.optimizer == 'GradientDescent':
             optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.learning_rate)
         else:
-            raise print('Optimizer Not defined')
+            raise ValueError('Optimizer Not defined') #Raise Error
 
         grad_PH_and_label = self.GradientSubPlaceHolderList()
         grad_place_holder_list = [grad_PH_and_label[key] for key in grad_PH_and_label]
@@ -315,7 +315,7 @@ class TensorFlowOptimizer:
         elif self.optimizer == 'GradientDescent':
             optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.learning_rate)
         else:
-            raise print('Optimizer Not defined')
+            raise ValueError('Optimizer Not defined') #Raise Error
 
         gradient_sub = self.Analytic_Gradient(tensor_guess_list)
 
