@@ -448,6 +448,7 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
 
     Info on matrix definition found at: https://arxiv.org/pdf/1001.3855.pdf
 
+
     Args:
         theta_sk (float): angle to rotate by in radians.
         dagger (bool): Where to have dagger or non dagger quantum gate
@@ -455,7 +456,8 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
                                                e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
 
     Attributes:
-        theta_sk (float): angle to rotate by in radians.
+        theta_sk_over_2 (float): angle to rotate by in radians. Note divided by 2 due to definition of exponentiated
+                                 Pauli terms (https://arxiv.org/pdf/1001.3855.pdf)!
         dagger (bool): Where to have dagger or non dagger quantum gate
         correction_factor (optional, complex): Correction value from X_sk operator.
                                                e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
@@ -479,7 +481,7 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
 
     def __init__(self, theta_sk, dagger=True, correction_factor=1):
 
-        self.theta_sk = theta_sk/2
+        self.theta_sk_over_2 = theta_sk/2
         self.dagger = dagger
         self.correction_factor = correction_factor
 
@@ -489,15 +491,15 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
         if self.dagger:
 
             R_sk_dag = np.array([
-                        [np.e** (-0.5j * self.theta_sk * self.correction_factor), 0],
-                        [0, np.e** (+0.5j * self.theta_sk * self.correction_factor)]
+                        [np.e** (-0.5j * self.theta_sk_over_2 * self.correction_factor), 0],
+                        [0, np.e** (+0.5j * self.theta_sk_over_2 * self.correction_factor)]
                     ])
             #R_sk_dag = cirq.Rz(self.theta_sk * self.correction_factor)._unitary_()
             return R_sk_dag
         else:
             R_sk = np.array([
-                [np.e ** (+0.5j * self.theta_sk * self.correction_factor), 0],
-                [0, np.e ** (-0.5j * self.theta_sk * self.correction_factor)]
+                [np.e ** (+0.5j * self.theta_sk_over_2 * self.correction_factor), 0],
+                [0, np.e ** (-0.5j * self.theta_sk_over_2 * self.correction_factor)]
             ])
             #R_sk = (cirq.Rz(self.theta_sk * self.correction_factor)**-1)._unitary_()
             return R_sk
@@ -510,9 +512,9 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
         # Takes into account PauliWord constant.
 
         if self.dagger:
-            return 'R_sk_DAGGER = {} rad'.format(self.theta_sk * self.correction_factor)
+            return 'R_sk_DAGGER = {} rad'.format(self.theta_sk_over_2 * self.correction_factor)
         else:
-            return 'R_sk = {} rad'.format(self.theta_sk * self.correction_factor)
+            return 'R_sk = {} rad'.format(self.theta_sk_over_2 * self.correction_factor)
 
 
 # class My_R_sk_Gate(cirq.SingleQubitGate):

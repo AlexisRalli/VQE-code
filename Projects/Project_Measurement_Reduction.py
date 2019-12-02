@@ -2,7 +2,6 @@ from quchem.Hamiltonian_Generator_Functions import Hamiltonian
 from quchem.Graph import BuildGraph_string
 from quchem.Unitary_partitioning import *
 from quchem.Ansatz_Generator_Functions import *
-from quchem.quantum_circuit_functions import *
 import numpy as np
 
 
@@ -67,7 +66,7 @@ print(xx.Calc_energy_via_parity())
 
 
 #
-# from tests.VQE_methods.Scipy_Optimizer import *
+# from quchem.Scipy_Optimizer import *
 # max_iter = 50
 # NM = Optimizer(num_shots, [0,1,2],
 #                   HF_initial_state, anti_commuting_sets,
@@ -93,23 +92,25 @@ print(yy.Calc_energy_via_parity())
 
 
 
-# max_iter = 70
-# theta_guess_list = [2.374, 1.437 , 1.163]
-# NM = OptimizerSTANDARD(num_shots, theta_guess_list,
-#                   HF_initial_state, PauliWords_and_constants,
-#                  noisy=True, store_values = True, optimized_result=None)
-# NM.get_env(max_iter)
-# #NM.plot_convergence()
-# print(NM.optimized_result)
-#
-#
-# from tests.VQE_methods.Misc_functions import *
-# #Save_result_as_csv('test', {'Energy': NM.obj_fun_values, 'initial_angles': theta_guess_list, 'Molecule': Molecule, 'num_shots': num_shots, 'geometry': geometry}, folder='Results')
-# Save_result_as_csv('test', {'Energy': NM.obj_fun_values}, folder='Results')
-#
-#
+max_iter = 12
+theta_guess_list = [2.374, 1.437 , 1.163]
+NM_standard = OptimizerSTANDARD(num_shots, theta_guess_list,
+                  HF_initial_state, PauliWords_and_constants,
+                 noisy=True, store_values = True, optimized_result=None)
+NM_standard.get_env(max_iter)
+#NM.plot_convergence()
+print(NM_standard.optimized_result)
+
+
+from quchem.Misc_functions import *
+Save_result_as_csv('Standard_method', {'Energy': NM_standard.obj_fun_values},
+                   {'initial_angles': theta_guess_list, 'Molecule': Molecule, 'num_shots': num_shots, 'geometry': geometry}, folder='Results')
+
+
+
 #
 # # x = circuits_and_constants[7]['circuit']
 # # text_file = open("quantum_circuit.txt", "w")
 # # n = text_file.write(x.to_text_diagram(transpose=True))
 # # text_file.close()
+
