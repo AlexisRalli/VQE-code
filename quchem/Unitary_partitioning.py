@@ -17,18 +17,27 @@ anti_commuting_sets = {
 
 def Get_beta_j_cofactors(anti_commuting_set):
     """
-    Function takes in anti_commuting_sets and returns anti-commuting sets, but with new coefcators that
-    obey eq (10) in ArXiv:1908.08067 (sum_j B_j^2 = 1)
+    Function takes in list of anti-commuting PauliWord tuples (PauliWord, constant)
+    and returns the corresponding anti-commuting sets, but with new coefcators that
+    obey eq (10) in ArXiv:1908.08067 (sum_j B_j^2 = 1) and an overall correction (gamma_l).
 
-    Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
+    Args:
+        anti_commuting_set (list): A list of Pauliwords, where each entry is a tuple of (PauliWord, constant)
 
-    :param anti_commuting_set: A dictionary of anti-commuting sets, each term inside is a tuple of (PauliWord, Constant)
-    :type anti_commuting_set: list
-    ...
-    :raises [ErrorType]: [ErrorDescription]
-    ...
-    :return: New dictionary of anti_commuting_sets, with new constants in Tuples.
-    :rtype: dict
+    Returns:
+        dict: A dictionary of normalised_anti_commuting_set (key = 'PauliWords') and correction factor (key = 'gamma_l')
+
+    .. code-block:: python
+       :emphasize-lines: 4
+
+       from quchem.Unitary_partitioning import *
+       Anti_commuting_set = [('I0 Z1 I2 I3', (0.1371657293179602+0j)), ('Y0 Y1 X2 X3', (-0.04919764587885283+0j))]
+
+       Get_beta_j_cofactors(Anti_commuting_set)
+       >> {'PauliWords': [  ('I0 Z1 I2 I3', (0.9412848366792171+0j)),
+                            ('Y0 Y1 X2 X3', (-0.33761347164735517+0j))
+                          ],
+          'gamma_l': (0.14572180914107857+0j)}
 
     """
     normalised_terms = []
@@ -45,20 +54,30 @@ if __name__ == '__main__':
 
 def convert_X_sk(X_sk):
     """
-    converts i P_s P_k of X_sk into one term!
-    (Note that P_k is performed first followed by P_s)
 
-    :param X_sk:
+    Converts P_s, P_k tuple into the corresponding X_sk term (PauliWord, correction_factor).
+    Where X_sk = i P_s P_k [note that beta cofactors omitted in definition. When multiplying the PauliWords,
+    they gain different cofactors, YX = -1i Z . This effect is taken into account by this function and the overall
+    effect is returned as the correction factor.
 
-    e.g. : (
+    Args:
+        X_sk (tuple): A tuple of (Pauliword_s, Pauliword_k) where each is a tuple of (PauliWord, constant)
+
+    Returns:
+        tuple: i* (P_s P_k) as a (Pauliword, constant). Note that constant here is NOT cofactor from Hamiltonian
+               but in fact the correction term from tensor all the Paulis. e.g. YX = -1i Z.
+
+    .. code-block:: python
+       :emphasize-lines: 7
+
+       from quchem.Unitary_partitioning import *
+       X_sk = (
               ('Z0 I1 I2 I3', (0.8918294488900189+0j)), # P_s
               ('Y0 X1 X2 Y3', (0.3198751585326103+0j))  # P_k
             )
 
-    :return: Returns a list of tuples containing  (new PauliString, new constant)
-    :rtype: list
-
-    e.g. ('X0 X1 X2 Y3', (0.28527408634774526+0j))
+       convert_X_sk(X_sk)
+       >> ('X0 X1 X2 Y3', (1+0j))
 
     """
     convert_term ={
@@ -191,47 +210,41 @@ def convert_X_sk(X_sk):
 #         return {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], new_beta_S), 'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}
 def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): # TODO write function to select 'best' S term!
     """
-    Function takes in normalised_anti_commuting_set and gets each R_sk operator according to
-    eq (11) in ArXiv:1908.08067.
 
-    Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
-    NOTE S is fixed here!!!
+    Function takes in a normalised_anti_commuting_set, which is a list of PauliWord tuples (PauliWord, constant),
+    and returns each R_sk operator according to eq (11) in ArXiv:1908.08067.
 
-    :param normalised_anticommuting_set_DICT: A dictionary containing a list of tuples: (PauliWord, normalised_Constant)
-                                            AND normalisation correction factor.
-    :type normalised_anticommuting_set_DICT: dict
+    Args:
+        normalised_anticommuting_set_DICT (list): A list of Pauliwords, where each entry is a tuple of (PauliWord, constant)
+        S (optional, int) = index for PauliWord_S term. #TODO
 
-    e.g.
-            {
-                'PauliWords': [   ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                                  ('Y0 X1 X2 Y3', (0.3198751585326103+0j)),
-                                  ('X0 I1 I2 I3', (0.3198751585326103+0j))   ],
-                'gamma_l': (0.1538026463340925+0j)
-            }
+    Returns:
+        dict: A dictionary of 'PauliWord_S' yields (PauliWord, correction_factor_due_matrix_multiplication), t
+        he normalisation correction value 'gamma_l' (complex) and each 'X_sk_theta_sk'... which is a list of
+        dictionaries that are defined with 'X_sk' = (PauliWord, correction_factor_due_matrix_multiplication) and
+        'theta_sk' is rotational angle in radians. NOTE: each element of X_sk_theta_sk dict is a list of sub
+        dictionaries each associated to one sk term.
 
-    :param S: Index of s in R_sk operator. Note that default is zero. TODO can automate this choice!
-    :type S: int
-    ...
-    :raises [ErrorType]: [ErrorDescription]
-    ...
-    :return: A dictionary containing each X_sk operators, (as a list) with associated
-            theta_sk value, the PauliWord_S and the correction factor gamma_l
+    .. code-block:: python
+       :emphasize-lines: 9
 
-    {
-    'X_sk_theta_sk':    [     {'X_sk': ('X0 X1 X2 Y3', (0.28527408634774526+0j)),
-                              'theta_sk': (0.34438034648829496+0j)},
+       from quchem.Unitary_partitioning import *
+       normalised_anticommuting_set_DICT = {
+                                            'PauliWords': [   ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
+                                                              ('Y0 X1 X2 Y3', (0.3198751585326103+0j)),
+                                                              ('X0 I1 I2 I3', (0.3198751585326103+0j))   ],
+                                            'gamma_l': (0.1538026463340925+0j)
+                                            }
 
-                             {'X_sk': ('Y0 I1 I2 I3', (-0.28527408634774526+0j)),
-                                'theta_sk': (0.3423076794345934+0j)}       ],
+       Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0)
+        >> {
+             'X_sk_theta_sk': [   {'X_sk': ('X0 X1 X2 Y3', (1+0j)), 'theta_sk': (0.34438034648829496+0j)},
+                                    {'X_sk': ('Y0 I1 I2 I3', (-1+0j)), 'theta_sk': (0.325597719954341+0j)}
+                                ],
+             'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
+             'gamma_l': (0.1538026463340925+0j)
+           }
 
-     'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
-     'gamma_l': (0.1538026463340925+0j)
-     }
-
-
-    NOTE: each element of the outermost dict is a list of sub dictionaries - each associated to one sk term.
-
-    :rtype: dict
     """
 
     anti_commuting_set = normalised_anticommuting_set_DICT['PauliWords']
@@ -425,22 +438,47 @@ if __name__ == '__main__':
 
 
 class My_R_sk_Gate(cirq.SingleQubitGate):
+
+    """
+    My_R_sk_Gate class generate R_sk and R_sk dagger quantum circuits as a gate. Gate defined in
+    eq (12) arXiv: 1908.08067.
+
+    NOTE that for iPsPk term = X_sk = ('X0 X1 X2 Y3', -(1+0j))
+                                                       ^^^^ this is the correction factor!
+
+    Info on matrix definition found at: https://arxiv.org/pdf/1001.3855.pdf
+
+    Args:
+        theta_sk (float): angle to rotate by in radians.
+        dagger (bool): Where to have dagger or non dagger quantum gate
+        correction_factor (optional, complex): Correction value from X_sk operator.
+                                               e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
+
+    Attributes:
+        theta_sk (float): angle to rotate by in radians.
+        dagger (bool): Where to have dagger or non dagger quantum gate
+        correction_factor (optional, complex): Correction value from X_sk operator.
+                                               e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
+
+    .. code-block:: python
+       :emphasize-lines: 6
+
+       from quchem.Unitary_partitioning import *
+       import cirq
+
+       X_sk = ('X0 X1 X2 Y3', (1+0j))
+       theta_sk =  (0.34438034648829496+0j)
+       R_S_DAGGER = My_R_sk_Gate(theta_sk, dagger=True, correction_factor=X_sk[1])
+
+       # example of use with cirq.
+       Q_circuit = R_S.on(cirq.LineQubit(1))
+       print(cirq.Circuit.from_ops(Q_circuit))
+
+       >> 1: ───R_sk_DAGGER = (0.34438034648829496+0j) rad───
+    """
+
     def __init__(self, theta_sk, dagger=True, correction_factor=1):
-        """""
-    Circuit to build a R_sk^DAGGER gate ... eq (12) arXiv: 1908.08067
 
-    :param theta_sk: Value of theta_sk angle.
-    :type theta_sk: float
-
-    NOTE that for iPsPk term = X_sk = ('X0 X1 X2 Y3', -0.28527408634774526j)
-                                                        ^^^^^^ this is the correction factor!
-
-    ...
-    :raises [ErrorType]: [ErrorDescription]
-    ...
-    :return: A circuit object to be used by cirq.Circuit.from_ops
-    :rtype: class
-        """
         self.theta_sk = theta_sk
         self.dagger = dagger
         self.correction_factor = correction_factor
@@ -472,9 +510,9 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
         # Takes into account PauliWord constant.
 
         if self.dagger:
-            return 'R_sk_DAGGER = {} rad'.format(self.theta_sk)
+            return 'R_sk_DAGGER = {} rad'.format(self.theta_sk * self.correction_factor)
         else:
-            return 'R_sk = {} rad'.format(self.theta_sk)
+            return 'R_sk = {} rad'.format(self.theta_sk * self.correction_factor)
 
 
 # class My_R_sk_Gate(cirq.SingleQubitGate):
@@ -539,26 +577,40 @@ if __name__ == '__main__':
 
 
 class R_sk_DAGGER(cirq.Gate):
+    """
+    Class that uses My_R_sk_Gate class to generate full R_sk OR R_sk dagger quantum circuit as a gate. Gate defined in
+    eq (12) arXiv: 1908.08067.
 
+    Args:
+        theta_sk (float): angle to rotate by in radians.
+        dagger (bool): Where to have dagger or non dagger quantum gate
+        X_sk (tuple): Tuple of (PauliWord, correction_factor)
+                      e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
+
+    Attributes:
+        theta_sk (float): angle to rotate by in radians.
+        dagger (bool): Where to have dagger or non dagger quantum gate
+        X_sk (tuple): Tuple of (PauliWord, correction_factor)
+                      e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
+
+    .. code-block:: python
+       :emphasize-lines: 6
+
+       from quchem.Unitary_partitioning import *
+       import cirq
+
+       X_sk = ('X0 X1 X2 Y3', (1+0j))
+       theta_sk =  (0.34438034648829496+0j)
+       Q_circuit = R_sk_DAGGER(X_SK_Test, theta_sk, dagger=True)
+
+       # example of use with cirq.
+       print(cirq.Circuit.from_ops(cirq.decompose_once(
+         (R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits()))))))
+
+       >> 3: ───R_sk_DAGGER = (0.34438034648829496+0j) rad───
+    """
     def __init__(self, X_sk, theta_sk, dagger=True):
-        """""
-    Circuit to build a R_sk^DAGGER gate ... eq (12) arXiv: 1908.08067
 
-    :param theta_sk: Value of theta_sk angle.
-    :type theta_sk: float
-
-
-    :param X_sk: A tuple of tuples: (PauliWord P, constant).
-    :type X_sk: tuple
-        e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
-
-    ...
-    :raises [ErrorType]: [ErrorDescription]
-    ...
-    :return: A circuit object to be used by cirq.Circuit.from_ops
-    :rtype: class
-
-        """
         self.X_sk = X_sk
 
         self.theta_sk = theta_sk
@@ -786,9 +838,50 @@ if __name__ == '__main__':
 
 def Get_R_S_operators(X_sk_and_theta_sk, dagger=True):
     """
-    Function takes in dictionary with X_sk and theta_sk information and outputs quantum circuits with
-     correction factor for each R_s_k operator per anti-commuting set (given by each key).
-     (input from Get_X_sk_operators function)
+    Function Takes in dictionary output from Get_X_sk_operators function...
+
+    which is a  dictionary of 'PauliWord_S' yields (PauliWord, correction_factor_due_matrix_multiplication), t
+    he normalisation correction value 'gamma_l' (complex) and each 'X_sk_theta_sk'... which is a list of
+    dictionaries that are defined with 'X_sk' = (PauliWord, correction_factor_due_matrix_multiplication) and
+    'theta_sk' is rotational angle in radians. NOTE: each element of X_sk_theta_sk dict is a list of sub
+    dictionaries each associated to one sk term.
+
+    and outputs quantum circuits with for each R_s_k operation. Note number of terms in list is same as length of
+    X_sk_theta_sk in in input dictionary.
+
+
+    Args:
+        X_sk_and_theta_sk (dict):
+        dagger (bool, optional):
+
+    Returns:
+        list: A list of quantum dictionaries, containing quantum circuit generators and gamma_l terms.
+
+    .. code-block:: python
+       :emphasize-lines: 10
+
+       from quchem.Unitary_partitioning import *
+       input =  {
+                     'X_sk_theta_sk': [   {'X_sk': ('X0 X1 X2 Y3', (1+0j)), 'theta_sk': (0.34438034648829496+0j)},
+                                            {'X_sk': ('Y0 I1 I2 I3', (-1+0j)), 'theta_sk': (0.325597719954341+0j)}
+                                        ],
+                     'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
+                     'gamma_l': (0.1538026463340925+0j)
+                }
+
+       Get_R_S_operators(input, dagger=True)
+       >> [
+            {'q_circuit': <__main__.R_sk_full_circuit at 0x7fb7dc2839b0>,
+             'gamma_l': (0.1538026463340925+0j)},
+
+            {'q_circuit': <__main__.R_sk_full_circuit at 0x7fb7dc2837f0>,
+            'gamma_l': (0.1538026463340925+0j)}
+          ]
+
+    """
+
+    """
+
 
 
     :param X_sk_and_theta_sk: A dictionary of X_sk values, with correction factor!
@@ -914,7 +1007,7 @@ class UnitaryPartition(X_sk_terms):
 
                 # TODO not sure if this part of code is correct!!!
                 #iX_sk_constant = np.prod([X_sk['X_sk'][1] for X_sk in self.X_sk_Ops[key]['X_sk_theta_sk']])
-                iX_sk_constant=1
+                # iX_sk_constant=1
 
                 circuits_and_constants[key] = {'circuit': full_circuit,
                                                'gamma_l': self.X_sk_Ops[key]['gamma_l']*Pauliword_S[1], # note multiplying by factor in front of pauliword!
