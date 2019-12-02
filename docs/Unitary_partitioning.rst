@@ -2,5 +2,5 @@
 Unitary_partitioning
 ####################
 
-.. automodule:: quchem.Hamiltonian_Generator_Functions
+.. automodule:: quchem.Unitary_partitioning
    :members:
