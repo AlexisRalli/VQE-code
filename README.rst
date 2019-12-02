@@ -12,7 +12,7 @@ QuChem
 .. image:: https://coveralls.io/repos/github/AlexisRalli/VQE-code/badge.svg?branch=master
   :target: https://coveralls.io/github/AlexisRalli/VQE-code?branch=master
 
-.. image:: https://img.shields.io/lgtm/grade/python/g/AlexisRalli/VQE-code.svg
+.. COMMENT OUT  image:: https://img.shields.io/lgtm/grade/python/g/AlexisRalli/VQE-code.svg
   :target: https://lgtm.com/projects/g/AlexisRalli/VQE-code/
   :alt: Code Quality
 
