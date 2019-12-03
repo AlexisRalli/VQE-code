@@ -13,6 +13,7 @@ class TensorFlow_Optimizer():
         self.learning_rate = learning_rate
         self.beta1 = beta1
         self.beta2 = beta2
+        tf.reset_default_graph()
 
     def Get_functions_args_as_tensors(self):
         constants=None
@@ -126,8 +127,8 @@ from quchem.Simulating_Quantum_Circuit import *
 from quchem.Unitary_partitioning import *
 
 
-def Energy_obj_Funct(*theta_list, num_shots=10000):
-    HF_UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=[*theta_list])
+def Energy_obj_Funct(theta_list, HF_initial_state, num_shots=10000):
+    HF_UCC = Full_state_prep_circuit(HF_initial_state, T1_and_T2_theta_list=theta_list)
     HF_UCC.complete_UCC_circuit()
     full_anstaz_circuit = HF_UCC.UCC_full_circuit
 
@@ -139,7 +140,7 @@ def Energy_obj_Funct(*theta_list, num_shots=10000):
     Energy = sim.Calc_energy_via_parity()
     return Energy
 
-def Gradient_angles_setup(*theta_list):
+def Gradient_angles_setup(theta_list):
     """
     Args:
         theta_guess_list = List of T1 guesses followed by T2 guesses
@@ -158,17 +159,11 @@ def Gradient_angles_setup(*theta_list):
 
       e.g:
 
-      [ {'T1_20': a +pi/4,   'T1_31': b,   T2_3210': c}
-        {'T1_20': a,   'T1_31': b +pi/4,   T2_3210': c}
-        {'T1_20': a,   'T1_31': b,   T2_3210': c +pi/4}
-      ]
+     [ 'T1_20': a + pi/4,   'T1_31': b + pi/4,   T2_3210': c + pi/4 ]
 
       and
 
-      [ {'T1_20': a -pi/4,   'T1_31': b,   T2_3210': c}
-        {'T1_20': a,   'T1_31': b -pi/4,   T2_3210': c}
-        {'T1_20': a,   'T1_31': b,   T2_3210': c -pi/4}
-      ]
+      [ 'T1_20': a - pi/4,   'T1_31': b - pi/4,   T2_3210': c - pi/4 ]
 
     """
 
@@ -181,24 +176,27 @@ def Gradient_angles_setup(*theta_list):
 
     return Plus_parameter_list, Minus_parameter_list
 
-def Gradient_funct(*theta_guess_list):
+def Gradient_funct(theta_guess_list, HF_initial_state):
 
-    theta_list_PLUS, theta_list_MINUS = Gradient_angles_setup(*theta_guess_list)
-
-    theta_guess_list = [*theta_guess_list]
+    theta_list_PLUS_full, theta_list_MINUS_full = Gradient_angles_setup(theta_guess_list)
 
     partial_gradient_list = []
     for j in range(len(theta_guess_list)):
+
+        theta = theta_guess_list[j]
+
         theta_list_PLUS = theta_guess_list
-        theta_list_PLUS[j] = theta_guess_list[j]
-        Ham_PLUS = Energy_obj_Funct(*theta_list_PLUS)
+        theta_list_PLUS[j] = theta_list_PLUS_full[j]
+        Ham_PLUS = Energy_obj_Funct(theta_list_PLUS, HF_initial_state, num_shots = 10000)
+
 
         theta_list_MINUS = theta_guess_list
-        theta_list_MINUS[j] = theta_guess_list[j]
-        Ham_MINUS = Energy_obj_Funct(*theta_list_MINUS)
+        theta_list_MINUS[j] = theta_list_MINUS_full[j]
+        Ham_MINUS = Energy_obj_Funct(theta_list_MINUS, HF_initial_state, num_shots = 10000)
+
 
         Gradient = (Ham_PLUS - Ham_MINUS)  # /2
-        partial_gradient_list.append((Gradient, theta_guess_list[j]))
+        partial_gradient_list.append((Gradient, theta))
     return partial_gradient_list
 
 
@@ -208,13 +206,106 @@ def Gradient_funct(*theta_guess_list):
 # 3 e.g. Energy_obj_Funct(0,1,2)
 
 
+
+
+
+class TensorFlow_Optimizer():
+
+    def __init__(self,function_to_minimise, Gradient_function, kwargs,
+                 learning_rate=0.001,
+                 optimizer = 'Adam', beta1=0.9, beta2=0.999):
+        self.function_to_minimise = function_to_minimise
+        self.kwargs = kwargs
+        self.Gradient_function = Gradient_function
+        self.optimizer = optimizer
+        self.learning_rate = learning_rate
+        self.beta1 = beta1
+        self.beta2 = beta2
+
+    def Get_functions_args_as_tensors(self):
+        constants=None
+        for key in self.kwargs:
+            if key == 'constants':
+                constants = [tf.constant(const, dtype=tf.float32) for const in self.kwargs[key]]
+            elif key == 'variables':
+                vars = [tf.Variable(var, dtype=tf.float32) for var in self.kwargs[key]]
+
+        sess = tf.Session()
+        init = tf.global_variables_initializer()
+        sess.run(init)
+
+        if constants == None:
+            return self.function_to_minimise(*[sess.run(i) for i in vars]), vars
+        else:
+            return self.function_to_minimise(*[sess.run(i) for i in vars], *[sess.run(j) for j in constants]), vars
+
+
+    def Calc_Gradient(self, vars):
+        sess = tf.Session()
+        init = tf.global_variables_initializer()
+        sess.run(init)
+        return self.Gradient_function(*[sess.run(i) for i in vars])
+        # return self.Gradient_function(vars)
+
+
+    def optimize(self, max_iter):
+
+        function, variables = self.Get_functions_args_as_tensors()
+        grads_and_vars = self.Calc_Gradient(variables)
+
+
+        if self.optimizer == 'Adam':
+            optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, beta1=self.beta1, beta2=self.beta2)
+        elif self.optimizer == 'GradientDescent':
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.learning_rate)
+        else:
+            raise ValueError('Optimizer Not defined') #raise Error
+
+        train = optimizer.apply_gradients(grads_and_vars)
+
+        init = tf.compat.v1.global_variables_initializer()
+
+        self.E_list =[]
+        self.Angle_list =[]
+        with tf.compat.v1.Session() as session:
+            session.run(init)
+            Angles = [session.run(var)for var in variables]
+            Energy = session.run(function)
+            print("starting at angles:", Angles,  "Energy:", Energy)
+            self.E_list.append(Energy)
+            self.Angle_list.append(Angles)
+
+            for step in range(max_iter):
+
+                session.run(train)
+
+                Angles = [session.run(var) for var in variables]
+                Energy = session.run(function)
+                print("step", step, "Angles:", Angles, "Energy:", Energy)
+                self.E_list.append(Energy)
+                self.Angle_list.append(Angles)
+
+
+    def plot_convergence(self):  # , file):
+        # dir_path = os.path.dirname(os.path.realpath(__file__))
+        plt.figure()
+        x = list(range(len(self.E_list)))
+        plt.plot(x, self.E_list)
+        plt.xlabel('iterations')
+        plt.ylabel('objective function value')
+        # plt.savefig(dir_path + '/' + file)
+
+
+
 tf.reset_default_graph()
-test = TensorFlow_Optimizer(Energy_obj_Funct, Gradient_funct, {'variables':[0,1,2]},#, 'constants':[10000]},
+test = TensorFlow_Optimizer(Energy_obj_Funct, Gradient_funct, {'variables':[[0,1,2]], 'constants':[HF_initial_state]},
                             optimizer='GradientDescent', learning_rate=0.55)
 
+test.optimize(20)
 
 
-
+x = tf.constant([0,1,2])
+x.get_shape().num_elements()
 
 
 # ## NOTE
