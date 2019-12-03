@@ -92,19 +92,19 @@ print(yy.Calc_energy_via_parity())
 
 
 
-max_iter = 12
-theta_guess_list = [2.374, 1.437 , 1.163]
-NM_standard = OptimizerSTANDARD(num_shots, theta_guess_list,
-                  HF_initial_state, PauliWords_and_constants,
-                 noisy=True, store_values = True, optimized_result=None)
-NM_standard.get_env(max_iter)
-#NM.plot_convergence()
-print(NM_standard.optimized_result)
+# max_iter = 50
+# theta_guess_list = [2.374, 1.437 , 1.163]
+# NM_standard = OptimizerSTANDARD(num_shots, theta_guess_list,
+#                   HF_initial_state, PauliWords_and_constants,
+#                  noisy=True, store_values = True, optimized_result=None)
+# NM_standard.get_env(max_iter)
+# #NM.plot_convergence()
+# print(NM_standard.optimized_result)
 
 
-from quchem.Misc_functions import *
-Save_result_as_csv('Standard_method', {'Energy': NM_standard.obj_fun_values},
-                   {'initial_angles': theta_guess_list, 'Molecule': Molecule, 'num_shots': num_shots, 'geometry': geometry}, folder='Results')
+# from quchem.Misc_functions import *
+# Save_result_as_csv('Standard_method', {'Energy': NM_standard.obj_fun_values},
+#                    {'initial_angles': theta_guess_list, 'Molecule': Molecule, 'num_shots': num_shots, 'geometry': geometry}, folder='Results')
 
 
 
