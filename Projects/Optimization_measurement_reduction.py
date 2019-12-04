@@ -12,7 +12,7 @@ Molecule = 'H2'
 geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
 n_electrons = 2
 num_shots = 10000
-max_iter = 50
+max_iter = 5
 T1_and_T2_theta_list_GUESS = [random.uniform(0, 2*math.pi) for i in range(3)]
 ####
 
