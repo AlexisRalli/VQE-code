@@ -23,7 +23,7 @@ class TensorFlow_Optimizer():
             elif key == 'variables':
                 vars = [tf.Variable(var, dtype=tf.float32) for var in self.kwargs[key]]
 
-        if constants == None:
+        if constants is None:
             return self.function_to_minimise(*vars), vars
         else:
             return self.function_to_minimise(*vars, *constants), vars
@@ -234,7 +234,7 @@ class TensorFlow_Optimizer():
         init = tf.global_variables_initializer()
         sess.run(init)
 
-        if constants == None:
+        if constants is None:
             return self.function_to_minimise(*[sess.run(i) for i in vars]), vars
         else:
             return self.function_to_minimise(*[sess.run(i) for i in vars], *[sess.run(j) for j in constants]), vars

@@ -78,7 +78,7 @@ class BuildGraph_string():
 
     def Build_string_nodes(self, plot_graph = False):
 
-        if self.node_string_set == None:
+        if self.node_string_set is None:
             self.Get_node_terms_as_strings()
 
         for string_node in self.node_string_set:

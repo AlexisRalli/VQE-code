@@ -73,11 +73,11 @@ class Hamiltonian():
 
     def Get_Molecular_Hamiltonian(self):
 
-        delete_input = True
-        delete_output = True
+        # delete_input = True
+        # delete_output = True
 
 
-        if self.geometry == None:
+        if self.geometry is None:
             self.Get_Geometry()
 
 
@@ -104,7 +104,7 @@ class Hamiltonian():
 
     def Get_Qubit_Hamiltonian_Openfermion(self):
 
-        if self.MolecularHamiltonian == None:
+        if self.MolecularHamiltonian is None:
             self.Get_Molecular_Hamiltonian()
 
         # Get Fermionic Hamiltonian
@@ -156,7 +156,7 @@ class Hamiltonian():
           ]
         """
 
-        if self.QubitHamiltonian == None:
+        if self.QubitHamiltonian is None:
             self.Get_Qubit_Hamiltonian_Openfermion()
 
         num_qubits = self.MolecularHamiltonian.n_qubits
@@ -316,7 +316,7 @@ class Hamiltonian():
                      -0.13716573+0.j]])
         """
 
-        if self.QubitHamiltonianCompleteTerms == None:
+        if self.QubitHamiltonianCompleteTerms is None:
             self.Get_Qubit_Hamiltonian_terms()
 
 
@@ -455,7 +455,7 @@ class Hamiltonian():
 
         """
 
-        if self.QubitHamiltonianCompleteTerms == None:
+        if self.QubitHamiltonianCompleteTerms is None:
             self.Get_Qubit_Hamiltonian_terms()
 
 
@@ -535,7 +535,7 @@ class Hamiltonian():
 
         """
 
-        if self.QubitHamiltonianCompleteTerms == None:
+        if self.QubitHamiltonianCompleteTerms is None:
             self.Get_Qubit_Hamiltonian_terms()
 
 

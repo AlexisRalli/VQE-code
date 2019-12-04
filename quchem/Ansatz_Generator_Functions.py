@@ -787,7 +787,7 @@ class Full_state_prep_circuit(UCC_Terms):
     def __init__(self, HF_State,  T1_and_T2_theta_list=[]):
         super().__init__(HF_State)
 
-        if self.HF_prep_quantum_circuit ==None:
+        if self.HF_prep_quantum_circuit is None:
             self.Get_HF_quantum_circuit()
 
         self.theta_T1_list, self.theta_T2_list = combined_T1_T2_theta_list(self.T1_formatted, self.T2_formatted, T1_and_T2_theta_list=T1_and_T2_theta_list)
@@ -829,9 +829,9 @@ class Full_state_prep_circuit(UCC_Terms):
 
     def complete_UCC_circuit(self):
 
-        if self.T1_full_circuit == None:
+        if self.T1_full_circuit is None:
             self.Combine_T1_circuits()
-        if self.T2_full_circuit == None:
+        if self.T2_full_circuit is None:
             self.Combine_T2_circuits()
 
         full_circuit = cirq.Circuit.from_ops(
