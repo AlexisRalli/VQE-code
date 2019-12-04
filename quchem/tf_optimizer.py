@@ -144,7 +144,7 @@ with tf.compat.v1.Session() as session:
 
         Angles = [session.run(angle) for angle in theta_list_TENSOR]
         Energy = Calc_Energy_NORMAL(Angles, HF_initial_state, num_shots=num_shots)  # NOTE this is not the tensor function
-
+        # Energy = session.run(function) <--- note it is NOT THIS!
         print("step", step, "variables:", Angles, "Energy:", Energy)
         E_list.append(Energy)
         Angle_list.append(Angles)
