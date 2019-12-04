@@ -224,3 +224,42 @@ class Simulation_Quantum_Circuit_Dict():
         self.Energy = sum(Energy_list)
 
         return self.Energy
+
+
+class Simulate_Single_Circuit():
+
+    def __init__(self, PauliWord, quantum_circuit, num_shots):
+        self.PauliWord = PauliWord
+        self.quantum_circuit = quantum_circuit
+        self.num_shots = num_shots
+
+        self.histogram_string = None
+        self.counter_results_raw = None
+        self.binary_results = None
+        self.expect_result = None
+
+    def Get_Histkey_method(self):
+        self.histogram_string = Get_Histogram_key(self.PauliWord)
+
+    def Get_counter_results_method(self):
+        if self.histogram_string is None:
+            self.Get_Histkey_method()
+
+        self.counter_results_raw = Simulate_Quantum_Circuit(self.quantum_circuit, self.num_shots, self.histogram_string)
+
+
+    def Get_binary_results_method(self):
+        if self.counter_results_raw is None:
+            self.Get_counter_results_method()
+
+        self.binary_results = Return_as_binary(self.counter_results_raw, self.PauliWord)
+
+    def Get_expectation_value_via_parity(self):
+        if self.binary_results is None:
+            self.Get_binary_results_method()
+
+        expect_result = expectation_value_by_parity(self.binary_results)
+
+
+        self.expect_result = expect_result
+        return expect_result
