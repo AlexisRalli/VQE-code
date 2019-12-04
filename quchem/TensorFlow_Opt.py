@@ -155,6 +155,9 @@ class TensorFlow_Optimizer():
             for step in range(max_iter):
                 grads_and_vars = self.Gradient_funct_TENSOR(theta_list_TENSOR)
                 train = optimizer.apply_gradients(grads_and_vars)
+                # init = tf.compat.v1.global_variables_initializer()    <- seems WRONG
+                # session.run(init)                                     <- seems WRONG
+
                 session.run(train)
 
                 Angles = [session.run(angle) for angle in theta_list_TENSOR]
@@ -182,9 +185,9 @@ class TensorFlow_Optimizer():
 
 
 
-xx = TensorFlow_Optimizer([0,1,2], HF_initial_state, 10000,
-                 learning_rate=0.001,
-                 optimizer = 'Adam', beta1=0.9, beta2=0.999)
-xx.optimize(50)
+# xx = TensorFlow_Optimizer([0,1,2], HF_initial_state, 10000,
+#                  learning_rate=0.001,
+#                  optimizer = 'Adam', beta1=0.9, beta2=0.999)
+# xx.optimize(50)
 
 

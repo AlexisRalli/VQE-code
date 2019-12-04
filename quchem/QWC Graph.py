@@ -104,7 +104,7 @@ class BuildGraph():
         :return:
         """
 
-        if self.node_index_set == None:
+        if self.node_index_set is None:
             self.Get_nodes_terms_as_indices()
 
         index_string_dict = {}
@@ -121,7 +121,7 @@ class BuildGraph():
 
     def Build_index_nodes(self, plot_graph = False):
 
-        if self.node_index_set == None:
+        if self.node_index_set is None:
             self.Get_nodes_terms_as_indices()
 
         for numerical_node in self.node_index_set:
@@ -197,7 +197,7 @@ class BuildGraph():
 
     def plot_graph_with_strings(self, graph):
 
-        if self.index_string_dict == None:
+        if self.index_string_dict is None:
             self.Get_string_indexes()
 
         plt.figure()
@@ -208,7 +208,7 @@ class BuildGraph():
 
     def colour_index_graph(self, strategy='largest_first'):
 
-        if self.G_comp == None:
+        if self.G_comp is None:
             self.Get_complementary_graph_index()
 
         self.greedy_index = nx.greedy_color(self.G_comp, strategy=strategy, interchange=False)
@@ -244,7 +244,7 @@ class BuildGraph():
 
             if string_graph == True:
 
-                if self.index_string_dict == None:
+                if self.index_string_dict is None:
                     self.Get_string_indexes()
                 nx.draw_networkx_labels(self.G_comp, pos, labels=self.index_string_dict)
             else:
@@ -355,7 +355,7 @@ class BuildGraph_string():
 
     def Build_string_nodes(self, plot_graph = False):
 
-        if self.node_string_set == None:
+        if self.node_string_set is None:
             self.Get_node_terms_as_strings()
 
         for string_node in self.node_string_set:
@@ -414,14 +414,14 @@ class BuildGraph_string():
 
     def colour_string_graph(self, strategy = 'largest_first'):
 
-        if self.G_string_comp == None:
+        if self.G_string_comp is None:
             self.Get_complementary_graph_string()
 
         self.greedy_string = nx.greedy_color(self.G_string_comp, strategy=strategy, interchange=False)
 
     def colour_index_graph(self, strategy='largest_first'):
 
-        if self.G_index_comp == None:
+        if self.G_index_comp is None:
             self.Get_complementary_graph_index()
 
         self.greedy_index = nx.greedy_color(self.G_index_comp, strategy=strategy, interchange=False)

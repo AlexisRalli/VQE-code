@@ -1,7 +1,5 @@
-import matplotlib.pyplot as plt
 import tensorflow as tf
-import numpy as np
-import random
+
 
 
 from quchem.Ansatz_Generator_Functions import *
@@ -66,7 +64,7 @@ def Gradient_funct_NORMAL(theta_guess_list, HF_initial_state):
     partial_gradient_list = []
     for j in range(len(theta_guess_list)):
 
-        theta = theta_guess_list[j]
+        # theta = theta_guess_list[j]
 
         theta_list_PLUS = theta_guess_list
         theta_list_PLUS[j] = theta_list_PLUS_full[j]
@@ -140,6 +138,13 @@ with tf.compat.v1.Session() as session:
 
         grads_and_vars = Gradient_funct_TENSOR(theta_list_TENSOR, HF_initial_state)
         train = optimizer.apply_gradients(grads_and_vars)
+
+        yy = list(grads_and_vars)
+        ww = [(gradient, session.run(theta_Tensor)) for gradient, theta_Tensor in yy]
+        print(ww)
+
+        # init = tf.compat.v1.global_variables_initializer()    # <- seems WRONG
+        # session.run(init)                                     # <- seems WRONG
         session.run(train)
 
         Angles = [session.run(angle) for angle in theta_list_TENSOR]

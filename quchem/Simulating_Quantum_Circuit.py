@@ -169,7 +169,7 @@ class Simulation_Quantum_Circuit_Dict():
         self.hist_key_dict = hist_key_dict
 
     def Get_counter_results_dict(self):
-        if self.hist_key_dict == None:
+        if self.hist_key_dict is None:
             self.Get_Histkey_dict()
 
         counter_results_raw_dict = {}
@@ -185,7 +185,7 @@ class Simulation_Quantum_Circuit_Dict():
         self.counter_results_raw_dict = counter_results_raw_dict
 
     def Get_binary_results_dict(self):
-        if self.counter_results_raw_dict == None:
+        if self.counter_results_raw_dict is None:
             self.Get_counter_results_dict()
 
         binary_results_dict = {}
@@ -195,7 +195,7 @@ class Simulation_Quantum_Circuit_Dict():
         self.binary_results_dict = binary_results_dict
 
     def Get_expectation_value_via_parity(self):
-        if self.binary_results_dict == None:
+        if self.binary_results_dict is None:
             self.Get_binary_results_dict()
 
         expect_results_dict = {}
@@ -211,7 +211,7 @@ class Simulation_Quantum_Circuit_Dict():
         self.expect_results_dict = expect_results_dict
 
     def Calc_energy_via_parity(self):
-        if self.expect_results_dict == None:
+        if self.expect_results_dict is None:
             self.Get_expectation_value_via_parity()
 
         Energy_list =[]

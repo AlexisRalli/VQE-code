@@ -2,7 +2,7 @@ from quchem.Hamiltonian_Generator_Functions import Hamiltonian
 from quchem.Graph import BuildGraph_string
 from quchem.Unitary_partitioning import *
 from quchem.Ansatz_Generator_Functions import *
-import numpy as np
+
 
 
 

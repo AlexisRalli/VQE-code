@@ -257,7 +257,6 @@ def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): # TODO write fun
         Op_list = []
         beta_S = anti_commuting_set[S][1]
 
-        beta_j_sum = 0
         for k in k_indexes:
             X_sk_op =(anti_commuting_set[S], anti_commuting_set[k])
 
@@ -297,7 +296,7 @@ class X_sk_terms():
         self.normalised_anti_commuting_sets = normalised_anti_commuting_sets
 
     def Get_X_sk_Operators(self):
-        if self.normalised_anti_commuting_sets == None:
+        if self.normalised_anti_commuting_sets is None:
             self.Get_normalised_set()
 
         X_sk_Ops={}

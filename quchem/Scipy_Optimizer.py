@@ -1,6 +1,5 @@
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
-import pandas as pd
 
 from quchem.Ansatz_Generator_Functions import *
 from quchem.Simulating_Quantum_Circuit import *
