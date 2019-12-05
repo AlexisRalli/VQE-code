@@ -137,11 +137,12 @@ with tf.compat.v1.Session() as session:
     for step in range(max_iter):
 
         grads_and_vars = Gradient_funct_TENSOR(theta_list_TENSOR, HF_initial_state)
-        train = optimizer.apply_gradients(grads_and_vars)
+       # train = optimizer.apply_gradients(grads_and_vars)
 
         yy = list(grads_and_vars)
         ww = [(gradient, session.run(theta_Tensor)) for gradient, theta_Tensor in yy]
         print(ww)
+        train = optimizer.apply_gradients(yy)
 
         # init = tf.compat.v1.global_variables_initializer()    # <- seems WRONG
         # session.run(init)                                     # <- seems WRONG
