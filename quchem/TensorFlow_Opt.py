@@ -241,11 +241,10 @@ class TensorFlow_Optimizer():
 
 
 
-theta_guess = [random.uniform(0, 2*math.pi) for i in range(3)]
+# theta_guess = [random.uniform(0, 2*math.pi) for i in range(3)]
+# theta_guess = [1.7710197, 4.8140006, 0.316327]
 
-#theta_guess = [1.7710197, 4.8140006, 0.316327]
-
-# xx = TensorFlow_Optimizer([1.7710197, 4.8140006, 0.316327], HF_initial_state, 10000,
+# xx = TensorFlow_Optimizer(theta_guess, HF_initial_state, 10000,
 #                  learning_rate=0.01,
 #                  optimizer = 'Adam', beta1=0.9, beta2=0.999)
 # xx.optimize(150)
