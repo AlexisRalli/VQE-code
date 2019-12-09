@@ -46,6 +46,9 @@ anti_commuting_sets = HamiltGraph.anticommuting_sets
 
 ############ Running Optimization
 
+
+### Nelder Mead
+
 from quchem.Scipy_Optimizer import *
 NM = Optimizer(num_shots, T1_and_T2_theta_list_GUESS,
                   HF_initial_state, anti_commuting_sets,
@@ -59,13 +62,22 @@ Save_result_as_csv('unitary_parition_method', {'Energy': NM.obj_fun_values},
                    {'initial_angles': T1_and_T2_theta_list_GUESS, 'Molecule': Molecule, 'num_shots': num_shots, 'geometry': geometry}, folder='Results')
 
 
+### Gradient Descent (ADAM)
+
+from quchem.TensorFlow_Opt import *
+TF_opt = TensorFlow_Optimizer(T1_and_T2_theta_list_GUESS, HF_initial_state, num_shots,
+                 learning_rate=0.01,
+                 optimizer = 'Adam', beta1=0.9, beta2=0.999)
+TF_opt.optimize(max_iter)
+Save_result_as_csv('unitary_parition_method_TF', {'Energy': TF_opt.E_list},
+                   {'initial_angles': T1_and_T2_theta_list_GUESS, 'Molecule': Molecule, 'num_shots': num_shots, 'geometry': geometry}, folder='Results')
+
 
 ################# OLD APPROACH
+
+### Nelder Mead
 from quchem.standard_method import *
 PauliWords_and_constants = Get_PauliWord_strings_and_constant(Hamilt.QubitHamiltonianCompleteTerms, Hamilt.HamiltonainCofactors)
-
-
-
 
 NM_standard = OptimizerSTANDARD(num_shots, T1_and_T2_theta_list_GUESS,
                   HF_initial_state, PauliWords_and_constants,
@@ -77,6 +89,19 @@ print(NM_standard.optimized_result)
 
 
 Save_result_as_csv('Standard_method', {'Energy': NM_standard.obj_fun_values},
+                   {'initial_angles': T1_and_T2_theta_list_GUESS, 'Molecule': Molecule, 'num_shots': num_shots, 'geometry': geometry}, folder='Results')
+
+
+### Gradient Descent (ADAM)
+
+TF_opt_standard = TensorFlow_Optimizer_STANDARD(theta_guess, HF_initial_state, num_shots, PauliWords_and_constants,
+                 learning_rate=0.01,
+                 optimizer = 'Adam', beta1=0.9, beta2=0.999)
+TF_opt_standard.optimize(max_iter)
+
+
+TF_opt.optimize(max_iter)
+Save_result_as_csv('Standard_method_TF', {'Energy': TF_opt_standard.E_list},
                    {'initial_angles': T1_and_T2_theta_list_GUESS, 'Molecule': Molecule, 'num_shots': num_shots, 'geometry': geometry}, folder='Results')
 
 
