@@ -114,7 +114,7 @@ max_iter = 50
 num_shots = 1000
 
 theta_guess = [random.uniform(0, 2*math.pi) for i in range(3)]
-#theta_guess = [1.55957373, 1.57789987, 0.78561344]
+#theta_guess = [1.7710197, 4.8140006, 0.316327]
 
 theta_list_TENSOR = [tf.Variable(i, dtype=tf.float32) for i in theta_guess]
 
@@ -122,7 +122,7 @@ Energy_Calc_tensor = Calc_Energy_TENSOR(theta_list_TENSOR, HF_initial_state, num
 
 
 #optimizer = tf.train.GradientDescentOptimizer(0.5)
-optimizer = tf.train.AdamOptimizer(learning_rate=0.001, beta1= 0.9, beta2=0.999)
+optimizer = tf.train.AdamOptimizer(learning_rate=0.1, beta1= 0.9, beta2=0.999)
 
 init = tf.compat.v1.global_variables_initializer()
 
