@@ -80,16 +80,17 @@ from tqdm import tqdm
 for key in  tqdm(range(len(anti_commuting_sets))):
 # for key in anti_commuting_sets:
     if key not in xx.X_sk_Ops:
-        PauliWord = anti_commuting_sets[key][0][0]
-        constant = anti_commuting_sets[key][0][1]
+        for term in anti_commuting_sets[key]:
+            PauliWord = term[0]
+            constant = term[1]
 
-        Paulis_to_be_tensored=[]
-        for PauliString in PauliWord.split(' '):
-            Op = OperatorsKeys[PauliString[0]]
-            Paulis_to_be_tensored.append(Op)
+            Paulis_to_be_tensored=[]
+            for PauliString in PauliWord.split(' '):
+                Op = OperatorsKeys[PauliString[0]]
+                Paulis_to_be_tensored.append(Op)
 
-        tensored_PauliWord = reduce(kron, Paulis_to_be_tensored)
-        Operator += constant * tensored_PauliWord
+            tensored_PauliWord = reduce(kron, Paulis_to_be_tensored)
+            Operator += constant * tensored_PauliWord
 
     else:
 
@@ -98,15 +99,16 @@ for key in  tqdm(range(len(anti_commuting_sets))):
         for SL_terms in xx.X_sk_Ops[key]['X_sk_theta_sk']:
             theta_sk = SL_terms['theta_sk']
             X_sk = SL_terms['X_sk']
+            constant = X_sk[1]
 
             X_sk_terms_to_be_tensored = [OperatorsKeys[PauliString[0]] for PauliString in X_sk[0].split(' ')]
 
-            X_sk_matrix = reduce(kron, X_sk_terms_to_be_tensored) *X_sk[1] #*X_sk[1] contains sign info!
+            X_sk_matrix = reduce(kron, X_sk_terms_to_be_tensored)  #*X_sk[1] contains sign info!
 
-            R_S_DAGGER_matrix = expm((-1j*X_sk_matrix)) #*X_sk[1] contains sign info!
+            R_S_DAGGER_matrix = expm((-1j* theta_sk/2 * constant *X_sk_matrix)) #*X_sk[1] contains sign info!
             R_SL_DAGGER_matrix_LIST.append(R_S_DAGGER_matrix)
 
-            R_S_matrix = expm((+1j * X_sk_matrix))
+            R_S_matrix = expm((+1j * theta_sk/2 * constant * X_sk_matrix))
             R_SL_matrix_LIST.append(R_S_matrix)
 
         Pauliword_S = xx.X_sk_Ops[key]['PauliWord_S']
@@ -124,16 +126,13 @@ for key in  tqdm(range(len(anti_commuting_sets))):
         R_S = reduce(np.matmul, R_SL_matrix_LIST)
 
         # Operator += xx.X_sk_Ops[key]['gamma_l'] * np.matmul(R_S, np.matmul(tensored_PauliWord, R_S_dagger)) # gamma * R_S P_S R_S_Dagger
-        Operator += xx.X_sk_Ops[key]['gamma_l'] * R_S * tensored_PauliWord * R_S_dagger  # gamma * R_S P_S R_S_Dagger
+        Operator += xx.X_sk_Ops[key]['gamma_l'] * beta_s * R_S * tensored_PauliWord * R_S_dagger  # gamma * R_S P_S R_S_Dagger
 
 
 from scipy.sparse.linalg import eigs
 eig_values, eig_vectors = eigs(Operator)
 FCI_Energy = min(eig_values)
 print(FCI_Energy)
-
-
-
 
 
 
@@ -161,84 +160,5 @@ for i in tqdm(range(len(P_words_and_consts))):
 eig_values, eig_vectors = eigs(Operator_standard)
 FCI_Energy = min(eig_values)
 print(FCI_Energy)
-
-
-        # R_SL_DAGGER_matrix_LIST =[]
-        # R_SL_matrix_LIST = []
-        # for SL_terms in xx.X_sk_Ops[key]['X_sk_theta_sk']:
-        #     theta_sk = SL_terms['theta_sk']
-        #
-        #     R_S_DAGGER = My_R_sk_Gate(theta_sk, dagger=True)
-        #     R_S_DAGGER_matrix = R_S_DAGGER._unitary_()
-        #     R_SL_DAGGER_matrix_LIST.append(R_S_DAGGER_matrix)
-        #
-        #     R_S = My_R_sk_Gate(theta_sk, dagger=False)
-        #     R_S_matrix = R_S._unitary_()
-        #     R_SL_matrix_LIST.append(R_S_matrix)
-        #
-        #
-        # Pauliword_S = xx.X_sk_Ops[key]['PauliWord_S']
-        # beta_s = Pauliword_S[1]
-        #
-        # Paulis_to_be_tensored=[]
-        #
-        # for PauliString in Pauliword_S[0].split(' '):
-        #     Op = OperatorsKeys[PauliString[0]]
-        #     Paulis_to_be_tensored.append(Op)
-        #
-        # # next perform tensor!
-        #
-        # tensored_PauliWord = reduce(kron, Paulis_to_be_tensored)
-        # tensored_R_SL_DAGGER_matrix_LIST = reduce(kron, R_SL_DAGGER_matrix_LIST)
-        # tensored_R_SL_matrix_LIST = reduce(kron, R_SL_matrix_LIST)
-        #
-        # Operator += beta_s * tensored_PauliWord
-
-
-
-
-
-
-
-
-
-
-
-
-
-# PauliWord_list_matrices = []
-# for PauliWord in self.QubitHamiltonianCompleteTerms:
-#     PauliWord_matrix_instance = []
-#     for qubitNo, qubitOp in PauliWord:
-#         PauliWord_matrix_instance.append(OperatorsKeys[qubitOp])
-#     PauliWord_list_matrices.append(PauliWord_matrix_instance)
-#
-# ############
-#
-# # Next tensor together each row...:
-# from functools import reduce
-# from tqdm import tqdm
-# from scipy.sparse import csr_matrix
-#
-# QubitOperator = csr_matrix((2 ** self.MolecularHamiltonian.n_qubits, 2 ** self.MolecularHamiltonian.n_qubits))
-#
-# Constants_list = [Constant for PauliWord, Constant in self.QubitHamiltonian.terms.items()]
-# from scipy.sparse import kron
-#
-# for i in tqdm(range(len(PauliWord_list_matrices)), ascii=True, desc='Getting QubitOperator MATRIX'):
-#     PauliWord_matrix = PauliWord_list_matrices[i]
-#
-#     # tensored_PauliWord = reduce((lambda single_QubitMatrix_FIRST, single_QubitMatrix_SECOND: kron(single_QubitMatrix_FIRST,
-#     #                                                                                       single_QubitMatrix_SECOND)),
-#     #                                                                                         PauliWord_matrix)
-#     tensored_PauliWord = reduce(kron, PauliWord_matrix)
-#
-#     constant_factor = Constants_list[i]
-#
-#     QubitOperator += constant_factor * tensored_PauliWord
-#
-# # notes to get operator in full form (from sparse) use to_dense() method!
-#
-# self.QubitOperator = QubitOperator
 
 
