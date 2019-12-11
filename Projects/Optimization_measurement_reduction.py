@@ -11,7 +11,7 @@ Molecule = 'H2'
 geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
 n_electrons = 2
 num_shots = 10000
-max_iter = 5
+max_iter = 200
 T1_and_T2_theta_list_GUESS = [random.uniform(0, 2*math.pi) for i in range(3)]
 ####
 
@@ -94,7 +94,7 @@ Save_result_as_csv('Standard_method', {'Energy': NM_standard.obj_fun_values},
 
 ### Gradient Descent (ADAM)
 
-TF_opt_standard = TensorFlow_Optimizer_STANDARD(theta_guess, HF_initial_state, num_shots, PauliWords_and_constants,
+TF_opt_standard = TensorFlow_Optimizer_STANDARD(T1_and_T2_theta_list_GUESS, HF_initial_state, num_shots, PauliWords_and_constants,
                  learning_rate=0.01,
                  optimizer = 'Adam', beta1=0.9, beta2=0.999)
 TF_opt_standard.optimize(max_iter)
