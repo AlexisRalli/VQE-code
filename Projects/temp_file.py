@@ -286,3 +286,127 @@ My_circ_dict = {
 y = Simulation_Quantum_Circuit_Dict(My_circ_dict, 100000)
 y.Calc_energy_via_parity()
 print(y.Energy)
+
+
+############
+
+
+from scipy.sparse import bsr_matrix
+from functools import reduce
+from scipy.sparse import csr_matrix
+from scipy.sparse import kron
+from scipy.linalg import expm
+
+X = bsr_matrix(np.array([[0, 1],
+                         [1, 0]])
+               )
+
+Y = bsr_matrix(np.array([[0, -1j],
+                         [1j, 0]])
+               )
+
+Z = bsr_matrix(np.array([[1, 0],
+                         [0, -1]])
+               )
+I = bsr_matrix(np.array([[1, 0],
+                         [0, 1]])
+               )
+
+OperatorsKeys = {
+    'X': X,
+    'Y': Y,
+    'Z': Z,
+    'I': I,
+}
+
+
+
+n_qubits = 4
+Operator = csr_matrix((2 **n_qubits, 2 **n_qubits))
+
+
+PauliWord_S = My_result['PauliWord_S'][0]
+beta_S = My_result['PauliWord_S'][1]
+
+Paulis_to_be_tensored=[]
+for PauliString in PauliWord_S.split(' '):
+    Op = OperatorsKeys[PauliString[0]]
+    Paulis_to_be_tensored.append(Op)
+
+tensored_PauliWord = reduce(kron, Paulis_to_be_tensored)
+
+
+R_SL_DAGGER_matrix_LIST =[]
+R_SL_matrix_LIST = []
+for SL_terms in My_result['X_sk_theta_sk']:
+    theta_sk = SL_terms['theta_sk']
+    X_sk = SL_terms['X_sk']
+    constant = X_sk[1]
+
+    X_sk_terms_to_be_tensored = [OperatorsKeys[PauliString[0]] for PauliString in X_sk[0].split(' ')]
+
+    X_sk_matrix = reduce(kron, X_sk_terms_to_be_tensored)  #*X_sk[1] contains sign info!
+
+    R_S_DAGGER_matrix = expm((-1j* theta_sk/2 * constant *X_sk_matrix)) #*X_sk[1] contains sign info!
+    R_SL_DAGGER_matrix_LIST.append(R_S_DAGGER_matrix)
+
+    R_S_matrix = expm((+1j * theta_sk/2 * constant * X_sk_matrix))
+    R_SL_matrix_LIST.append(R_S_matrix)
+
+R_S_dagger = reduce(np.matmul, [mat.todense() for mat in R_SL_DAGGER_matrix_LIST])
+R_S = reduce(np.matmul, [mat.todense() for mat in R_SL_matrix_LIST])
+
+# Operator += xx.X_sk_Ops[key]['gamma_l'] * np.matmul(R_S, np.matmul(tensored_PauliWord, R_S_dagger)) # gamma * R_S P_S R_S_Dagger
+Operator += My_result['gamma_l'] * beta_S * R_S * tensored_PauliWord * R_S_dagger  # gamma * R_S P_S R_S_Dagger
+
+from scipy.sparse.linalg import eigs
+eig_values, eig_vectors = eigs(Operator)
+FCI_Energy = min(eig_values)
+print(FCI_Energy)
+
+
+
+###
+
+n_qubits = 4
+Operator_andrew = csr_matrix((2 **n_qubits, 2 **n_qubits))
+
+
+PauliWord_S = andrew_result['PauliWord_S'][0]
+beta_S = andrew_result['PauliWord_S'][1]
+
+Paulis_to_be_tensored=[]
+for PauliString in PauliWord_S.split(' '):
+    Op = OperatorsKeys[PauliString[0]]
+    Paulis_to_be_tensored.append(Op)
+
+tensored_PauliWord = reduce(kron, Paulis_to_be_tensored)
+
+
+R_SL_DAGGER_matrix_LIST =[]
+R_SL_matrix_LIST = []
+for SL_terms in andrew_result['X_sk_theta_sk']:
+    theta_sk = SL_terms['theta_sk']
+    X_sk = SL_terms['X_sk']
+    constant = X_sk[1]
+
+    X_sk_terms_to_be_tensored = [OperatorsKeys[PauliString[0]] for PauliString in X_sk[0].split(' ')]
+
+    X_sk_matrix = reduce(kron, X_sk_terms_to_be_tensored)  #*X_sk[1] contains sign info!
+
+    R_S_DAGGER_matrix = expm((-1j* theta_sk/2 * constant *X_sk_matrix)) #*X_sk[1] contains sign info!
+    R_SL_DAGGER_matrix_LIST.append(R_S_DAGGER_matrix)
+
+    R_S_matrix = expm((+1j * theta_sk/2 * constant * X_sk_matrix))
+    R_SL_matrix_LIST.append(R_S_matrix)
+
+R_S_dagger = reduce(np.matmul, [mat.todense() for mat in R_SL_DAGGER_matrix_LIST])
+R_S = reduce(np.matmul, [mat.todense() for mat in R_SL_matrix_LIST])
+
+# Operator += xx.X_sk_Ops[key]['gamma_l'] * np.matmul(R_S, np.matmul(tensored_PauliWord, R_S_dagger)) # gamma * R_S P_S R_S_Dagger
+Operator_andrew += andrew_result['gamma_l'] * beta_S * R_S * tensored_PauliWord * R_S_dagger  # gamma * R_S P_S R_S_Dagger
+
+from scipy.sparse.linalg import eigs
+eig_values, eig_vectors = eigs(Operator_andrew)
+FCI_Energy = min(eig_values)
+print(FCI_Energy)
