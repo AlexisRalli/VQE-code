@@ -4,6 +4,99 @@ from openfermion.hamiltonians import MolecularData
 from openfermionpsi4 import run_psi4
 
 
+def Get_commuting_indices(Pauliwords_string_list):
+    """
+    Method takes in qubit Hamiltonian as a list of Pauliwords that are lists of tuples (qubitNo, PauliString).
+    Returns each index in qubit Hamiltonian and a list of corresponding indices that the PauliWord commutes with.
+
+    Args:
+        Pauliwords_string_list (list):
+
+    Returns:
+        Commuting_indices (list):
+
+    Pauliwords_string_list =
+
+        ['I0 I1 I2 I3',
+         'Z0 I1 I2 I3',
+         'I0 Z1 I2 I3',
+         'I0 I1 Z2 I3',
+         'I0 I1 I2 Z3',
+         'Z0 Z1 I2 I3',
+         'Y0 X1 X2 Y3',
+         'Y0 Y1 X2 X3',
+         'X0 X1 Y2 Y3',
+         'X0 Y1 Y2 X3',
+         'Z0 I1 Z2 I3',
+         'Z0 I1 I2 Z3',
+         'I0 Z1 Z2 I3',
+         'I0 Z1 I2 Z3',
+         'I0 I1 Z2 Z3'
+         ]
+
+
+
+    Returns a List of Tuples that have index of PauliWord and index of terms in the Hamiltonian that it commutes with
+
+    index_of_commuting_terms =
+
+        [(0, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]),
+         (1, [0, 2, 3, 4, 5, 10, 11, 12, 13, 14]),
+         (2, [0, 1, 3, 4, 5, 10, 11, 12, 13, 14]),
+         (3, [0, 1, 2, 4, 5, 10, 11, 12, 13, 14]),
+         (4, [0, 1, 2, 3, 5, 10, 11, 12, 13, 14]),
+         (5, [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14]),
+         (6, [0, 5, 7, 8, 9, 10, 11, 12, 13, 14]),]
+
+    """
+
+    index_of_commuting_terms = []
+    for i in range(len(QubitHamiltonianCompleteTerms)):
+        Selected_PauliWord = QubitHamiltonianCompleteTerms[i]
+
+        Complete_index_list = [index for index in range(len(QubitHamiltonianCompleteTerms)) if
+                               index != i]  # all indexes except selected Pauli Word
+
+        Commuting_indexes = []
+        for j in Complete_index_list:
+            j_list = []
+            Comparison_PauliWord = QubitHamiltonianCompleteTerms[j]
+
+            checker = [0 for i in range(len(Selected_PauliWord))]
+            for k in range(len(Selected_PauliWord)):
+                # compare tuples
+                if Selected_PauliWord[k] == Comparison_PauliWord[k]:
+                    checker[k] = 1
+
+                # compare if identity present in selected P word OR of I present in comparison Pauli
+                elif Selected_PauliWord[k][1] == 'I' or Comparison_PauliWord[k][1] == 'I':
+                    checker[k] = 1
+
+                else:
+                    checker[k] = -1
+
+            if reduce((lambda x, y: x * y), checker) == 1:  # <----- changing this to -ve one gives anti-commuting
+                j_list.append(j)
+
+            # if sum(checker) == self.MolecularHamiltonian.n_qubits:
+            #     j_list.append(j)
+
+            if j_list != []:
+                Commuting_indexes.append(*j_list)
+            else:
+                # Commuting_indexes.append(j_list)      # <--- commented out! uneeded memory taken
+                continue
+        commuting_Terms_indices = (i, Commuting_indexes)
+
+        index_of_commuting_terms.append(commuting_Terms_indices)
+
+    return index_of_commuting_terms
+
+
+
+
+
+
 class Hamiltonian():
     """
 

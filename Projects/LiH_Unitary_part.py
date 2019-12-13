@@ -34,3 +34,4 @@ HamiltGraph.Get_complementary_graph_string()  # plot_graph=True)
 HamiltGraph.colouring(plot_graph=False)
 
 anti_commuting_sets = HamiltGraph.anticommuting_sets
+
