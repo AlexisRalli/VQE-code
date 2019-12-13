@@ -525,13 +525,13 @@ if __name__ == '__main__':
 def Get_PauliWords_as_nodes(List_PauliWords):
     """
 
-    Function takes in list of PauliWords and returns string format
+    Function takes in list of PauliWords and returns a list of PauliWords in string format
 
     Args:
-        PauliWords (list):
+        PauliWords (list): A list of PauliWords, which are tuples of (qubitNo(int), qubitOp(str))
 
     Returns:
-
+        List_of_PauliWord_strings (list): list of PauliWords as strings
 
 
     .. code-block:: python
@@ -543,24 +543,12 @@ def Get_PauliWords_as_nodes(List_PauliWords):
                          [(0, 'I'), (1, 'I'), (2, 'I'), (3, 'I')],
                          [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
                          [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
-                         [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')],
                          [(0, 'I'), (1, 'I'), (2, 'I'), (3, 'Z')],
-                         [(0, 'Z'), (1, 'Z'), (2, 'I'), (3, 'I')],
-                         [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')],
-                         [(0, 'Y'), (1, 'Y'), (2, 'X'), (3, 'X')],
-                         [(0, 'X'), (1, 'X'), (2, 'Y'), (3, 'Y')],
-                         [(0, 'X'), (1, 'Y'), (2, 'Y'), (3, 'X')],
-                         [(0, 'Z'), (1, 'I'), (2, 'Z'), (3, 'I')],
-                         [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'Z')],
-                         [(0, 'I'), (1, 'Z'), (2, 'Z'), (3, 'I')],
-                         [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'Z')],
                          [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'Z')]
                      ]
 
-
-        DO SOMETHING
-        >> blah
-
+        Get_PauliWords_as_nodes(List_PauliWords)
+        >> ['I0 I1 I2 I3', 'Z0 I1 I2 I3', 'I0 Z1 I2 I3', 'I0 I1 I2 Z3', 'I0 I1 Z2 Z3']
     """
 
     List_of_PauliWord_strings = []
@@ -571,7 +559,7 @@ def Get_PauliWords_as_nodes(List_PauliWords):
         List_of_PauliWord_strings.append(seperator.join(PauliStrings))
     return List_of_PauliWord_strings
 
-def Get_list_of_nodes_and_attributes(List_of_nodes, attribute_dictionary={}):
+def Get_list_of_nodes_and_attributes(List_of_nodes, attribute_dictionary):
     """
 
     Function builds nodes of graph with attributes
@@ -579,8 +567,9 @@ def Get_list_of_nodes_and_attributes(List_of_nodes, attribute_dictionary={}):
     IMPORTANT the index of a node in list of nodes... must match the index in the attributes list in attribute dictionary!
 
     Args:
-        PauliWords (list):
-        attribute_dictionary (dict):
+        List_of_nodes (list): A list of strings or ints that you want to have as nodes
+        attribute_dictionary (dict): A dictionary containing node parameters. IMPORTANT indexing must match
+                                                node list.
 
     Returns:
 
@@ -590,67 +579,60 @@ def Get_list_of_nodes_and_attributes(List_of_nodes, attribute_dictionary={}):
 
        from quchem.Graph import *
 
+        List_of_nodes =  [
+                            'I0 I1 I2 I3',
+                            'Z0 I1 I2 I3',
+                            'I0 Z1 I2 I3',
+                            'I0 I1 I2 Z3',
+                            'I0 I1 Z2 Z3'
+                        ]
 
-        PauliWords = [
-                         [(0, 'I'), (1, 'I'), (2, 'I'), (3, 'I')],
-                         [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
-                         [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
-                         [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')],
-                         [(0, 'I'), (1, 'I'), (2, 'I'), (3, 'Z')],
-                         [(0, 'Z'), (1, 'Z'), (2, 'I'), (3, 'I')],
-                         [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')],
-                         [(0, 'Y'), (1, 'Y'), (2, 'X'), (3, 'X')],
-                         [(0, 'X'), (1, 'X'), (2, 'Y'), (3, 'Y')],
-                         [(0, 'X'), (1, 'Y'), (2, 'Y'), (3, 'X')],
-                         [(0, 'Z'), (1, 'I'), (2, 'Z'), (3, 'I')],
-                         [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'Z')],
-                         [(0, 'I'), (1, 'Z'), (2, 'Z'), (3, 'I')],
-                         [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'Z')],
-                         [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'Z')]
-                     ]
+       attribute_dictionary =  {
+                                'Cofactors': [(-0.32760818995565577+0j),
+                                              (0.1371657293179602+0j),
+                                              (0.1371657293179602+0j),
+                                              (-0.13036292044009176+0j),
+                                              (0.1632676867167479+0j)],
+                                'random_attribute': [0, 1, 2, 3, 4]
+                                }
 
-       attribute_dictionary =  {'Cofactor': [
-                                                (-0.09706626861762624+0j),
-                                                 (0.17141282639402405+0j),
-                                                 (0.171412826394024+0j),
-                                                 (-0.2234315367466397+0j),
-                                                 (-0.2234315367466397+0j),
-                                                 (0.1686889816869329+0j),
-                                                 (0.04530261550868928+0j),
-                                                 (-0.04530261550868928+0j),
-                                                 (-0.04530261550868928+0j),
-                                                 (0.04530261550868928+0j),
-                                                 (0.12062523481381837+0j),
-                                                 (0.16592785032250768+0j),
-                                                 (0.16592785032250768+0j),
-                                                 (0.12062523481381837+0j),
-                                                 (0.174412876106516+0j)
-                                             ]
+        Get_list_of_nodes_and_attributes(List_of_nodes, attribute_dictionary)
+        >> {'I0 I1 I2 I3': {
+                            'Cofactors': (-0.32760818995565577+0j),
+                             'random_attribute': 0
+                            },
+         'Z0 I1 I2 I3': {
+                        'Cofactors': (0.1371657293179602+0j),
+                        'random_attribute': 1
+                        },
 
-                                    }
+         'I0 Z1 I2 I3': {
+                         'Cofactors': (0.1371657293179602+0j),
+                          'random_attribute': 2
+                        },
 
-        DO SOMETHING
-        >> blah
+         'I0 I1 I2 Z3': {
+                         'Cofactors': (-0.13036292044009176+0j),
+                          'random_attribute': 3
+                       },
+
+         'I0 I1 Z2 Z3': {
+                         'Cofactors': (0.1632676867167479+0j),
+                          'random_attribute': 4
+                          }
+          }
 
     """
 
-    attrs = {0: {'attr1': 20, 'attr2': 'nothing'}, 1: {'attr2': 3}}
-    attrs = {Node: {'Cofactor': 20, 'random': 'nothing'}, NODE2: {'attr2': 3}}
-
-    if attribute_dictionary != {}:
-        node_attributes_dict = {key:{} for key in attribute_dictionary}
-    else:
-        node_attributes_dict = {}
+    node_attributes_dict = {node: None for node in List_of_nodes}
 
     for i in range(len(List_of_nodes)):
         node = List_of_nodes[i]
+        temp = {}
         for attribute_label in attribute_dictionary:
-            chosen_attribute_list = attribute_dictionary[attribute_label]
-            node_attributes_dict[attribute_label].update({node: chosen_attribute_list[i]})
+            temp.update({attribute_label: attribute_dictionary[attribute_label][i]})
+        node_attributes_dict[node] = temp
 
-    if node_attributes_dict == {}:
-        return List_of_nodes
-    else:
         return List_of_nodes, node_attributes_dict
 
 def Build_Graph_Nodes(List_of_nodes, Graph, node_attributes_dict=None, plot_graph=False):
@@ -698,8 +680,7 @@ def Build_Graph_Nodes(List_of_nodes, Graph, node_attributes_dict=None, plot_grap
         Graph.add_node(node)
 
     if node_attributes_dict is not None:
-        for attribute_label in node_attributes_dict:
-            nx.set_node_attributes(Graph, node_attributes_dict[attribute_label], attribute_label)
+        nx.set_node_attributes(Graph, node_attributes_dict)
 
     if plot_graph == True:
         plt.figure()
@@ -726,8 +707,7 @@ def Get_Complemenary_Graph(Graph, node_attributes_dict=None, plot_graph=False):
     Complement_Graph = nx.complement(Graph)
 
     if node_attributes_dict is not None:
-        for attribute_label in node_attributes_dict:
-            nx.set_node_attributes(Complement_Graph, node_attributes_dict[attribute_label], attribute_label)
+        nx.set_node_attributes(Complement_Graph, node_attributes_dict)
 
     if plot_graph == True:
         plt.figure()
@@ -875,13 +855,11 @@ def Get_subgraphs(Graph, node_attributes_dict=None):
             # plt.figure()
             # nx.draw(graph, pos, with_labels=1)
             if node_attributes_dict is not None:
-                for attribute_label in node_attributes_dict:
-                    nx.set_node_attributes(graph, node_attributes_dict[attribute_label], attribute_label)
+                nx.set_node_attributes(graph, node_attributes_dict)
             multi_node_G.append(graph)
         else:
             if node_attributes_dict is not None:
-                for attribute_label in node_attributes_dict:
-                    nx.set_node_attributes(graph, node_attributes_dict[attribute_label], attribute_label)
+                nx.set_node_attributes(graph, node_attributes_dict)
             single_node_G.append(graph)
 
     return single_node_G, multi_node_G
@@ -991,7 +969,7 @@ def Get_subgraphs(Graph, node_attributes_dict=None):
     #
     #     # TODO maybe draw graph of max_clique
 
-def Colour_list_of_Graph(Graph_list, node_attributes_dict=None, plot_graph=False, strategy='largest_first'):
+def Colour_list_of_Graph(Graph_list, attribute_dictionary=None, plot_graph=False, strategy='largest_first'):
     # different strategies at:
     # https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.coloring.greedy_color.html#networkx.algorithms.coloring.greedy_color
 
@@ -1003,14 +981,13 @@ def Colour_list_of_Graph(Graph_list, node_attributes_dict=None, plot_graph=False
 
         colour_key_for_nodes = {}
         for colour in unique_colours:
-            if node_attributes_dict is None:
+            if attribute_dictionary is None:
                 colour_key_for_nodes[colour] = [k for k in greedy_colouring_output_dic.keys()
                                                        if greedy_colouring_output_dic[k] == colour]
             else:
-                for attribute_label in node_attributes_dict:
-                    colour_key_for_nodes[colour] = [(k, graph.nodes[k][attribute_label]) for k in
-                                                           greedy_colouring_output_dic.keys()
-                                                    if greedy_colouring_output_dic[k] == colour]
+                colour_key_for_nodes[colour] = [(k, graph.nodes[k]) for k in
+                                                   greedy_colouring_output_dic.keys()
+                                                if greedy_colouring_output_dic[k] == colour]
         List_of_Coloured_Graphs_dicts.append(colour_key_for_nodes)
 
         if plot_graph == True:
@@ -1038,7 +1015,6 @@ def Get_unique_graph_colours(List_of_Coloured_Graphs_dicts):
             overall_colours[iter] = Nodes
             iter += 1
     return overall_colours
-
 
 
 if __name__ == '__main__':
@@ -1089,7 +1065,7 @@ if __name__ == '__main__':
                             (0.1632676867167479 + 0j)]
 
     List_of_nodes = Get_PauliWords_as_nodes(List_PauliWords)
-    attribute_dictionary = {'Cofactors': HamiltonainCofactors}
+    attribute_dictionary = {'Cofactors': HamiltonainCofactors, 'random_attribute': [i for i in range(len(HamiltonainCofactors))]}
 
     List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_of_nodes,
                                                                            attribute_dictionary=attribute_dictionary)
@@ -1102,14 +1078,18 @@ if __name__ == '__main__':
 
 
     single_G, multi_G = Get_subgraphs(G, node_attributes_dict=node_attributes_dict)
-    s_colour = Colour_list_of_Graph(single_G, node_attributes_dict=node_attributes_dict, plot_graph=False,
+    s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
                                     strategy='largest_first')
-    m_colour = Colour_list_of_Graph(multi_G, node_attributes_dict=node_attributes_dict, plot_graph=False,
+    m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
                                     strategy='largest_first')
 
     anti_commuting_set = Get_unique_graph_colours(s_colour + m_colour)
     print(anti_commuting_set)
 
-# add nodes attributes (appends Hamiltonian cofactors to each node)
-# access via: self.G_string.nodes[NODE-NAME]['Cofactor']
-# e.g. X.G_string.nodes['I0 I1 I2 I3']['Cofactor']
+# # TODO
+#  Find reduction term which has best properties
+# 1. maximise commuting terms
+# 2. maximise anti-commuting terms
+# 3. get QWC terms!
+
+## allows one to measure output all at once
