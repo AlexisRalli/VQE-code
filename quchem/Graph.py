@@ -1,7 +1,9 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-#from tqdm import tqdm
+from functools import reduce
+from tqdm import tqdm
+
 
 class BuildGraph_string():
     """
@@ -633,7 +635,7 @@ def Get_list_of_nodes_and_attributes(List_of_nodes, attribute_dictionary):
             temp.update({attribute_label: attribute_dictionary[attribute_label][i]})
         node_attributes_dict[node] = temp
 
-        return List_of_nodes, node_attributes_dict
+    return List_of_nodes, node_attributes_dict
 
 def Build_Graph_Nodes(List_of_nodes, Graph, node_attributes_dict=None, plot_graph=False):
     """
@@ -688,7 +690,7 @@ def Build_Graph_Nodes(List_of_nodes, Graph, node_attributes_dict=None, plot_grap
         plt.show()
     return Graph
 
-def Build_Graph_Edges(Graph, Node_and_connected_Nodes, plot_graph = False):
+def Build_Graph_Edges_defined_by_indices(Graph, Node_and_connected_Nodes, plot_graph = False):
 
     nodes_list = list(Graph.nodes())
     for node_index, connected_node_indices in Node_and_connected_Nodes:
@@ -703,6 +705,75 @@ def Build_Graph_Edges(Graph, Node_and_connected_Nodes, plot_graph = False):
         plt.show()
     return Graph
 
+def Build_Graph_Edges_COMMUTING(Graph, PauliWord_string_nodes_list, plot_graph = False):
+
+    # PauliWord_string_nodes_list can be obtained from Get_PauliWords_as_nodes function
+    # OR simply list(Graph.nodes())
+
+    for i in tqdm(range(len(PauliWord_string_nodes_list)), ascii=True, desc='Building Graph Edges'):
+
+        selected_PauliWord_list = PauliWord_string_nodes_list[i].split(' ') # splits e.g. ['Y0', 'Y1', 'X2', 'X3']
+
+        j_list = [j for j in range(len(PauliWord_string_nodes_list)) if
+                      j != i] # all the other indexes
+
+        for j in j_list:
+            comparison_PauliWord_list = PauliWord_string_nodes_list[j].split(' ')
+            checker = np.zeros(len(selected_PauliWord_list))
+
+            for k in range(len(selected_PauliWord_list)):
+                if selected_PauliWord_list[k][0] ==  comparison_PauliWord_list[k][0]: #compares only PauliString
+                    checker[k] = 1
+                elif selected_PauliWord_list[k][0] == 'I' or comparison_PauliWord_list[k][0] == 'I':
+                    checker[k] = 1
+                else:
+                    checker[k] = -1
+
+            if reduce((lambda x, y: x * y), checker) == 1:  # <----- changing this to -ve one gives anti-commuting
+                Graph.add_edge(PauliWord_string_nodes_list[i], PauliWord_string_nodes_list[j])
+
+    if plot_graph == True:
+        plt.figure()
+        pos = nx.circular_layout(Graph)
+        nx.draw(Graph, pos, with_labels=1)
+        plt.show()
+    return Graph
+
+def Build_Graph_Edges_ANTICOMMUTING(Graph, PauliWord_string_nodes_list, plot_graph = False):
+
+    # PauliWord_string_nodes_list can be obtained from Get_PauliWords_as_nodes function
+    # OR simply list(Graph.nodes())
+
+    for i in tqdm(range(len(PauliWord_string_nodes_list)), ascii=True, desc='Building Graph Edges'):
+
+        selected_PauliWord_list = PauliWord_string_nodes_list[i].split(' ') # splits e.g. ['Y0', 'Y1', 'X2', 'X3']
+
+        j_list = [j for j in range(len(PauliWord_string_nodes_list)) if
+                      j != i] # all the other indexes
+
+        for j in j_list:
+            comparison_PauliWord_list = PauliWord_string_nodes_list[j].split(' ')
+            checker = np.zeros(len(selected_PauliWord_list))
+
+            for k in range(len(selected_PauliWord_list)):
+                if selected_PauliWord_list[k][0] ==  comparison_PauliWord_list[k][0]: #compares only PauliString
+                    checker[k] = 1
+                elif selected_PauliWord_list[k][0] == 'I' or comparison_PauliWord_list[k][0] == 'I':
+                    checker[k] = 1
+                else:
+                    checker[k] = -1
+
+            if reduce((lambda x, y: x * y), checker) == -1:  # <----- changing this to -ve one gives anti-commuting
+                Graph.add_edge(PauliWord_string_nodes_list[i], PauliWord_string_nodes_list[j])
+
+    if plot_graph == True:
+        plt.figure()
+        pos = nx.circular_layout(Graph)
+        nx.draw(Graph, pos, with_labels=1)
+        plt.show()
+    return Graph
+
+
 def Get_Complemenary_Graph(Graph, node_attributes_dict=None, plot_graph=False):
     Complement_Graph = nx.complement(Graph)
 
@@ -711,7 +782,8 @@ def Get_Complemenary_Graph(Graph, node_attributes_dict=None, plot_graph=False):
 
     if plot_graph == True:
         plt.figure()
-        nx.draw(Complement_Graph, with_labels=1)
+        pos = nx.circular_layout(Complement_Graph)
+        nx.draw(Complement_Graph, pos, with_labels=1)
         plt.show()
     return Complement_Graph
 
@@ -1017,6 +1089,63 @@ def Get_unique_graph_colours(List_of_Coloured_Graphs_dicts):
     return overall_colours
 
 
+# without using indices
+if __name__ == '__main__':
+    List_PauliWords = [[(0, 'I'), (1, 'I'), (2, 'I'), (3, 'I')],
+     [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
+     [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'I')],
+     [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'I')],
+     [(0, 'I'), (1, 'I'), (2, 'I'), (3, 'Z')],
+     [(0, 'Z'), (1, 'Z'), (2, 'I'), (3, 'I')],
+     [(0, 'Y'), (1, 'X'), (2, 'X'), (3, 'Y')],
+     [(0, 'Y'), (1, 'Y'), (2, 'X'), (3, 'X')],
+     [(0, 'X'), (1, 'X'), (2, 'Y'), (3, 'Y')],
+     [(0, 'X'), (1, 'Y'), (2, 'Y'), (3, 'X')],
+     [(0, 'Z'), (1, 'I'), (2, 'Z'), (3, 'I')],
+     [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'Z')],
+     [(0, 'I'), (1, 'Z'), (2, 'Z'), (3, 'I')],
+     [(0, 'I'), (1, 'Z'), (2, 'I'), (3, 'Z')],
+     [(0, 'I'), (1, 'I'), (2, 'Z'), (3, 'Z')]]
+    HamiltonainCofactors = [(-0.32760818995565577 + 0j),
+                            (0.1371657293179602 + 0j),
+                            (0.1371657293179602 + 0j),
+                            (-0.13036292044009176 + 0j),
+                            (-0.13036292044009176 + 0j),
+                            (0.15660062486143395 + 0j),
+                            (0.04919764587885283 + 0j),
+                            (-0.04919764587885283 + 0j),
+                            (-0.04919764587885283 + 0j),
+                            (0.04919764587885283 + 0j),
+                            (0.10622904488350779 + 0j),
+                            (0.15542669076236065 + 0j),
+                            (0.15542669076236065 + 0j),
+                            (0.10622904488350779 + 0j),
+                            (0.1632676867167479 + 0j)]
+
+    List_of_nodes = Get_PauliWords_as_nodes(List_PauliWords)
+    attribute_dictionary = {'Cofactors': HamiltonainCofactors, 'random_attribute': [i for i in range(len(HamiltonainCofactors))]}
+
+    List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_of_nodes,
+                                                                           attribute_dictionary=attribute_dictionary)
+
+    G = nx.Graph()
+    G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
+    G = Build_Graph_Edges_COMMUTING(G, List_of_nodes, plot_graph = True)
+
+    #comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
+
+
+    single_G, multi_G = Get_subgraphs(G, node_attributes_dict=node_attributes_dict)
+    s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
+                                    strategy='largest_first')
+    m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
+                                    strategy='largest_first')
+
+    anti_commuting_set = Get_unique_graph_colours(s_colour + m_colour)
+    print(anti_commuting_set)
+
+
+#using indices
 if __name__ == '__main__':
     List_PauliWords = [[(0, 'I'), (1, 'I'), (2, 'I'), (3, 'I')],
      [(0, 'Z'), (1, 'I'), (2, 'I'), (3, 'I')],
@@ -1072,7 +1201,7 @@ if __name__ == '__main__':
 
     G = nx.Graph()
     G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
-    G = Build_Graph_Edges(G, Node_and_connected_Nodes, plot_graph = True)
+    G = Build_Graph_Edges_defined_by_indices(G, Node_and_connected_Nodes, plot_graph = True)
 
     #comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
 
@@ -1093,3 +1222,144 @@ if __name__ == '__main__':
 # 3. get QWC terms!
 
 ## allows one to measure output all at once
+
+
+
+# def Get_commuting_indices(anti_commuting_dict):
+#     """
+#     Method takes in qubit Hamiltonian as a list of Pauliwords that are lists of tuples (qubitNo, PauliString).
+#     Returns each index in qubit Hamiltonian and a list of corresponding indices that the PauliWord commutes with.
+#
+#     Args:
+#         Pauliwords_string_list (list):
+#
+#     Returns:
+#         Commuting_indices (list):
+#
+#     anti_commuting_dict =
+#
+#             {
+#                  0: [('I0 I1 I2 I3 I4 I5 I6 I7 I8 I9 I10 I11', (-3.9344419569678526+0j))],
+#                  1: [('I0 I1 I2 I3 I4 I5 Z6 Z7 I8 I9 I10 I11', (0.07823637778985244+0j))],
+#                  2: [('I0 I1 I2 I3 I4 I5 I6 I7 Z8 Z9 I10 I11', (0.07823637778985248+0j))],
+#                  3: [('I0 I1 I2 I3 I4 I5 Z6 I7 I8 I9 I10 I11', (-0.2167542932500053+0j)),
+#                   ('I0 I1 I2 I3 I4 I5 Y6 X7 X8 Y9 I10 I11', (0.004217284878422762+0j)),
+#                   ('Y0 Y1 I2 I3 I4 I5 X6 X7 I8 I9 I10 I11', (-0.0024727061538815324+0j)),
+#                   ('Y0 Z1 Z2 Y3 I4 I5 X6 X7 I8 I9 I10 I11', (0.002077887498395716+0j)),
+#                   ('Y0 Z1 Z2 Z3 Z4 Y5 X6 X7 I8 I9 I10 I11', (0.002562389780011484+0j)),
+#                   ('Y0 Z1 Z2 Z3 Z4 Z5 Y6 Y7 Z8 Z9 Z10 Y11', (0.0009084689616229723+0j))],
+#                  4: [('I0 I1 I2 I3 I4 I5 I6 Z7 I8 I9 I10 I11', (-0.2167542932500053+0j)),
+#                   ('I0 I1 I2 I3 I4 I5 Y6 Y7 X8 X9 I10 I11', (-0.004217284878422762+0j)),
+#                   ('Y0 X1 I2 I3 I4 I5 X6 Y7 I8 I9 I10 I11', (0.0024727061538815324+0j)),
+#                   ('Y0 Z1 Z2 X3 I4 I5 X6 Y7 I8 I9 I10 I11', (-0.002077887498395716+0j)),
+#                   ('Y0 Z1 Z2 Z3 Z4 X5 X6 Y7 I8 I9 I10 I11', (-0.002562389780011484+0j)),
+#                   ('Y0 Z1 Z2 Z3 Z4 Z5 Y6 X7 Z8 Z9 Z10 X11', (0.0009084689616229723+0j))],
+#                  5: [('I0 I1 I2 I3 I4 I5 I6 I7 Z8 I9 I10 I11', (-0.21675429325000534+0j)),
+#                   ('I0 I1 I2 I3 I4 I5 X6 X7 Y8 Y9 I10 I11', (-0.004217284878422762+0j)),
+#                   ('Y0 X1 I2 I3 I4 I5 I6 I7 X8 Y9 I10 I11', (0.0024727061538815324+0j)),
+#                   ('Y0 Z1 Z2 X3 I4 I5 I6 I7 X8 Y9 I10 I11', (-0.002077887498395716+0j)),
+#                   ('Y0 Z1 Z2 Z3 Z4 X5 I6 I7 X8 Y9 I10 I11', (-0.002562389780011484+0j))
+#               }
+#
+#
+#
+#     Returns a List of Tuples that have index of PauliWord and index of terms in the Hamiltonian that it commutes with
+#
+#     index_of_commuting_terms =
+#
+#         [(0, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]),
+#          (1, [0, 2, 3, 4, 5, 10, 11, 12, 13, 14]),
+#          (2, [0, 1, 3, 4, 5, 10, 11, 12, 13, 14]),
+#          (3, [0, 1, 2, 4, 5, 10, 11, 12, 13, 14]),
+#          (4, [0, 1, 2, 3, 5, 10, 11, 12, 13, 14]),
+#          (5, [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14]),
+#          (6, [0, 5, 7, 8, 9, 10, 11, 12, 13, 14]),]
+#
+#     """
+#     output_dict={}
+#     for key in anti_commuting_dict:
+#
+#         other_keys = [other_key for other_key in anti_commuting_dict if
+#                       other_key != key]
+#
+#         for i in tqdm( range(len(anti_commuting_dict[key])), ascii=True, desc='Getting Commuting Terms'):
+#         # for i in range(len(anti_commuting_dict[key])):
+#             selected_PauliWord = anti_commuting_dict[key][i]
+#
+#             Commuting_indices_all = []
+#             temp_dict = {}
+#
+#             for k in other_keys:
+#                 checker = np.zeros(len(selected_PauliWord[0]))
+#                 for j in range(len(anti_commuting_dict[k])):
+#
+#                     commuting_indices_for_terms=[]
+#
+#                     Comparison_PauliWord = anti_commuting_dict[k][j]
+#
+#                     for x in range(len(selected_PauliWord[0])):
+#                         if selected_PauliWord[0][x] == Comparison_PauliWord[0][x]:
+#                             checker[x]=1
+#                         elif selected_PauliWord[0][x] == 'I' or  Comparison_PauliWord[0][x] == 'I':
+#                             checker[x]=1
+#                         else:
+#                             checker[x]=-1
+#
+#                         if reduce((lambda x, y: x * y), checker) == 1:  # <----- changing this to -ve one gives anti-commuting
+#                             commuting_indices_for_terms.append((k,x))
+#
+#                         if commuting_indices_for_terms != []:
+#                             Commuting_indices_all.append([(key, i), (k, commuting_indices_for_terms)])
+#
+#                             temp_dict.update({'key': key,
+#                                               'index': i,
+#
+#                                               'related_key_indices': {#'k': k,
+#                                                           'related_key_indices': commuting_indices_for_terms}})
+#
+#     output_dict[key] = temp_dict
+#
+#
+# ###
+#
+#     index_of_commuting_terms = []
+#     for i in range(len(QubitHamiltonianCompleteTerms)):
+#         Selected_PauliWord = QubitHamiltonianCompleteTerms[i]
+#
+#         Complete_index_list = [index for index in range(len(QubitHamiltonianCompleteTerms)) if
+#                                index != i]  # all indexes except selected Pauli Word
+#
+#         Commuting_indexes = []
+#         for j in Complete_index_list:
+#             j_list = []
+#             Comparison_PauliWord = QubitHamiltonianCompleteTerms[j]
+#
+#             checker = [0 for i in range(len(Selected_PauliWord))]
+#             for k in range(len(Selected_PauliWord)):
+#                 # compare tuples
+#                 if Selected_PauliWord[k] == Comparison_PauliWord[k]:
+#                     checker[k] = 1
+#
+#                 # compare if identity present in selected P word OR of I present in comparison Pauli
+#                 elif Selected_PauliWord[k][1] == 'I' or Comparison_PauliWord[k][1] == 'I':
+#                     checker[k] = 1
+#
+#                 else:
+#                     checker[k] = -1
+#
+#             if reduce((lambda x, y: x * y), checker) == 1:  # <----- changing this to -ve one gives anti-commuting
+#                 j_list.append(j)
+#
+#             # if sum(checker) == self.MolecularHamiltonian.n_qubits:
+#             #     j_list.append(j)
+#
+#             if j_list != []:
+#                 Commuting_indexes.append(*j_list)
+#             else:
+#                 # Commuting_indexes.append(j_list)      # <--- commented out! uneeded memory taken
+#                 continue
+#         commuting_Terms_indices = (i, Commuting_indexes)
+#
+#         index_of_commuting_terms.append(commuting_Terms_indices)
+#
+#     return index_of_commuting_terms
