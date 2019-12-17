@@ -175,25 +175,26 @@ class Hamiltonian():
 
 
         # input
-        molecule = MolecularData(
+        self.molecule = MolecularData(
             self.geometry,
             self.basis,
             self.multiplicity,
             description=self.MoleculeName)
 
         # Run Psi4.
-        molecule = run_psi4(molecule,
+        self.molecule_Psi4 = run_psi4(self.molecule,
                             run_scf=self.run_scf,
                             run_mp2=self.run_mp2,
                             run_cisd=self.run_cisd,
                             run_ccsd=self.run_ccsd,
                             run_fci=self.run_fci)
 
-        self.molecule = molecule
-        self.MolecularHamiltonian = molecule.get_molecular_hamiltonian()
 
-        self.HF_Energy = molecule.hf_energy
-        self.PSI4_FCI_Energy = molecule.fci_energy
+
+        self.MolecularHamiltonian = self.molecule_Psi4.get_molecular_hamiltonian()
+
+        self.HF_Energy = self.molecule_Psi4.hf_energy
+        self.PSI4_FCI_Energy = self.molecule_Psi4.fci_energy
 
     def Get_Qubit_Hamiltonian_Openfermion(self):
 
