@@ -4,16 +4,17 @@ from quchem.Unitary_partitioning import *
 
 
 ### Variable Parameters
-Molecule = 'LiH'#'LiH'
+Molecule = 'H2'#'LiH'
 geometry = None
 #n_electrons = 2
 num_shots = 10000
+basis = "sto-3g"
 ####
 
 ### Get Hamiltonian
 Hamilt = Hamiltonian(Molecule,
                      run_scf = 1, run_mp2 = 1, run_cisd = 0, run_ccsd = 0, run_fci = 1,
-                 basis = 'sto-3g',
+                 basis = basis,
                  multiplicity = 1,
                  geometry = geometry) # normally None!
 
@@ -47,10 +48,117 @@ m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictiona
 anti_commuting_set = Get_unique_graph_colours(s_colour + m_colour)
 print(anti_commuting_set)
 
+def Commute(P1, P2):
+    P1 = P1.split(' ')
+    P2 = P2.split(' ')
 
+    checker = np.zeros(len(P1))
+    for i in range(len(P1)):
+        if P1[i][0] == P2[i][0]:
+            checker[i] = 1
+        elif P1[i][0] == 'I' or P2[i][0] == 'I':
+            checker[i] = 1
+        else:
+            checker[i] = -1
+
+    if reduce((lambda x, y: x * y), checker) == 1:
+        return True
+    else:
+        return False
+
+
+Tree_list={}
+current_best_counter = None
+best_possible = len(anti_commuting_set)
+for key in anti_commuting_set:
+    selected_set = anti_commuting_set[key]
+    other_keys = np.arange(key+1, len(len(anti_commuting_set)), 1)
+    t_max = len(other_keys) #theoretical max
+
+    branch_counter = 0
+    for top_tree_P in selected_set:
+        PauliWord_top = top_tree_P[0]
+        branch_list = []
+        branch_list.append(PauliWord_top)
+
+
+        for k in other_keys:
+            for
+            for P_term in anti_commuting_set[k]:
+                if Commute(branch_list[-1], P_term[0]):
+                    branch_list.append(P_term)
+                    branch_counter+=1
+                else:
+                    continue
+
+        if branch_counter == t_max:
+            break
+
+        if branch_counter > current_best_counter:
+            current_best_counter = branch_counter
+
+    if branch_counter == best_possible:
+        break
+    return
+
+
+
+
+# graph_list=[]
+# graph_dict={}
+#
+# for key in anti_commuting_set:
+#     other_keys = [other_key for other_key in range(len(anti_commuting_set)) if other_key != key]
+#
+#     temp_dic_holder=[]
+#
+#     for i in range(len(anti_commuting_set[key])):
+#         selected_PauliWord_node = anti_commuting_set[key][i][0]
+#         selected_PauliWord_constant = anti_commuting_set[key][i][1]['Cofactors']
+#
+#         # for k in other_keys:
+#         #     comparison_nodes = [anti_commuting_set[k][j][0] for j in range(len(anti_commuting_set[k]))]
+#         #     comparison_constants = [anti_commuting_set[k][j][1]['Cofactors'] for j in range(len(anti_commuting_set[k]))]
+#
+#         comparison_nodes = [anti_commuting_set[k][j][0] for k in other_keys for j in
+#                             range(len(anti_commuting_set[k]))]
+#         comparison_constants = [anti_commuting_set[k][j][1]['Cofactors'] for k in other_keys for j in
+#                                 range(len(anti_commuting_set[k]))]
+#
+#         List_of_nodes= [selected_PauliWord_node, *comparison_nodes]
+#         attribute_dictionary = {'Cofactors': [selected_PauliWord_constant, *comparison_constants]}
+#
+#         List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_of_nodes,
+#                                                                                attribute_dictionary=attribute_dictionary)
+#
+#         H = nx.Graph()
+#         H = Build_Graph_Nodes(List_of_nodes, H, node_attributes_dict=node_attributes_dict, plot_graph=False)
+#         H = Build_Graph_Edges_COMMUTING(H, List_of_nodes, plot_graph=False)
+#         graph_list.append((selected_PauliWord_node, H))
+#
+#         temp_dic_holder.append({'PauliWord': anti_commuting_set[key][i],
+#                          'graph': H})
+#     graph_dict[key]=temp_dic_holder
+#
+#
+# max_graphs={}
+# alt_graphs=[]
+# for key in graph_dict:
+#     max_connected = 0
+#     for i in range(len(graph_dict[key])):
+#         Graph = graph_dict[key][i]['graph']
+#
+#        # max_connected = 0
+#         num_edges = len(Graph.edges)
+#         if  num_edges > max_connected:
+#             max_connected = num_edges
+#             max_graph = Graph
+#         elif num_edges == max_connected:
+#             alt_graphs.append((graph_dict[key][i]['PauliWord'],Graph))
+#
+#     max_graphs[key] = (max_graph, graph_dict[key][i]['PauliWord'], alt_graphs)
 
 graph_list=[]
-graph_dict={}
 
 for key in anti_commuting_set:
     other_keys = [other_key for other_key in range(len(anti_commuting_set)) if other_key != key]
@@ -60,10 +168,6 @@ for key in anti_commuting_set:
     for i in range(len(anti_commuting_set[key])):
         selected_PauliWord_node = anti_commuting_set[key][i][0]
         selected_PauliWord_constant = anti_commuting_set[key][i][1]['Cofactors']
-
-        # for k in other_keys:
-        #     comparison_nodes = [anti_commuting_set[k][j][0] for j in range(len(anti_commuting_set[k]))]
-        #     comparison_constants = [anti_commuting_set[k][j][1]['Cofactors'] for j in range(len(anti_commuting_set[k]))]
 
         comparison_nodes = [anti_commuting_set[k][j][0] for k in other_keys for j in
                             range(len(anti_commuting_set[k]))]
@@ -79,31 +183,41 @@ for key in anti_commuting_set:
         H = nx.Graph()
         H = Build_Graph_Nodes(List_of_nodes, H, node_attributes_dict=node_attributes_dict, plot_graph=False)
         H = Build_Graph_Edges_COMMUTING(H, List_of_nodes, plot_graph=False)
-        graph_list.append((selected_PauliWord_node, H))
+
 
         temp_dic_holder.append({'PauliWord': anti_commuting_set[key][i],
                          'graph': H})
-    graph_dict[key]=temp_dic_holder
 
-
-max_graphs={}
-alt_graphs=[]
-for key in graph_dict:
     max_connected = 0
-    for i in range(len(graph_dict[key])):
-        Graph = graph_dict[key][i]['graph']
-
-       # max_connected = 0
+    alt_graphs=[]
+    for d in temp_dic_holder:
+        Graph = d['graph']
         num_edges = len(Graph.edges)
-        if  num_edges > max_connected:
+        if num_edges > max_connected:
             max_connected = num_edges
             max_graph = Graph
         elif num_edges == max_connected:
-            alt_graphs.append((graph_dict[key][i]['PauliWord'],Graph))
+            alt_graphs.append((d['PauliWord'], Graph))
+    graph_list.append((max_graph, alt_graphs))
 
-    max_graphs[key] = (max_graph, graph_dict[key][i]['PauliWord'], alt_graphs)
 
 
+# max_graphs={}
+# alt_graphs=[]
+# for key in graph_dict:
+#     max_connected = 0
+#     for i in range(len(graph_dict[key])):
+#         Graph = graph_dict[key][i]['graph']
+#
+#        # max_connected = 0
+#         num_edges = len(Graph.edges)
+#         if  num_edges > max_connected:
+#             max_connected = num_edges
+#             max_graph = Graph
+#         elif num_edges == max_connected:
+#             alt_graphs.append((graph_dict[key][i]['PauliWord'],Graph))
+#
+#     max_graphs[key] = (max_graph, graph_dict[key][i]['PauliWord'], alt_graphs)
 
 
 # Graph= graph_dict[6][1]['graph']
