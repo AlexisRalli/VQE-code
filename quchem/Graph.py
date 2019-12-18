@@ -936,110 +936,6 @@ def Get_subgraphs(Graph, node_attributes_dict=None):
 
     return single_node_G, multi_node_G
 
-    def colouring(self, plot_graph = False, strategy='largest_first'):
-        # different strategies at:
-        # https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.coloring.greedy_color.html#networkx.algorithms.coloring.greedy_color
-
-        single_node_G, multi_node_G = self._Get_subgraphs()
-
-
-        multi_node_G_coloured = []
-        for graph in multi_node_G:
-            greedy_string = nx.greedy_color(graph, strategy=strategy, interchange=False)
-
-            unique_colours = set(greedy_string.values())
-
-            colour_key_for_nodes_string = {}
-            for colour in unique_colours:
-                # colour_key_for_nodes_string[colour] = [k for k in greedy_string.keys()
-                #                                        if greedy_string[k] == colour]
-
-                colour_key_for_nodes_string[colour] = [(k, graph.nodes[k]['Cofactor']) for k in
-                                                       greedy_string.keys()
-                                                       if greedy_string[k] == colour]
-
-            multi_node_G_coloured.append(colour_key_for_nodes_string)
-
-            if plot_graph == True:
-                import matplotlib.cm as cm
-
-                plt.figure()
-                colour_list = cm.rainbow(np.linspace(0, 1, len(colour_key_for_nodes_string)))
-                pos = nx.circular_layout(graph)
-
-                for colour in colour_key_for_nodes_string:
-                    nx.draw_networkx_nodes(graph, pos,
-                                           nodelist=[PauliWord for PauliWord, const in colour_key_for_nodes_string[colour]],
-                                           node_color=colour_list[colour],
-                                           node_size=500,
-                                           alpha=0.8)
-
-                nx.draw_networkx_edges(graph, pos, width=1.0, alpha=0.5)
-
-
-                # available fonts!
-                # import matplotlib
-                # avail_font_names = [f.name for f in matplotlib.font_manager.fontManager.ttflist]
-                nx.draw_networkx_labels(graph, pos, font_family='Mitra Mono', font_size=12)
-                plt.plot()
-
-
-        single_node_G_coloured = []
-
-        for comp_graph in single_node_G:
-            greedy_string = nx.greedy_color(comp_graph, strategy=strategy, interchange=False)
-
-            Cofactor = comp_graph.nodes[list(comp_graph.nodes)[0]]['Cofactor']
-
-            single_node_G_coloured.append(dict([(value, (key, Cofactor)) for key, value in greedy_string.items()]))
-
-
-
-        #self.single_node_G_coloured = single_node_G_coloured
-        #self.multi_node_G_coloured = multi_node_G_coloured
-
-
-        iter = 0
-        anti_commuting_sets_dict = {}
-        for sub_graph in single_node_G_coloured + multi_node_G_coloured:
-            for key, value in sub_graph.items():
-                anti_commuting_sets_dict[iter] = value
-                iter += 1
-
-        self.anticommuting_sets = anti_commuting_sets_dict
-
-    # def max_clique_cover_composite_graph(self):
-    #
-    #     cliques = list(nx.find_cliques(self.G_string_comp))
-    #     sorted_cliques = sorted(cliques, key=len, reverse=True)
-    #     clique_list = []
-    #
-    #     #for clique in sorted_cliques:
-    #     for j in tqdm(range(len(sorted_cliques)), ascii=True, desc='Getting anti-commuting sets'):
-    #         clique = sorted_cliques[j]
-    #         if clique_list == []:
-    #             clique_list.append(clique)
-    #         else:
-    #             checker = [i for i in clique for cc in clique_list if i in cc]
-    #             if len(checker) > 0:
-    #                 # checks if have any duplicate nodes... if so then continue
-    #                 continue
-    #             else:
-    #                 clique_list.append(clique)
-    #
-    #
-    #     print(clique_list)
-    #     self.anticommuting_sets = clique_list
-    #
-    #     max_clique_cover_cofactors = nx.get_node_attributes(self.G_string_comp, 'Cofactor')
-    #
-    #     for SET in clique_list:
-    #         temp_list=[]
-    #         for PauliWord in SET:
-    #             temp_list.append((max_clique_cover_cofactors[PauliWord], PauliWord))
-    #         self.max_clique_cover.append(temp_list)
-    #
-    #     # TODO maybe draw graph of max_clique
 
 def Colour_list_of_Graph(Graph_list, attribute_dictionary=None, plot_graph=False, strategy='largest_first'):
     # different strategies at:
@@ -1056,10 +952,19 @@ def Colour_list_of_Graph(Graph_list, attribute_dictionary=None, plot_graph=False
             if attribute_dictionary is None:
                 colour_key_for_nodes[colour] = [k for k in greedy_colouring_output_dic.keys()
                                                        if greedy_colouring_output_dic[k] == colour]
+
+
+
             else:
-                colour_key_for_nodes[colour] = [(k, graph.nodes[k]) for k in
+                # colour_key_for_nodes[colour] = [(k, graph.nodes[k]) for k in
+                #                                    greedy_colouring_output_dic.keys()
+                #                                 if greedy_colouring_output_dic[k] == colour]
+
+                colour_key_for_nodes[colour] = [{k: graph.nodes[k]} for k in
                                                    greedy_colouring_output_dic.keys()
                                                 if greedy_colouring_output_dic[k] == colour]
+
+
         List_of_Coloured_Graphs_dicts.append(colour_key_for_nodes)
 
         if plot_graph == True:

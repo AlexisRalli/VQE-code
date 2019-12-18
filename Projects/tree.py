@@ -1,22 +1,78 @@
 import numpy as np
 from functools import reduce
+from quchem.Graph import *
+#from itertools import zip_longest
 
-anti_commuting_sets = \
-{0: [('I0 I1 I2 I3', (-0.09706626861762581+0j))],
- 1: [('Z0 Z1 I2 I3', (0.168688981686933+0j))],
- 2: [('Z0 I1 Z2 I3', (0.12062523481381841+0j))],
- 3: [('Z0 I1 I2 Z3', (0.16592785032250779+0j))],
- 4: [('I0 Z1 Z2 I3', (0.16592785032250779+0j))],
- 5: [('I0 Z1 I2 Z3', (0.12062523481381841+0j))],
- 6: [('I0 I1 Z2 Z3', (0.1744128761065161+0j))],
- 7: [('Z0 I1 I2 I3', (0.17141282639402383+0j)),
-  ('Y0 X1 X2 Y3', (0.045302615508689394+0j))],
- 8: [('I0 Z1 I2 I3', (0.1714128263940239+0j)),
-  ('Y0 Y1 X2 X3', (-0.045302615508689394+0j))],
- 9: [('I0 I1 Z2 I3', (-0.22343153674663985+0j)),
-  ('X0 X1 Y2 Y3', (-0.045302615508689394+0j))],
- 10: [('I0 I1 I2 Z3', (-0.22343153674663985+0j)),
-  ('X0 Y1 Y2 X3', (0.045302615508689394+0j))]}
+
+
+List_PauliWords = [[(0, 'I'), (1, 'I'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'Z'),(1, 'I'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'Y'),(1, 'Z'),(2, 'Y'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'X'),(1, 'Z'),(2, 'X'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'Y'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'Y'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'X'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'X'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'Y'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Y'),(11, 'I')],
+                   [(0, 'X'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'X'),(11, 'I')],
+                   [(0, 'I'),(1, 'Z'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'I'),(1, 'Y'),(2, 'Z'),(3, 'Y'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'I'),(1, 'X'),(2, 'Z'),(3, 'X'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'I'),(1, 'Y'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Y'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'I'),(1, 'X'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'X'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'I'),(1, 'Y'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Z'),(11, 'Y')],
+                   [(0, 'I'),(1, 'X'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Z'),(11, 'X')],
+                   [(0, 'I'),(1, 'I'),(2, 'Z'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'I'),(1, 'I'),(2, 'Y'),(3, 'Z'),(4, 'Y'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'I'),(1, 'I'),(2, 'X'),(3, 'Z'),(4, 'X'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+                   [(0, 'I'),(1, 'I'),(2, 'Y'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Y'),(11, 'I')],
+                   [(0, 'I'),(1, 'I'),(2, 'X'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'X'),(11, 'I')]
+                   ]
+HamiltonainCofactors = [(-3.9344419569678446+0j),
+ (1.04962640047693+0j),
+ (-0.023844584591133436+0j),
+ (-0.023844584591133436+0j),
+ (-0.026332990895885356+0j),
+ (-0.026332990895885356+0j),
+ (-0.017297109487008907+0j),
+ (-0.017297109487008907+0j),
+ (1.0496264004769302+0j),
+ (-0.023844584591133443+0j),
+ (-0.023844584591133443+0j),
+ (-0.026332990895885387+0j),
+ (-0.026332990895885387+0j),
+ (-0.01729710948700891+0j),
+ (-0.01729710948700891+0j),
+ (-0.09129805365197576+0j),
+ (-0.007987782352070982+0j),
+ (-0.007987782352070982+0j),
+ (-0.005200666861919969+0j),
+ (-0.005200666861919969+0j)]
+
+
+List_of_nodes = Get_PauliWords_as_nodes(List_PauliWords)
+attribute_dictionary = {'Cofactors': HamiltonainCofactors}
+
+List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_of_nodes,
+                                                                       attribute_dictionary=attribute_dictionary)
+
+G = nx.Graph()
+G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
+G = Build_Graph_Edges_COMMUTING(G, List_of_nodes, plot_graph=True)
+
+# comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
+
+
+single_G, multi_G = Get_subgraphs(G, node_attributes_dict=node_attributes_dict)
+s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
+                                strategy='largest_first')
+m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
+                                strategy='largest_first')
+
+anti_commuting_sets = Get_unique_graph_colours(s_colour + m_colour)
+print(anti_commuting_sets)
+
+# anti_commuting_sets key ordering... smallest first!
+dict_ordering_list = sorted(anti_commuting_sets, key=lambda k: len(anti_commuting_sets[k]), reverse=False)
+node_list = list(G.nodes)
 
 
 def Commute(P1, P2):
@@ -37,12 +93,228 @@ def Commute(P1, P2):
     else:
         return False
 
-print(Commute(anti_commuting_sets[7][0][0], anti_commuting_sets[7][1][0]))
+# # print(Commute(str(*anti_commuting_sets[2][0].keys()), str(*anti_commuting_sets[2][1].keys())))
+# # print(Commute(str(*anti_commuting_sets[0][0].keys()), str(*anti_commuting_sets[2][1].keys())))
+#
+# H = G.copy()
+# #remove all of first set
+# H.remove_nodes_from([P_word for sets in anti_commuting_sets[0] for P_word in sets])
+#
+# #remove all of second set BAR first term
+# H.remove_nodes_from([P_word for sets in anti_commuting_sets[1][1::] for P_word in sets])
+#
+#
+#
+# # may be able to use max clique function (finds max no. of fully connected subgraphs!)
+# # iterate through tree, selecting one P_word from each row
+# # find max cliques
+# list(nx.clique.find_cliques(H))
+# min(list(nx.clique.find_cliques(H)))
 
+
+####################
+
+# # anti_commuting_sets key ordering... smallest first!
+# dict_ordering_list = sorted(anti_commuting_sets, key=lambda k: len(anti_commuting_sets[k]), reverse=False)
+#
+# # get term with largest number of P_words
+# max_num_terms = len(anti_commuting_sets[dict_ordering_list[-1]])
+
+# LONGEST ANTI_COMMUTING SET
+max_num_terms = max([len([key for dic in anti_commuting_sets[k] for key, attrib in dic.items()])for k in anti_commuting_sets.keys()])
+FILLED_anti_commuting_sets={}
+# go through each term
+# appending None if have less than
 for key in anti_commuting_sets:
-    selected_set = anti_commuting_sets[key]
+        len_term = len(anti_commuting_sets[key])
+        if max_num_terms == len_term:
+            FILLED_anti_commuting_sets[key] = [*anti_commuting_sets[key]]
+        else:
+            number_to_add = max_num_terms - len_term
+            None_list = [None for _ in range(number_to_add)]
+            FILLED_anti_commuting_sets[key] = [*anti_commuting_sets[key], *None_list]
 
-    for P_top in selected_set:
-        PauliWord=P_top[0]
+record = []
+tree={}
+best_reduction_possible = len(FILLED_anti_commuting_sets)
+running_best = 0
+for key in FILLED_anti_commuting_sets:
+    selected_set = FILLED_anti_commuting_sets[key]
+    full_branch_key=[]
+
+    for i in range(max_num_terms):
+        P_word = selected_set[i]
+
+        branch_instance=[]
+        branch_instance_holder={}
+
+        if P_word is None:
+            continue
+        else:
+            branch_instance.append(str(*P_word.keys()))
+            jk_list = []
+            for j in range(max_num_terms):  #stays at 0 for all keys then goes up by 1 and repeats!
+
+                for k in np.arange(key+1, len(FILLED_anti_commuting_sets)-1,1):
+                    P_comp = FILLED_anti_commuting_sets[k][j]
+
+                    if P_comp is None:
+                        continue
+                    else:
+                        if False not in [Commute(term, str(*P_comp.keys())) for term in branch_instance]:
+                            print(key, i, k, j)
+                            jk_list.append((j,k))
+                            branch_instance.append(str(*P_comp.keys()))
+
+            if running_best == best_reduction_possible:
+                break
+            elif running_best < len(branch_instance):
+                running_best = len(branch_instance)
+                best_combo = {'i_key': (i, key), 'j_k': jk_list,  'Branch_instance': branch_instance}
+
+        branch_instance_holder.update({'i_key': (i, key), 'j_k': jk_list,  'Branch_instance': branch_instance})
+
+
+        full_branch_key.append(branch_instance_holder)
+    tree[key] = full_branch_key
+
+
+
+b=[]
+for key in tree:
+    for w in range(len(tree[key])):
+        dic = tree[key][w]
+        b.append( (len(dic['Branch_instance']), key, w))
+max(b)
+
+
+
+record = []
+tree = {}
+best_reduction_possible = len(FILLED_anti_commuting_sets)
+running_best = 0
+for key in FILLED_anti_commuting_sets:
+    selected_set = FILLED_anti_commuting_sets[key]
+    full_branch_key = []
+
+    for i in range(max_num_terms):
+        P_word = selected_set[i]
+
+        branch_instance = []
+        branch_instance_holder = {}
+
+        if P_word is None:
+            continue
+        else:
+            branch_instance.append(str(*P_word.keys()))
+            jk_list = []
+            for j in range(max_num_terms):  # stays at 0 for all keys then goes up by 1 and repeats!
+                k_max = len(np.arange(key + 1, len(FILLED_anti_commuting_sets) - 1, 1))
+                for k in np.arange(key + 1, len(FILLED_anti_commuting_sets) - 1, 1):  # goes over different keys bellow top key
+                    P_comp = FILLED_anti_commuting_sets[k][j]
+
+                    if P_comp is None:
+                        k_max -= 1
+                        continue
+                    else:
+                        if False not in [Commute(term, str(*P_comp.keys())) for term in branch_instance]:
+                            #print(key, i, k, j)
+                            k_max-=1
+                            jk_list.append((j, k))
+                            branch_instance.append(str(*P_comp.keys()))
+
+                if len(branch_instance) + k_max >= running_best:
+                    continue
+                else:
+                    print(branch_instance, '## VS ##','best: ', running_best, 'remaining: ', k_max)
+                    break
+
+            if running_best == best_reduction_possible:
+                break
+            elif running_best < len(branch_instance):
+                running_best = len(branch_instance)
+                best_combo = {'key': key, 'j': k}#, 'Branch_instance': branch_instance}
+
+        branch_instance_holder.update({'i_key': (i, key), 'j_k': jk_list, 'Branch_instance': branch_instance})
+        full_branch_key.append(branch_instance_holder)
+
+        if running_best == best_reduction_possible:
+            break
+    tree[key] = full_branch_key
+    if running_best == best_reduction_possible:
+        break
+
+
+
+# NOT working
+# record = []
+# tree={}
+# for key in FILLED_anti_commuting_sets:
+#     selected_set = FILLED_anti_commuting_sets[key]
+#     full_branch_key=[]
+#
+#     for i in range(max_num_terms):
+#         P_word = selected_set[i]
+#
+#         branch_instance=[]
+#
+#         if P_word is None:
+#             continue
+#         else:
+#             branch_instance.append(str(*P_word.keys()))
+#             for j in range(max_num_terms):                                         #stays at 0 for all keys then goes up by 1 and repeats!
+#                 for k in np.arange(key+1, len(FILLED_anti_commuting_sets)-1,1):
+#                     P_comp = FILLED_anti_commuting_sets[k][j]
+#
+#                     if P_comp is None:
+#                         continue
+#                     else:
+#                         if Commute(str(*P_word.keys()), str(*P_comp.keys())):
+#                             print(key, i, k, j)
+#                             record.append([key, i, k, j])
+#
+#                         if len(branch_instance)==0:
+#                             if Commute(str(*P_word.keys()), str(*P_comp.keys())):
+#                                 branch_instance.append(str(*P_comp.keys()))
+#                         elif len(branch_instance)!=0:
+#                             if Commute(str(*P_word.keys()), str(*P_comp.keys())) and False not in [Commute(term, str(*P_comp.keys())) for term in branch_instance]:
+#                                 branch_instance.append(str(*P_comp.keys()))
+#         full_branch_key.append(branch_instance)
+#     tree[key] = full_branch_key
+
+
+
+#   working
+# record = []
+# tree={}
+# for key in FILLED_anti_commuting_sets:
+#     selected_set = FILLED_anti_commuting_sets[key]
+#     full_branch_key=[]
+#
+#     for i in range(max_num_terms):
+#         P_word = selected_set[i]
+#
+#         branch_instance=[]
+#
+#
+#         if P_word is None:
+#             continue
+#         else:
+#             branch_instance.append(str(*P_word.keys()))
+#             for j in range(max_num_terms):                                         #stays at 0 for all keys then goes up by 1 and repeats!
+#                 for k in np.arange(key+1, len(FILLED_anti_commuting_sets)-1,1):
+#                     P_comp = FILLED_anti_commuting_sets[k][j]
+#
+#                     if P_comp is None:
+#                         continue
+#                     else:
+#                         if False not in [Commute(term, str(*P_comp.keys())) for term in branch_instance]:
+#                             print(key, i, k, j)
+#                             branch_instance.append(str(*P_comp.keys()))
+#
+#         full_branch_key.append(branch_instance)
+#     tree[key] = full_branch_key
+
+
 
 
