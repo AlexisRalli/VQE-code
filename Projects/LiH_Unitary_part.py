@@ -4,7 +4,7 @@ from quchem.Unitary_partitioning import *
 
 
 ### Variable Parameters
-Molecule = 'H2'#'LiH'
+Molecule = 'LiH'
 geometry = None
 #n_electrons = 2
 num_shots = 10000
@@ -45,7 +45,7 @@ s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_diction
 m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
                                 strategy='largest_first')
 
-anti_commuting_set = Get_unique_graph_colours(s_colour + m_colour)
+anti_commuting_sets = Get_unique_graph_colours(s_colour + m_colour)
 print(anti_commuting_set)
 
 def Commute(P1, P2):

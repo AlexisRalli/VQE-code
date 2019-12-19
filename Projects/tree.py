@@ -118,63 +118,94 @@ def Commute(P1, P2):
 # max_num_terms = len(anti_commuting_sets[dict_ordering_list[-1]])
 
 # LONGEST ANTI_COMMUTING SET
-max_num_terms = max([len([key for dic in anti_commuting_sets[k] for key, attrib in dic.items()])for k in anti_commuting_sets.keys()])
-FILLED_anti_commuting_sets={}
-# go through each term
-# appending None if have less than
-for key in anti_commuting_sets:
+
+def Get_longest_anti_commuting_set(anti_commuting_sets):
+    # finds length of longest anti_commuting set!
+    max_key, max_value = max(anti_commuting_sets.items(), key=lambda x: len(x[1]))
+    return len(max_value)
+
+def Make_anti_commuting_sets_same_length(anti_commuting_sets, max_set_size):
+    # goes through each term
+    # appending None if term has less than maximum number of terms
+
+    FILLED_anti_commuting_sets = {}
+
+    for key in anti_commuting_sets:
         len_term = len(anti_commuting_sets[key])
-        if max_num_terms == len_term:
+        if len_term == max_set_size:
             FILLED_anti_commuting_sets[key] = anti_commuting_sets[key]
         else:
-            number_to_add = max_num_terms - len_term
+            number_to_add = max_set_size - len_term
             None_list = [None for _ in range(number_to_add)]
             FILLED_anti_commuting_sets[key] = [*anti_commuting_sets[key], *None_list]
+    return FILLED_anti_commuting_sets
 
-# without reduction
-# record = []
-# tree={}
-# best_reduction_possible = len(FILLED_anti_commuting_sets)
-# running_best = 0
-# for key in FILLED_anti_commuting_sets:
-#     selected_set = FILLED_anti_commuting_sets[key]
-#     full_branch_key=[]
-#
-#     for i in range(max_num_terms):
-#         P_word = selected_set[i]
-#
-#         branch_instance=[]
-#         branch_instance_holder={}
-#
-#         if P_word is None:
-#             continue
-#         else:
-#             branch_instance.append(str(*P_word.keys()))
-#             jk_list = []
-#             for j in range(max_num_terms):  #stays at 0 for all keys then goes up by 1 and repeats!
-#
-#                 for k in np.arange(key+1, len(FILLED_anti_commuting_sets)-1,1):
-#                     P_comp = FILLED_anti_commuting_sets[k][j]
-#
-#                     if P_comp is None:
-#                         continue
-#                     else:
-#                         if False not in [Commute(term, str(*P_comp.keys())) for term in branch_instance]:
-#                             print(key, i, k, j)
-#                             jk_list.append((j,k))
-#                             branch_instance.append(str(*P_comp.keys()))
-#
-#             if running_best == best_reduction_possible:
-#                 break
-#             elif running_best < len(branch_instance):
-#                 running_best = len(branch_instance)
-#                 best_combo = {'i_key': (i, key), 'j_k': jk_list,  'Branch_instance': branch_instance}
-#
-#         branch_instance_holder.update({'i_key': (i, key), 'j_k': jk_list,  'Branch_instance': branch_instance})
-#
-#
-#         full_branch_key.append(branch_instance_holder)
-#     tree[key] = full_branch_key
+max_set_size = Get_longest_anti_commuting_set(anti_commuting_sets)
+FILLED_anti_commuting_sets = Make_anti_commuting_sets_same_length(anti_commuting_sets, max_set_size)
+
+
+def Find_Longest_tree(FILLED_anti_commuting_sets, max_set_size):
+
+    tree = {}
+    best_reduction_possible = len(FILLED_anti_commuting_sets)  # <-- aka need this many things in branch_instance!
+    running_best = 0
+
+    for key in tqdm(range(len(FILLED_anti_commuting_sets)), ascii=True, desc='Getting best Branch'):
+    #for key in FILLED_anti_commuting_sets:
+        selected_set = FILLED_anti_commuting_sets[key]
+        full_branch_key = []
+
+        for i in range(len(selected_set)):
+            P_word = selected_set[i] # this will be the 'top' of the tree
+            branch_instance = []
+            branch_instance_holder = {}
+
+            if P_word is None:
+                continue
+            else:
+                branch_instance.append(str(*P_word.keys()))
+                jk_list = []
+                for j in range(max_set_size):  # stays at 0 for all keys then goes up by 1 and repeats!
+
+                    k_max = len(FILLED_anti_commuting_sets) - (key+1) # max number of levels one can loop through
+
+                    for k in np.arange(key + 1, len(FILLED_anti_commuting_sets), 1):  # goes over different keys bellow top key
+                        P_comp = FILLED_anti_commuting_sets[k][j]
+
+                        if P_comp is None:
+                            k_max -= 1
+                            continue
+                        else:
+                            if False not in [Commute(term, str(*P_comp.keys())) for term in branch_instance]:
+                                # print(key, i, k, j)
+                                k_max -= 1
+                                jk_list.append((j, k))
+                                branch_instance.append(str(*P_comp.keys()))
+
+                    if len(branch_instance) + k_max >= running_best:
+                        continue
+                    else:
+                        ## print(branch_instance, '## VS ##','best: ', running_best, 'remaining: ', k_max)
+                        break
+
+                if running_best == best_reduction_possible:
+                    break
+                elif running_best < len(branch_instance):
+                    running_best = len(branch_instance)
+                    best_combo = {'key': key, 'i': i, 'j_k': jk_list}  # 'Branch_instance': branch_instance}
+
+            branch_instance_holder.update({'i': i, 'j_k': jk_list, 'Branch_instance': branch_instance})
+            full_branch_key.append(branch_instance_holder)
+
+            if running_best == best_reduction_possible:
+                break
+        tree[key] = full_branch_key
+        if running_best == best_reduction_possible:
+            print('GET IN!!!')
+            break
+    return tree, best_combo
+
+# actually only need best combo output!
 
 
 
@@ -186,7 +217,7 @@ for key in FILLED_anti_commuting_sets:
     selected_set = FILLED_anti_commuting_sets[key]
     full_branch_key = []
 
-    for i in range(max_num_terms):
+    for i in range(max_set_size):
         P_word = selected_set[i]
 
         branch_instance = []
@@ -197,11 +228,11 @@ for key in FILLED_anti_commuting_sets:
         else:
             branch_instance.append(str(*P_word.keys()))
             jk_list = []
-            for j in range(max_num_terms):  # stays at 0 for all keys then goes up by 1 and repeats!
+            for j in range(max_set_size):  # stays at 0 for all keys then goes up by 1 and repeats!
                 # k_max = len(np.arange(key + 1, len(FILLED_anti_commuting_sets) - 1, 1))
-                k_max = len(FILLED_anti_commuting_sets) - key
+                k_max = len(FILLED_anti_commuting_sets) - (key+1) # max number of levels one can loop through
                 print(k_max)
-                for k in np.arange(key + 1, len(FILLED_anti_commuting_sets) - 1, 1):  # goes over different keys bellow top key
+                for k in np.arange(key + 1, len(FILLED_anti_commuting_sets), 1):  # goes over different keys bellow top key
                     P_comp = FILLED_anti_commuting_sets[k][j]
 
                     if P_comp is None:
@@ -258,77 +289,4 @@ missing_k = [k for k in anti_commuting_sets.keys() if k not in branch_to_measure
 missed_terms={}
 for k in missing_k:
     missed_terms[k] = anti_commuting_sets[k]
-
-
-# NOT working
-# record = []
-# tree={}
-# for key in FILLED_anti_commuting_sets:
-#     selected_set = FILLED_anti_commuting_sets[key]
-#     full_branch_key=[]
-#
-#     for i in range(max_num_terms):
-#         P_word = selected_set[i]
-#
-#         branch_instance=[]
-#
-#         if P_word is None:
-#             continue
-#         else:
-#             branch_instance.append(str(*P_word.keys()))
-#             for j in range(max_num_terms):                                         #stays at 0 for all keys then goes up by 1 and repeats!
-#                 for k in np.arange(key+1, len(FILLED_anti_commuting_sets)-1,1):
-#                     P_comp = FILLED_anti_commuting_sets[k][j]
-#
-#                     if P_comp is None:
-#                         continue
-#                     else:
-#                         if Commute(str(*P_word.keys()), str(*P_comp.keys())):
-#                             print(key, i, k, j)
-#                             record.append([key, i, k, j])
-#
-#                         if len(branch_instance)==0:
-#                             if Commute(str(*P_word.keys()), str(*P_comp.keys())):
-#                                 branch_instance.append(str(*P_comp.keys()))
-#                         elif len(branch_instance)!=0:
-#                             if Commute(str(*P_word.keys()), str(*P_comp.keys())) and False not in [Commute(term, str(*P_comp.keys())) for term in branch_instance]:
-#                                 branch_instance.append(str(*P_comp.keys()))
-#         full_branch_key.append(branch_instance)
-#     tree[key] = full_branch_key
-
-
-
-#   working
-# record = []
-# tree={}
-# for key in FILLED_anti_commuting_sets:
-#     selected_set = FILLED_anti_commuting_sets[key]
-#     full_branch_key=[]
-#
-#     for i in range(max_num_terms):
-#         P_word = selected_set[i]
-#
-#         branch_instance=[]
-#
-#
-#         if P_word is None:
-#             continue
-#         else:
-#             branch_instance.append(str(*P_word.keys()))
-#             for j in range(max_num_terms):                                         #stays at 0 for all keys then goes up by 1 and repeats!
-#                 for k in np.arange(key+1, len(FILLED_anti_commuting_sets)-1,1):
-#                     P_comp = FILLED_anti_commuting_sets[k][j]
-#
-#                     if P_comp is None:
-#                         continue
-#                     else:
-#                         if False not in [Commute(term, str(*P_comp.keys())) for term in branch_instance]:
-#                             print(key, i, k, j)
-#                             branch_instance.append(str(*P_comp.keys()))
-#
-#         full_branch_key.append(branch_instance)
-#     tree[key] = full_branch_key
-
-
-
 
