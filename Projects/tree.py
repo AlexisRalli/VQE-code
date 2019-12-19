@@ -2,9 +2,6 @@ import numpy as np
 from functools import reduce
 from quchem.Graph import *
 #from itertools import zip_longest
-
-
-
 List_PauliWords = [[(0, 'I'), (1, 'I'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
                    [(0, 'Z'),(1, 'I'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
                    [(0, 'Y'),(1, 'Z'),(2, 'Y'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
@@ -256,14 +253,11 @@ branch_to_measure_at_once[tree[m[1]][m[2]]['i_key'][1]] = anti_commuting_sets[tr
 for index, key in tree[m[1]][m[2]]['j_k']:
     branch_to_measure_at_once[key] = anti_commuting_sets[key][index]
 
-keys = [key for index, key in tree[m[1]][m[2]]['j_k']]
-missing_k = [k for k in anti_commuting_sets.keys() if k not in keys]
+missing_k = [k for k in anti_commuting_sets.keys() if k not in branch_to_measure_at_once.keys()]
 
 missed_terms={}
 for k in missing_k:
     missed_terms[k] = anti_commuting_sets[k]
-
-
 
 
 # NOT working
