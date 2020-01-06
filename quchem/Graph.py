@@ -646,7 +646,7 @@ def Build_Graph_Nodes(List_of_nodes, Graph, node_attributes_dict=None, plot_grap
         List_of_nodes (list): A list of Pauliwords, where each entry is a tuple of (PauliWord, constant)
         Graph ():
         node_attributes_dict
-        plot_graph (optional, int) = index for PauliWord_S term. #TODO
+        plot_graph (optional, bool): whether to plot graph
 
     Returns:
 
@@ -691,7 +691,29 @@ def Build_Graph_Nodes(List_of_nodes, Graph, node_attributes_dict=None, plot_grap
     return Graph
 
 def Build_Graph_Edges_defined_by_indices(Graph, Node_and_connected_Nodes, plot_graph = False):
+    """
 
+    Function builds graph edges from defined node indices!
+
+    e.g.
+    [   (0, [1,3]),
+        (1, [0,3]),
+        (2, []),
+        (3, [0, 1])
+    ]
+
+    first part of tuple is defined node and other part is list of nodes to connect too
+
+    Args:
+        Node_and_connected_Nodes (list): list of tuples, where each tuple is:
+                                    (defined_node_index, [list of node indices that commute with defined_node_index])
+        Graph: networkX graph with nodes already defined
+        plot_graph (optional, bool): whether to plot graph
+
+    Returns:
+        Graph: Graph with nodes connected by defined indices
+
+    """
     nodes_list = list(Graph.nodes())
     for node_index, connected_node_indices in Node_and_connected_Nodes:
         for index in connected_node_indices:
@@ -709,6 +731,21 @@ def Build_Graph_Edges_COMMUTING(Graph, PauliWord_string_nodes_list, plot_graph =
 
     # PauliWord_string_nodes_list can be obtained from Get_PauliWords_as_nodes function
     # OR simply list(Graph.nodes())
+
+    """
+
+    Function builds graph edges that COMMUTE.
+
+    Args:
+        PauliWord_string_nodes_list (list): list of PauliWords (str)
+        Graph: networkX graph with nodes already defined
+        plot_graph (optional, bool): whether to plot graph
+
+    Returns:
+        Graph: Graph with nodes connected if they COMMUTE
+
+    """
+
 
     for i in tqdm(range(len(PauliWord_string_nodes_list)), ascii=True, desc='Building Graph Edges'):
 
@@ -743,6 +780,19 @@ def Build_Graph_Edges_ANTICOMMUTING(Graph, PauliWord_string_nodes_list, plot_gra
 
     # PauliWord_string_nodes_list can be obtained from Get_PauliWords_as_nodes function
     # OR simply list(Graph.nodes())
+    """
+
+    Function builds graph edges that ANTI-commute.
+
+    Args:
+        PauliWord_string_nodes_list (list): list of PauliWords (str)
+        Graph: networkX graph with nodes already defined
+        plot_graph (optional, bool): whether to plot graph
+
+    Returns:
+        Graph: Graph with nodes connected if they ANTI-commute.
+
+    """
 
     for i in tqdm(range(len(PauliWord_string_nodes_list)), ascii=True, desc='Building Graph Edges'):
 
@@ -763,7 +813,7 @@ def Build_Graph_Edges_ANTICOMMUTING(Graph, PauliWord_string_nodes_list, plot_gra
                 else:
                     checker[k] = -1
 
-            if reduce((lambda x, y: x * y), checker) == -1:  # <----- changing this to -ve one gives anti-commuting
+            if reduce((lambda x, y: x * y), checker) == -1:  # <----- changing this to +ve gives commuting
                 Graph.add_edge(PauliWord_string_nodes_list[i], PauliWord_string_nodes_list[j])
 
     if plot_graph == True:
