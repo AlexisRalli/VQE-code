@@ -76,4 +76,32 @@ def test_Get_list_of_nodes_and_attributes_NORMAL():
 
     assert (List_of_nodes == L_nodes) and (attrib_dict == node_attributes_dict)
 
+def test_Build_Graph_Nodes():
+    List_of_nodes =  [
+                        'I0 I1 I2 I3',
+                        'Z0 I1 I2 I3',
+                        'I0 Z1 I2 I3',
+                        'I0 I1 I2 Z3',
+                        'I0 I1 Z2 Z3'
+                    ]
+    node_attributes_dict =  {'I0 I1 I2 I3': {'Cofactors': (-0.32760818995565577+0j), 'random_attribute': 0},
+                             'Z0 I1 I2 I3': {'Cofactors': (0.1371657293179602+0j), 'random_attribute': 1},
+                             'I0 Z1 I2 I3': {'Cofactors': (0.1371657293179602+0j), 'random_attribute': 2},
+                             'I0 I1 I2 Z3': {'Cofactors': (-0.13036292044009176+0j),
+                              'random_attribute': 3},
+                             'I0 I1 Z2 Z3': {'Cofactors': (0.1632676867167479+0j), 'random_attribute': 4}}
 
+    G = nx.Graph()
+    output = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
+
+    output_nodes = list(output.nodes)
+
+    checker = np.zeros(len(output_nodes))
+    for i in range(len(output_nodes)):
+        node = output_nodes[i]
+        if output.nodes[node] == node_attributes_dict[node]:
+            checker[i]= 1
+        else:
+            continue
+
+    assert output_nodes == List_of_nodes and checker.all()
