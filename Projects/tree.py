@@ -2,48 +2,72 @@ import numpy as np
 from functools import reduce
 from quchem.Graph import *
 #from itertools import zip_longest
-List_PauliWords = [[(0, 'I'), (1, 'I'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'Z'),(1, 'I'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'Y'),(1, 'Z'),(2, 'Y'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'X'),(1, 'Z'),(2, 'X'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'Y'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'Y'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'X'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'X'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'Y'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Y'),(11, 'I')],
-                   [(0, 'X'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'X'),(11, 'I')],
-                   [(0, 'I'),(1, 'Z'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'I'),(1, 'Y'),(2, 'Z'),(3, 'Y'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'I'),(1, 'X'),(2, 'Z'),(3, 'X'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'I'),(1, 'Y'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Y'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'I'),(1, 'X'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'X'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'I'),(1, 'Y'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Z'),(11, 'Y')],
-                   [(0, 'I'),(1, 'X'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Z'),(11, 'X')],
-                   [(0, 'I'),(1, 'I'),(2, 'Z'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'I'),(1, 'I'),(2, 'Y'),(3, 'Z'),(4, 'Y'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'I'),(1, 'I'),(2, 'X'),(3, 'Z'),(4, 'X'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
-                   [(0, 'I'),(1, 'I'),(2, 'Y'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Y'),(11, 'I')],
-                   [(0, 'I'),(1, 'I'),(2, 'X'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'X'),(11, 'I')]
-                   ]
-HamiltonainCofactors = [(-3.9344419569678446+0j),
- (1.04962640047693+0j),
- (-0.023844584591133436+0j),
- (-0.023844584591133436+0j),
- (-0.026332990895885356+0j),
- (-0.026332990895885356+0j),
- (-0.017297109487008907+0j),
- (-0.017297109487008907+0j),
- (1.0496264004769302+0j),
- (-0.023844584591133443+0j),
- (-0.023844584591133443+0j),
- (-0.026332990895885387+0j),
- (-0.026332990895885387+0j),
- (-0.01729710948700891+0j),
- (-0.01729710948700891+0j),
- (-0.09129805365197576+0j),
- (-0.007987782352070982+0j),
- (-0.007987782352070982+0j),
- (-0.005200666861919969+0j),
- (-0.005200666861919969+0j)]
 
+#### Manual ####
+
+# List_PauliWords = [[(0, 'I'), (1, 'I'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'Z'),(1, 'I'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'Y'),(1, 'Z'),(2, 'Y'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'X'),(1, 'Z'),(2, 'X'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'Y'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'Y'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'X'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'X'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'Y'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Y'),(11, 'I')],
+#                    [(0, 'X'),(1, 'Z'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'X'),(11, 'I')],
+#                    [(0, 'I'),(1, 'Z'),(2, 'I'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'I'),(1, 'Y'),(2, 'Z'),(3, 'Y'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'I'),(1, 'X'),(2, 'Z'),(3, 'X'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'I'),(1, 'Y'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Y'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'I'),(1, 'X'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'X'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'I'),(1, 'Y'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Z'),(11, 'Y')],
+#                    [(0, 'I'),(1, 'X'),(2, 'Z'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Z'),(11, 'X')],
+#                    [(0, 'I'),(1, 'I'),(2, 'Z'),(3, 'I'),(4, 'I'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'I'),(1, 'I'),(2, 'Y'),(3, 'Z'),(4, 'Y'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'I'),(1, 'I'),(2, 'X'),(3, 'Z'),(4, 'X'),(5, 'I'),(6, 'I'),(7, 'I'),(8, 'I'),(9, 'I'),(10, 'I'),(11, 'I')],
+#                    [(0, 'I'),(1, 'I'),(2, 'Y'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'Y'),(11, 'I')],
+#                    [(0, 'I'),(1, 'I'),(2, 'X'),(3, 'Z'),(4, 'Z'),(5, 'Z'),(6, 'Z'),(7, 'Z'),(8, 'Z'),(9, 'Z'),(10, 'X'),(11, 'I')]
+#                    ]
+# HamiltonainCofactors = [(-3.9344419569678446+0j),
+#  (1.04962640047693+0j),
+#  (-0.023844584591133436+0j),
+#  (-0.023844584591133436+0j),
+#  (-0.026332990895885356+0j),
+#  (-0.026332990895885356+0j),
+#  (-0.017297109487008907+0j),
+#  (-0.017297109487008907+0j),
+#  (1.0496264004769302+0j),
+#  (-0.023844584591133443+0j),
+#  (-0.023844584591133443+0j),
+#  (-0.026332990895885387+0j),
+#  (-0.026332990895885387+0j),
+#  (-0.01729710948700891+0j),
+#  (-0.01729710948700891+0j),
+#  (-0.09129805365197576+0j),
+#  (-0.007987782352070982+0j),
+#  (-0.007987782352070982+0j),
+#  (-0.005200666861919969+0j),
+#  (-0.005200666861919969+0j)]
+
+
+############### auto ###
+from quchem.Hamiltonian_Generator_Functions import Hamiltonian
+Molecule = 'H2O'
+#geometry =# [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
+n_electrons = 10
+num_shots = 10000
+####
+
+### Get Hamiltonian
+Hamilt = Hamiltonian(Molecule,
+                     run_scf = 1, run_mp2 = 1, run_cisd = 0, run_ccsd = 0, run_fci = 1,
+                 basis = 'sto-3g',
+                 multiplicity = 1,
+                 geometry = None) # normally None!
+
+Hamilt.Get_all_info(get_FCI_energy=False)
+
+List_PauliWords = Hamilt.QubitHamiltonianCompleteTerms
+HamiltonainCofactors = Hamilt.HamiltonainCofactors
+######################
 
 List_of_nodes = Get_PauliWords_as_nodes(List_PauliWords)
 attribute_dictionary = {'Cofactors': HamiltonainCofactors}
@@ -168,7 +192,7 @@ FILLED_anti_commuting_sets = Make_anti_commuting_sets_same_length(anti_commuting
 def Find_Longest_tree(FILLED_anti_commuting_sets, max_set_size, anti_comm=False):
 
     tree = {}
-    best_reduction_possible = len(FILLED_anti_commuting_sets)  # <-- aka need this many things in branch_instance!
+    best_reduction_possible = len(FILLED_anti_commuting_sets)  # <-- aka how many fully anti-commuting sets
     running_best = 0
 
     for key in tqdm(range(len(FILLED_anti_commuting_sets)), ascii=True, desc='Getting best Branch'):
@@ -213,7 +237,7 @@ def Find_Longest_tree(FILLED_anti_commuting_sets, max_set_size, anti_comm=False)
                     break
                 elif running_best < len(branch_instance):
                     running_best = len(branch_instance)
-                    best_combo = {'key': key, 'i': i, 'j_k': jk_list}  # 'Branch_instance': branch_instance}
+                    best_combo = {'i_key': (i, key), 'j_k': jk_list}  # 'Branch_instance': branch_instance}
 
             branch_instance_holder.update({'i': i, 'j_k': jk_list, 'Branch_instance': branch_instance})
             full_branch_key.append(branch_instance_holder)
@@ -232,17 +256,30 @@ tree_commute, best_combo_commute = Find_Longest_tree(FILLED_anti_commuting_sets,
 #tree_anti, best_combo_anti = Find_Longest_tree(FILLED_anti_commuting_sets, max_set_size, anti_comm= True)
 
 
-# want to maximise the anti_commutativity between the remaining terms to do further Unitary partitioning!
-missing_k = [k for k in anti_commuting_sets.keys() if k not in [key for index, key in best_combo_commute['j_k']]]
+def Remaining_anti_commuting_sets(best_combo, anti_commuting_sets_RELATED_to_combo):
+    missing_k = [k for k in anti_commuting_sets_RELATED_to_combo.keys() if
+                 k not in [key for index, key in best_combo['j_k']] + [best_combo['i_key'][1]]]
+    new_anti_commuting_sets = {}
+    i = 0
+    for key in missing_k:
+        # new_anti_commuting_sets[key]=anti_commuting_sets[key]
+        new_anti_commuting_sets[i] = anti_commuting_sets[key]
+        i += 1
+    return new_anti_commuting_sets
 
-# only look at missing keys!!!
-new_anti_commuting_sets={}
-i=0
-for key in missing_k:
-    # new_anti_commuting_sets[key]=anti_commuting_sets[key]
-    new_anti_commuting_sets[i] = anti_commuting_sets[key]
-    i+=1
 
+# # want to maximise the anti_commutativity between the remaining terms to do further Unitary partitioning!
+# missing_k = [k for k in anti_commuting_sets.keys() if k not in [key for index, key in best_combo_commute['j_k']] + [best_combo_commute['i_key'][1]]]
+#
+# # only look at missing keys!!!
+# new_anti_commuting_sets={}
+# i=0
+# for key in missing_k:
+#     # new_anti_commuting_sets[key]=anti_commuting_sets[key]
+#     new_anti_commuting_sets[i] = anti_commuting_sets[key]
+#     i+=1
+
+new_anti_commuting_sets = Remaining_anti_commuting_sets(best_combo_commute, anti_commuting_sets)
 max_set_size = Get_longest_anti_commuting_set(new_anti_commuting_sets)
 NEW_FILLED_anti_commuting_sets = Make_anti_commuting_sets_same_length(new_anti_commuting_sets, max_set_size)
 
@@ -250,6 +287,22 @@ NEW_FILLED_anti_commuting_sets = Make_anti_commuting_sets_same_length(new_anti_c
 tree_anti, best_combo_anti = Find_Longest_tree(NEW_FILLED_anti_commuting_sets, max_set_size, anti_comm= True)
 
 print(best_combo_anti)
+
+#missing_k_new = [k for k in new_anti_commuting_sets.keys() if k not in [key for index, key in best_combo_anti['j_k']] + [best_combo_anti['i_key'][1]]]
+NEW_new_anti_commuting_sets = Remaining_anti_commuting_sets(best_combo_anti, NEW_FILLED_anti_commuting_sets)
+
+NEW_max_set_size = Get_longest_anti_commuting_set(NEW_new_anti_commuting_sets)
+NEW_NEW_FILLED_anti_commuting_sets = Make_anti_commuting_sets_same_length(NEW_new_anti_commuting_sets, max_set_size)
+tree_anti, best_combo_anti = Find_Longest_tree(NEW_NEW_FILLED_anti_commuting_sets, NEW_max_set_size, anti_comm= False)
+print(best_combo_anti)
+
+
+
+
+
+
+
+
 
 # old idea (not working)
 # # anti_commuting_sets key ordering... smallest first!
