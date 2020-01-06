@@ -278,9 +278,16 @@ if __name__ == '__main__':
 
 
 class X_sk_terms():
-    def __init__(self,anti_commuting_sets, S=0):
+    def __init__(self,anti_commuting_sets, S_dict=None):
         self.anti_commuting_sets = anti_commuting_sets
-        self.S = S
+
+        if S_dict is None:
+            # makes PauliS always 0th index in anticommuting sets
+            self.S_dict={}
+            for key in anti_commuting_sets:
+                self.S_dict[key] = 0
+        else:
+            self.S_dict = S_dict
 
         self.normalised_anti_commuting_sets = None
         self.X_sk_Ops = None
@@ -301,7 +308,7 @@ class X_sk_terms():
 
         X_sk_Ops={}
         for key in self.normalised_anti_commuting_sets:
-            X_sk_Ops[key] = Get_X_sk_operators(self.normalised_anti_commuting_sets[key], S=self.S)
+            X_sk_Ops[key] = Get_X_sk_operators(self.normalised_anti_commuting_sets[key], S=self.S_dict[key])
 
         self.X_sk_Ops = X_sk_Ops
 
@@ -310,7 +317,7 @@ class X_sk_terms():
         self.Get_X_sk_Operators()
 
 if __name__ == '__main__':
-    ALL_X_SK_TERMS = X_sk_terms(anti_commuting_sets, S=0)
+    ALL_X_SK_TERMS = X_sk_terms(anti_commuting_sets, S_dict={0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0})
     ALL_X_SK_TERMS.Get_all_X_sk_operators()
 
 
@@ -938,7 +945,7 @@ class UnitaryPartition(X_sk_terms):
     def __init__(self, anti_commuting_sets, full_anstaz_circuit, S=0):
         self.anti_commuting_sets = anti_commuting_sets
         self.S = S
-        super().__init__(anti_commuting_sets, S=S)
+        super().__init__(anti_commuting_sets, S_dict=None)
         self.Get_all_X_sk_operators()
         self.full_anstaz_circuit = full_anstaz_circuit
 
