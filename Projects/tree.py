@@ -50,9 +50,9 @@ from quchem.Graph import *
 
 ############### auto ###
 from quchem.Hamiltonian_Generator_Functions import Hamiltonian
-Molecule = 'H2O'
+Molecule = 'LiH'#'H2O'
 #geometry =# [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
-n_electrons = 10
+n_electrons = 3#10
 num_shots = 10000
 ####
 
@@ -77,7 +77,7 @@ List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_of_n
 
 G = nx.Graph()
 G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
-G = Build_Graph_Edges_COMMUTING(G, List_of_nodes, plot_graph=True)
+G = Build_Graph_Edges_COMMUTING(G, List_of_nodes, plot_graph=False)
 
 # comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
 
@@ -195,8 +195,11 @@ def Find_Longest_tree(FILLED_anti_commuting_sets, max_set_size, anti_comm=False)
     best_reduction_possible = len(FILLED_anti_commuting_sets)  # <-- aka how many fully anti-commuting sets
     running_best = 0
 
-    for key in tqdm(range(len(FILLED_anti_commuting_sets)), ascii=True, desc='Getting best Branch'):
+    key_list = list(FILLED_anti_commuting_sets.keys())
+
     #for key in FILLED_anti_commuting_sets:
+    for INDEX in tqdm(range(len(FILLED_anti_commuting_sets)), ascii=True, desc='Getting best Branch'):
+        key = key_list[INDEX]
         selected_set = FILLED_anti_commuting_sets[key]
         full_branch_key = []
 
@@ -214,7 +217,8 @@ def Find_Longest_tree(FILLED_anti_commuting_sets, max_set_size, anti_comm=False)
 
                     k_max = len(FILLED_anti_commuting_sets) - (key+1) # max number of levels one can loop through
 
-                    for k in np.arange(key + 1, len(FILLED_anti_commuting_sets), 1):  # goes over different keys bellow top key
+                    # for k in np.arange(key + 1, len(FILLED_anti_commuting_sets), 1):  # goes over different keys bellow top key
+                    for k in key_list[key+1:]:
                         P_comp = FILLED_anti_commuting_sets[k][j]
 
                         if P_comp is None:
@@ -260,11 +264,9 @@ def Remaining_anti_commuting_sets(best_combo, anti_commuting_sets_RELATED_to_com
     missing_k = [k for k in anti_commuting_sets_RELATED_to_combo.keys() if
                  k not in [key for index, key in best_combo['j_k']] + [best_combo['i_key'][1]]]
     new_anti_commuting_sets = {}
-    i = 0
     for key in missing_k:
         # new_anti_commuting_sets[key]=anti_commuting_sets[key]
-        new_anti_commuting_sets[i] = anti_commuting_sets[key]
-        i += 1
+        new_anti_commuting_sets[key] = anti_commuting_sets[key]
     return new_anti_commuting_sets
 
 
@@ -284,7 +286,7 @@ max_set_size = Get_longest_anti_commuting_set(new_anti_commuting_sets)
 NEW_FILLED_anti_commuting_sets = Make_anti_commuting_sets_same_length(new_anti_commuting_sets, max_set_size)
 
 # HERE can either look for next best commutative tree OR look for best anti_commuting terms to do further UP too!
-tree_anti, best_combo_anti = Find_Longest_tree(NEW_FILLED_anti_commuting_sets, max_set_size, anti_comm= True)
+tree_anti, best_combo_anti = Find_Longest_tree(NEW_FILLED_anti_commuting_sets, max_set_size, anti_comm= False)
 
 print(best_combo_anti)
 
