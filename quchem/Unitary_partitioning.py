@@ -942,10 +942,9 @@ if __name__ == '__main__':
 from quchem.quantum_circuit_functions import *
 
 class UnitaryPartition(X_sk_terms):
-    def __init__(self, anti_commuting_sets, full_anstaz_circuit, S=0):
+    def __init__(self, anti_commuting_sets, full_anstaz_circuit, S_dict=None):
         self.anti_commuting_sets = anti_commuting_sets
-        self.S = S
-        super().__init__(anti_commuting_sets, S_dict=None)
+        super().__init__(anti_commuting_sets, S_dict=S_dict)
         self.Get_all_X_sk_operators()
         self.full_anstaz_circuit = full_anstaz_circuit
 
