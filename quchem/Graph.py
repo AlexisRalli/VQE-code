@@ -727,47 +727,110 @@ def Build_Graph_Edges_defined_by_indices(Graph, Node_and_connected_Nodes, plot_g
         plt.show()
     return Graph
 
-def Build_Graph_Edges_COMMUTING(Graph, PauliWord_string_nodes_list, plot_graph = False):
+def Commutativity(P1, P2, anti_comm_QWC):
+    """
+     Find if two PauliWords either commute or anti_commute.
+     By default it will check if they commute.
 
-    # PauliWord_string_nodes_list can be obtained from Get_PauliWords_as_nodes function
-    # OR simply list(Graph.nodes())
+    Args:
+        P1 (str): First PauliWord to compare
+        P2 (str): Second PauliWord to compare
+        anti_comm_QWC (str): flags to find either:
+                                                   qubit wise commuting (QWC) terms  -> flag = 'QWC',
+                                                                     commuting terms -> flag = 'C',
+                                                                anti-commuting terms -> flag = 'AC'
+
+    Returns:
+        (bool): True or false as to whether terms commute or anti_commute
+
+    .. code-block:: python
+       :emphasize-lines: 6
+
+       from quchem.Tree_Fucntions import *
+
+        P1 = 'X0 X1 X2 X3 X4'
+        P2 = 'I0 I1 I2 Z3 Y4'
+
+        Commutativity(P1, P2, anti_comm_QWC='C')
+       >> True
+
+       Commutativity(P1, P2, anti_comm_QWC='QWC')
+       >> False
+
+       Commutativity(P1, P2, anti_comm_QWC='AC')
+       >> False
+    """
+    P1 = P1.split(' ')
+    P2 = P2.split(' ')
+
+    checker = np.zeros(len(P1))
+    for i in range(len(P1)):
+        if P1[i][0] == P2[i][0]:
+            checker[i] = 1
+        elif P1[i][0] == 'I' or P2[i][0] == 'I':
+            checker[i] = 1
+        else:
+            checker[i] = -1
+
+    if anti_comm_QWC == 'QWC':
+        # QWC commuting
+        if bool(np.all([x==1 for x in checker])) is True:
+            return True
+        else:
+            return False
+    else:
+
+        if anti_comm_QWC == 'C':
+            # Commuting
+            if np.prod(checker) == 1:
+                return True
+            else:
+                return False
+        elif anti_comm_QWC == 'AC':
+            # ANTI-commuting
+            if np.prod(checker) == -1:
+                return True
+            else:
+                return False
+        else:
+            raise KeyError('Incorrect flag used. anti_comm_QWC must be: \'QWC\', \'C\' or \'AC\'')
+
+def Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(Graph, PauliWord_string_nodes_list, anti_comm_QWC, plot_graph = False):
 
     """
 
-    Function builds graph edges that COMMUTE.
+    Function builds graph edges for commuting / anticommuting / QWC PauliWords
 
     Args:
         PauliWord_string_nodes_list (list): list of PauliWords (str)
         Graph: networkX graph with nodes already defined
+        anti_comm_QWC (str): flags to find either:
+                                           qubit wise commuting (QWC) terms  -> flag = 'QWC',
+                                                             commuting terms -> flag = 'C',
+                                                        anti-commuting terms -> flag = 'AC'
         plot_graph (optional, bool): whether to plot graph
 
     Returns:
-        Graph: Graph with nodes connected if they COMMUTE
+        Graph: Graph with nodes connected if they commute / QWC / anti-commute
 
     """
 
 
     for i in tqdm(range(len(PauliWord_string_nodes_list)), ascii=True, desc='Building Graph Edges'):
 
-        selected_PauliWord_list = PauliWord_string_nodes_list[i].split(' ') # splits e.g. ['Y0', 'Y1', 'X2', 'X3']
+        selected_PauliWord = PauliWord_string_nodes_list[i]
 
-        j_list = [j for j in range(len(PauliWord_string_nodes_list)) if
-                      j != i] # all the other indexes
+        j_list = [j for j in range(len(PauliWord_string_nodes_list)) if j != i] # all the other indexes
 
         for j in j_list:
-            comparison_PauliWord_list = PauliWord_string_nodes_list[j].split(' ')
-            checker = np.zeros(len(selected_PauliWord_list))
+            comparison_PauliWord = PauliWord_string_nodes_list[j]
 
-            for k in range(len(selected_PauliWord_list)):
-                if selected_PauliWord_list[k][0] ==  comparison_PauliWord_list[k][0]: #compares only PauliString
-                    checker[k] = 1
-                elif selected_PauliWord_list[k][0] == 'I' or comparison_PauliWord_list[k][0] == 'I':
-                    checker[k] = 1
-                else:
-                    checker[k] = -1
-
-            if reduce((lambda x, y: x * y), checker) == 1:  # <----- changing this to -ve one gives anti-commuting
+            if Commutativity(selected_PauliWord, comparison_PauliWord, anti_comm_QWC) is True:
                 Graph.add_edge(PauliWord_string_nodes_list[i], PauliWord_string_nodes_list[j])
+            else:
+                continue
+
+
 
     if plot_graph == True:
         plt.figure()
@@ -775,54 +838,6 @@ def Build_Graph_Edges_COMMUTING(Graph, PauliWord_string_nodes_list, plot_graph =
         nx.draw(Graph, pos, with_labels=1)
         plt.show()
     return Graph
-
-def Build_Graph_Edges_ANTICOMMUTING(Graph, PauliWord_string_nodes_list, plot_graph = False):
-
-    # PauliWord_string_nodes_list can be obtained from Get_PauliWords_as_nodes function
-    # OR simply list(Graph.nodes())
-    """
-
-    Function builds graph edges that ANTI-commute.
-
-    Args:
-        PauliWord_string_nodes_list (list): list of PauliWords (str)
-        Graph: networkX graph with nodes already defined
-        plot_graph (optional, bool): whether to plot graph
-
-    Returns:
-        Graph: Graph with nodes connected if they ANTI-commute.
-
-    """
-
-    for i in tqdm(range(len(PauliWord_string_nodes_list)), ascii=True, desc='Building Graph Edges'):
-
-        selected_PauliWord_list = PauliWord_string_nodes_list[i].split(' ') # splits e.g. ['Y0', 'Y1', 'X2', 'X3']
-
-        j_list = [j for j in range(len(PauliWord_string_nodes_list)) if
-                      j != i] # all the other indexes
-
-        for j in j_list:
-            comparison_PauliWord_list = PauliWord_string_nodes_list[j].split(' ')
-            checker = np.zeros(len(selected_PauliWord_list))
-
-            for k in range(len(selected_PauliWord_list)):
-                if selected_PauliWord_list[k][0] ==  comparison_PauliWord_list[k][0]: #compares only PauliString
-                    checker[k] = 1
-                elif selected_PauliWord_list[k][0] == 'I' or comparison_PauliWord_list[k][0] == 'I':
-                    checker[k] = 1
-                else:
-                    checker[k] = -1
-
-            if reduce((lambda x, y: x * y), checker) == -1:  # <----- changing this to +ve gives commuting
-                Graph.add_edge(PauliWord_string_nodes_list[i], PauliWord_string_nodes_list[j])
-
-    if plot_graph == True:
-        plt.figure()
-        pos = nx.circular_layout(Graph)
-        nx.draw(Graph, pos, with_labels=1)
-        plt.show()
-    return Graph
-
 
 def Get_Complemenary_Graph(Graph, node_attributes_dict=None, plot_graph=False):
     Complement_Graph = nx.complement(Graph)
@@ -986,7 +1001,6 @@ def Get_subgraphs(Graph, node_attributes_dict=None):
 
     return single_node_G, multi_node_G
 
-
 def Colour_list_of_Graph(Graph_list, attribute_dictionary=None, plot_graph=False, strategy='largest_first'):
     # different strategies at:
     # https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.coloring.greedy_color.html#networkx.algorithms.coloring.greedy_color
@@ -1085,7 +1099,7 @@ if __name__ == '__main__':
 
     G = nx.Graph()
     G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
-    G = Build_Graph_Edges_COMMUTING(G, List_of_nodes, plot_graph = True)
+    G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes,'C', plot_graph = True)
 
     #comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
 
