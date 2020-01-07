@@ -132,14 +132,16 @@ def Find_Longest_tree(FILLED_anti_commuting_sets, max_set_size, anti_comm):
                         P_comp = FILLED_anti_commuting_sets[k][j]
 
                         if P_comp is None:
-                            k_max -= 1
+                            # k_max -= 1
                             continue
                         else:
                             if False not in [Commutativity(term, str(*P_comp.keys()), anti_comm) for term in branch_instance]:
                                 # print(key, i, k, j)
-                                k_max -= 1
+                                # k_max -= 1      #TODO this may be in WRONG PLACE!!!
                                 jk_list.append((j, k))
                                 branch_instance.append(str(*P_comp.keys()))
+
+                        k_max -= 1  # each time we go through k, the max_k must decrease by 1
 
                     if len(branch_instance) + k_max >= running_best:
                         continue
