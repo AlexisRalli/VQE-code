@@ -52,7 +52,7 @@ HamiltGraph.colouring(plot_graph=False)
 anti_commuting_sets = HamiltGraph.anticommuting_sets
 
 ### Get Unitary Partition
-zz = UnitaryPartition(anti_commuting_sets, full_anstaz_circuit, S=0)
+zz = UnitaryPartition(anti_commuting_sets, full_anstaz_circuit, S_dict=None)
 zz.Get_Quantum_circuits_and_constants()
 circuits_and_constants = zz.circuits_and_constants
 
