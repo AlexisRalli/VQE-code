@@ -2,6 +2,8 @@ import cirq
 import numpy as np
 
 
+##### For Ansatze ####
+
 class State_Prep(cirq.Gate):
     """
 
@@ -80,13 +82,13 @@ if __name__ == '__main__':
 class Change_of_Basis_initial(cirq.Gate):
     def __init__(self, PauliWord_and_cofactor):
         """
-         Circuit to perform change of basis in order to perform: e^(-i theta_sk/2 X_sk)
+         Circuit to perform change of basis in order to perform: e^(cofactor * theta_sk * PauliWord)
          This cirq gate changes to correct basis.
 
         :param PauliWord_and_cofactor: (PauliWord, constant)
         :type PauliWord_and_cofactor: tuple
 
-        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
+        e.g.: ('X0 X1 Y2 X3', 0.125j)
 
         ...
         :raises [ErrorType]: [ErrorDescription]
@@ -137,13 +139,13 @@ if __name__ == '__main__':
 class Engtangle_initial(cirq.Gate):
     def __init__(self, PauliWord_and_cofactor):
         """
-         Circuit to perform change of basis in order to perform: e^(-i theta_sk/2 X_sk)
+         Circuit to perform change of basis in order to perform: e^(cofactor * theta_sk * PauliWord)
          This cirq gate entangles qubits prior to rotation
 
         :param PauliWord_and_cofactor: (PauliWord, constant)
         :type PauliWord_and_cofactor: tuple
 
-        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
+        e.g.: ('X0 X1 Y2 X3', 0.125j)
 
         ...
         :raises [ErrorType]: [ErrorDescription]
@@ -195,13 +197,19 @@ class PauliWord_exponential_rotation(cirq.Gate):
 
     def __init__(self, PauliWord_and_cofactor, theta):
         """
-         Circuit to perform change of basis in order to perform: e^(-i theta_sk/2 X_sk)
+         Circuit to perform change of basis in order to perform: e^(cofactor * theta * PauliWord)
          This cirq gate entangles qubits prior to rotation
+
+         note of UCCSD: U=exp [t02(a†2a0−a†0a2)] × exp [t13(a†3a1−a†1a3)] × exp [t0123(a†3a†2a1a0−a†0a†1a2a3)]
+         cofactors (t02, t13, t0123) determine if rotate by theta (if cofactor is -i term) of -theta (if cofactor is +i term)
 
         :param PauliWord_and_cofactor: (PauliWord, constant)
         :type PauliWord_and_cofactor: tuple
 
-         e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
+         e.g.: ('X0 X1 Y2 X3', 0.125j)
+
+
+
 
         :param theta: angle to rotate by
         :type theta: float
@@ -219,13 +227,19 @@ class PauliWord_exponential_rotation(cirq.Gate):
     def _decompose_(self, qubits):
 
         PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        cofactor = self.PauliWord_and_cofactor[1]
 
         # note identity terms removed here
         qubitNo_qubitOp_list = [(int(PauliString[1::]), PauliString[0]) for PauliString in PauliWord if PauliString[0] != 'I']
 
         control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list])
 
-        yield cirq.Rz(self.theta).on(qubits[control_qubit])
+        if cofactor.imag<0:
+            yield cirq.Rz(self.theta* np.abs(cofactor.imag)).on(qubits[control_qubit])
+        else:
+            yield cirq.Rz(self.theta* np.abs(cofactor.imag) *-1).on(qubits[control_qubit])
+
+
 
     def num_qubits(self):
         PauliWord = self.PauliWord_and_cofactor[0].split(' ')
@@ -235,7 +249,7 @@ class PauliWord_exponential_rotation(cirq.Gate):
         string_list = []
         PauliWord = self.PauliWord_and_cofactor[0].split(' ')
         for i in range(len(PauliWord)):
-                string_list.append('R_sk_rotation circuit')
+                string_list.append('exp_PauliWord_Rotation circuit')
         return string_list
 
 if __name__ == '__main__':
@@ -251,13 +265,13 @@ if __name__ == '__main__':
 class Engtangle_final(cirq.Gate):
     def __init__(self, PauliWord_and_cofactor):
         """
-         Circuit to perform change of basis in order to perform: e^(-i theta_sk/2 X_sk)
+         Circuit to perform change of basis in order to perform: e^(cofactor * theta_sk * X_sk)
          This cirq gate entangles qubits post rotation
 
         :param PauliWord_and_cofactor: (PauliWord, constant)
         :type PauliWord_and_cofactor: tuple
 
-        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
+        e.g.: ('X0 X1 Y2 X3', 0.125j)
 
         ...
         :raises [ErrorType]: [ErrorDescription]
@@ -426,6 +440,11 @@ if __name__ == '__main__':
     print(
         cirq.Circuit.from_ops(
             cirq.decompose_once((full_Oper(*cirq.LineQubit.range(full_Oper.num_qubits()))))))
+
+
+
+
+##### For Hamiltonian ####
 
 
 class Perform_PauliWord(cirq.Gate):
