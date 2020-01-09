@@ -11,6 +11,11 @@
 
 .idea/*
 
+quchem/*.hdf5
+quchem/*.inp
+quchem/*.out
+
+
 # egg files
 #*egg*
 
