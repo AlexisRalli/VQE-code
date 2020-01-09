@@ -26,373 +26,668 @@ def HF_state_generator(n_electrons, n_qubits):
 
 
 
-def Get_Occupied_and_Unoccupied_sites(HF_State):
-    """
-     Input is HF state in occupation number basis (canonical orbitals)
-    e.g. |0011>  =  [0,0,1,1]
-    Returns 4 lists of:
-    1. spin up sites occupied
-    2. spin down sites occupied
-    3. spin up sites unoccupied
-    4. spin down sites unoccupied
-
-    Args:
-        HF_State (list): A list description of HF state... note that indexing from far right to left.
-
-    Raises:
-        ValueError: HF state not in occupation number basis
-
-    Returns:
-        list: Returns 4 lists of spin up sites occupied, spin down sites occupied, spin up sites unoccupied and finally
-              spin down sites unoccupied
-
-    """
-
-    up_occ = []
-    down_occ = []
-    up_unocc = []
-    down_unocc =[]
-
-    for i in range(len(HF_State)):
-
-        bit = HF_State[-1::-1][i]  # note this slice reverses order! (QM indexing)
-
-        if i % 2 == 0 and bit == 1: #modulo two checks if spin up or spin down... bit is if occupied or not
-            up_occ.append(i)
-
-        elif bit == 1:
-            down_occ.append(i)
-
-        if i % 2 == 0 and bit == 0:
-            up_unocc.append(i)
-
-        elif bit == 0:
-            down_unocc.append(i)
-
-        if bit != 0 and bit != 1:
-            raise ValueError('HF state: {} not in correct format. bit at index {} is /'
-                             'not 0 or 1 but {}'.format(HF_State,i, bit))
-
-
-    return up_occ, down_occ, up_unocc, down_unocc
-
-def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
-    """
-
-    Input is lists of occupied and unoccupied sites
-    Returns 2 lists of:
-    1. ia_terms
-    2. ijab terms
-
-    notes:
-    https://iopscience.iop.org/article/10.1088/2058-9565/aad3e4/pdf
-
-    Args:
-        up_occ (list): sites that are spin UP and occupied
-        down_occ (list): sites that are spin DOWN and occupied
-        up_unocc (list): sites that are spin UP and UN-occupied
-        down_unocc (list): sites that are spin down and UN-occupied
-        const (float): Constant factor to times operator
-
-
-    Returns:
-        np.array: Two lists of ia and ijab terms
-
-    """
-
-    # SINGLE electron: spin UP transition
-    ia_terms = np.zeros((1, 3))
-    for i in up_occ:
-        for alpha in up_unocc:
-            if np.array_equal(ia_terms, np.zeros((1, 3))):
-                ia_terms = np.array([alpha, i, const])
-                # ia_terms = np.vstack((ia_terms, array))
-            else:
-                array = np.array([alpha, i, const])
-                ia_terms = np.vstack((ia_terms, array))
-
-    # SINGLE electron: spin DOWN transition
-    for i in down_occ:
-        for alpha in down_unocc:
-            if np.array_equal(ia_terms, np.zeros((1, 3))):
-                ia_terms = np.array([alpha, i, const])
-            else:
-                array = np.array([alpha, i, const])
-                ia_terms = np.vstack((ia_terms, array))
-
-    ## DOUBLE electron: two spin UP transition
-    ijab_terms = np.zeros((1, 5))
-    for i in up_occ:
-        for j in up_occ:
-            if i > j:
-                for alpha in up_unocc:
-                    for beta in up_unocc:
-                        if alpha > beta:
-                            if np.array_equal(ijab_terms, np.zeros((1, 5))):
-                                ijab_terms = np.array([alpha, beta, i, j, const])
-                            else:
-                                array = np.array([alpha, beta, i, j, const])
-                                ijab_terms = np.vstack((ijab_terms, array))
-
-
-    ## DOUBLE electron: two spin DOWN transition
-    for i in down_occ:
-        for j in down_occ:
-            if i > j:
-                for alpha in down_unocc:
-                    for beta in down_unocc:
-                        if alpha > beta:
-                            if np.array_equal(ijab_terms, np.zeros((1, 5))):
-                                ijab_terms = np.array([alpha, beta, i, j, const])
-                            else:
-                                array = np.array([alpha, beta, i, j, const])
-                                ijab_terms = np.vstack((ijab_terms, array))
-
-    ## DOUBLE electron: one spin UP and one spin DOWN transition
-    for i in up_occ:
-        for j in down_occ:
-            if i > j:
-                for alpha in up_unocc:
-                    for beta in down_unocc:
-                        if alpha > beta:
-                            if np.array_equal(ijab_terms, np.zeros((1, 5))):
-                                ijab_terms = np.array([alpha, beta, i, j, const])
-                            else:
-                                array = np.array([alpha, beta, i, j, const])
-                                ijab_terms = np.vstack((ijab_terms, array))
+if __name__ == '__main__':
+    from quchem.Hamiltonian_Generator_Functions import *
+    ### Variable Parameters
+    Molecule = 'H2'
+    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
+    n_electrons = 2
+    num_shots = 10000
+    ####
+
+    ### Get Hamiltonian
+    Hamilt = Hamiltonian(Molecule,
+                         run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
+                         basis='sto-3g',
+                         multiplicity=1,
+                         geometry=geometry)  # normally None!
+
+    Hamilt.Get_Molecular_Hamiltonian()
+    SQ_CC_ops, THETA_params = Hamilt.Get_ia_and_ijab_terms(Coupled_cluser_param=False)
+    print(SQ_CC_ops)
+
+    HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops)
+    # fermionic_hamiltonian = HF_transformations.Get_Fermionic_Hamiltonian()
+    # print(fermionic_hamiltonian)
+    Qubit_Hamiltonian = HF_transformations.Get_Qubit_Hamiltonian_JW() # qubit Hamiltonian version of Molecular Hamiltonian
+    print(Qubit_Hamiltonian)
+
+
+class UCCSD_Trotter():
+    def __init__(self, Second_Quant_CC_Ops_list, Theta_param_list):
+        self.Second_Quant_CC_Ops_list = Second_Quant_CC_Ops_list # FermionOperator
+        self.Theta_param_list = Theta_param_list
+
+    def SingleTrotterStep(self):
+        # U = exp [ t02 (a†2a0−a†0a2) + t13(a†3a1−a†1a3) +t0123 (a†3a†2a1a0−a†0a†1a2a3) ]
+        # becomes
+        # U=exp [t02(a†2a0−a†0a2)] × exp [t13(a†3a1−a†1a3)] × exp [t0123(a†3a†2a1a0−a†0a†1a2a3)]
+        # function takes each term in above, performs JW transform and appends to list.
+
+        Second_Quant_CC_JW_OP_list = []
+        from openfermion.transforms import jordan_wigner
+        for OP in self.Second_Quant_CC_Ops_list: # each OP = (T_i − T_i^†) i indicates if single, double, triple ... etc
+            JW_OP = jordan_wigner(OP)
+            Second_Quant_CC_JW_OP_list.append(JW_OP)
+        return Second_Quant_CC_JW_OP_list
+
+    def DoubleTrotterStep(self):
+        #TODO
+        # note for Theta_param_list, with 2nd order Trot will need to double angle params!
+        pass
+
+
+
+
+trott = UCCSD_Trotter(SQ_CC_ops, THETA_params)
+Second_Quant_CC_JW_OP_list = trott.SingleTrotterStep()
+for qubitOp in Second_Quant_CC_JW_OP_list:
+    for tupleOfTuples, const in qubitOp.terms.items():
+        print([tupl[1] + str(tupl[0]) for tupl in tupleOfTuples])
+        print(const)
+
+
+def Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_JW_OP_list):
+    # Second_Quant_CC_JW_OP_list =
+    # [
+    #     -0.5j[X0 Z1 Y2] + 0.5j[Y0 Z1 X2],
+    #     -0.5j[X1 Z2 Y3] +0.5j[Y1 Z2 X3],
+    #     0.125j[X0 X1 X2 Y3] +0.125j[X0 X1 Y2 X3] + -0.125j[X0 Y1 X2 X3] + 0.125j[X0 Y1 Y2 Y3] +-0.125j[Y0 X1 X2 X3]
+    #     +0.125j[Y0 X1 Y2 Y3] +-0.125j[Y0 Y1 X2 Y3] + -0.125j[Y0 Y1 Y2 X3]
+    # ]
+    # becomes
+
+    # [
+    #     [('Y0', 'Z1', 'X2', 'I3', 0.5j), ('X0', 'Z1', 'Y2', 'I3', -0.5j)],
+    #     [('I0', 'Y1', 'Z2', 'X3', 0.5j), ('I0', 'X1', 'Z2', 'Y3', -0.5j)],
+    #     [('X0', 'X1', 'Y2', 'X3', 0.125j),('Y0', 'Y1', 'Y2', 'X3', -0.125j), ('Y0', 'X1', 'X2', 'X3', -0.125j),
+    #       ('X0', 'Y1', 'X2', 'X3', -0.125j), ('Y0', 'X1', 'Y2', 'Y3', 0.125j), ('X0', 'Y1', 'Y2', 'Y3', 0.125j),
+    #       ('X0', 'X1', 'X2', 'Y3', 0.125j),('Y0', 'Y1', 'X2', 'Y3', -0.125j)]
+    #  ]
+
+    PauliWord_str_Second_Quant_CC_JW_OP_list = []
+    max_No_terms = max([len(list(QubitOP.terms.keys())[0]) for QubitOP in Second_Quant_CC_JW_OP_list])
+    all_indices = np.arange(0, max_No_terms, 1)
+
+    for QubitOP in Second_Quant_CC_JW_OP_list:
+        T_Tdagg_Op_list = []
+
+        for tupleOfTuples, factor in QubitOP.terms.items():
+            qubit_OP_list = [tupl[1] + str(tupl[0]) for tupl in tupleOfTuples]
+
+            if len(qubit_OP_list) < max_No_terms:
+                # fill missing terms with Identity
+                indices_present = [int(qubitNo_and_OP[1::]) for qubitNo_and_OP in qubit_OP_list]
+                missing_indices = [index for index in all_indices if index not in indices_present]
+
+                for index in missing_indices:
+                    qubit_OP_list.append('I{}'.format(index))
+
+                qubit_OP_list = sorted(qubit_OP_list, key=lambda x: int(x[1::])) # sort by qubitNo!
+            # T_Tdagg_Op_list.append((qubit_OP_list, factor))
 
-    ## DOUBLE electron: one spin DOWN and one spin UP transition
-    for i in down_occ:
-        for j in up_occ:
-            if i > j:
-                for alpha in down_unocc:
-                    for beta in up_unocc:
-                        if alpha > beta:
-                            if np.array_equal(ijab_terms, np.zeros((1, 5))):
-                                ijab_terms = np.array([alpha, beta, i, j, const])
-                            else:
-                                array = np.array([alpha, beta, i, j, const])
-                                ijab_terms = np.vstack((ijab_terms, array))
-
-    # this makes sure we have array of arrays! (not the case if only have one entry... this corrects for this)
-    if len(ia_terms.shape) == 1:
-        ia_terms = np.array([ia_terms])
-
-    if len(ijab_terms.shape) == 1:
-        ijab_terms = np.array([ijab_terms])
-
-
-    return ia_terms, ijab_terms
-
-
-def Get_T1_terms_list(ia_terms):
-    """
-
-    Gives list of T1 terms from defined ia_terms.
-
-    Args:
-        ia_terms (list): sites that are spin UP and occupied
-
-    Returns:
-        list: List of T1 Terms, where each object in list is a FermionOperator (openfermion.ops.FermionOperator)
-
-    """
-
-    from openfermion.ops import FermionOperator
-
-    T1_terms=[]
-    for x in range(len(ia_terms)):
-        i = int(ia_terms[x][0])
-        alph = int(ia_terms[x][1])
-        t_ia = float(ia_terms[x][2])
-        term = FermionOperator('{}^ {}'.format(i, alph), t_ia)
-        T1_terms.append(term)
-    return T1_terms
-
-def Get_T2_terms_list(ijab_terms):
-    """
-
-    Gives list of T2 terms from defined ijab_terms.
-
-    Args:
-        ijab_terms (list): list of ijab terms
-
-    Returns:
-        list: List of T2 Terms, where each object in list is a FermionOperator (openfermion.ops.FermionOperator)
-
-    """
-
-    from openfermion.ops import FermionOperator
-
-    T2_terms = []
-    for x in range(len(ijab_terms)):
-        i = int(ijab_terms[x][0])
-        j = int(ijab_terms[x][1])
-        alph = int(ijab_terms[x][2])
-        beta = int(ijab_terms[x][3])
-        t_ijab = float(ijab_terms[x][4])
-
-        term = FermionOperator('{}^ {}^ {} {} '.format(i, j, alph, beta), t_ijab)
-        T2_terms.append(term)
-
-    return T2_terms
-
-def dagger_T_list(T_list):
-    """
-
-    Input is list of FermionOperator, returns complex transpose.
-
-    Standard case is: T1 or T2 list, returns T1 dagger or T2 dagger (complex transpose)
-
-    Args:
-        T_list (list): list of FermionOperator Operators. (openfermion.ops.FermionOperator)
-
-    Returns:
-        list:  List of T dagger Terms (complex transpose), where each object in
-               list is a FermionOperator (openfermion.ops.FermionOperator)
-
-    """
-
-    from openfermion.utils import hermitian_conjugated
-
-    dagger_terms_list = []
-    for term in T_list:
-        dagger_terms_list.append(hermitian_conjugated(term))
-    return dagger_terms_list
-
-
-def JW_transform(T_Terms, T_dagger_terms):
-    """
-
-    Input is list of FermionOperators and their corresponding complex transpose. Performs the JW transform and
-    returns list of QubitOperators.
-
-    Standard case is: T1 and T1 dagger OR T2 list and T2 dagger
-
-    Args:
-        T_Terms (list): list of FermionOperator Operators. (openfermion.ops.FermionOperator)
-        T_dagger_terms (list): list of FermionOperator Operators. (openfermion.ops.FermionOperator)
-
-    Returns:
-        list:  A list containing Pauli Operators for each term. Note each object in
-               list is a QubitOperator (openfermion.QubitOperator)
-
-    """
-
-    from openfermion import jordan_wigner
-    T_Term_paulis = []
-    for i in range(len(T_Terms)):
-        T_Term_paulis.append(jordan_wigner(T_Terms[i] - T_dagger_terms[i]))
-    return T_Term_paulis
-
-
-# def Reformat_Pauli_terms(T_Term_Paulis):
-#     """
-#      Input is list of T Pauli QubitOperators. Output is list of lists to turn into quantum circuit.
-#
-#      e.g.
-#      input (type = QubitOperator)
-#      [
-#         -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
-#         -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
-#      ]
-#
-#      output (type = list of lists, where inner list is QubitOperator)
-#     [
-#          [0.125j [Y0 Z1 X2], -0.125j [X0 Z1 Y2]],
-#          [0.125j [Y1 Z2 X3], -0.125j [X1 Z2 Y3]]
-#     ]
-#     :param T_Term_Paulis: A list containing QubitOperator (OpenFermion) for each T term
-#     :type T_Term_Paulis: list
-#
-#
-#     ...
-#     :raises [ErrorType]: [ErrorDescription]
-#     ...
-#     :return: A list of lists, where each term in list is QubitOperator (openfermion)
-#     :rtype: list
-#
-#
-#     """
-#
-#     Complete_Operation_list = []
-#     for term in T_Term_Paulis:
-#         sub_term_list = list(term)
-#         QubitOperatorSubList = [sub_term for sub_term in sub_term_list]
-#         Complete_Operation_list.append(QubitOperatorSubList)
-#     return Complete_Operation_list
-
-def Reformat_Pauli_terms(T_Terms_Paulis):
-    """
-
-     Input is list of (T Pauli) QubitOperators. Output is list of lists of PauliWords with factors
-     to turn into quantum circuit.
-
-
-    Args:
-        T_Terms_Paulis (list): a list of T1 or T2 Terms, where each object in list is a
-                                QubitOperator (openfermion.QubitOperator)
-
-    Returns:
-        list:  A list of lists... where inner list contains (PauliWord, factor) of T_Terms_Paulis
-
-
-    from openfermion.ops._qubit_operator import QubitOperator
-    T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
-        (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
-
-    .. code-block:: python
-       :emphasize-lines: 10
-
-       from openfermion.ops._qubit_operator import QubitOperator
-       T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
-        (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
-
-        >> [
-            -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
-            -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
-           ]
-
-        Reformat_Pauli_terms(T1_Terms_Paulis)
-        >> [
-                [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
-                [('Y1 Z2 X3', 0.125j), ('X1 Z2 Y3', -0.125j)]
-            ]
-    """
-
-    PauliWord_list = []
-
-    def digits(P_String):
-        return int(P_String[1::])
-
-    for T_term in T_Terms_Paulis:
-        temp_list = []
-        for qubitNo_qubitOp, constant in T_term.terms.items():
-            PauliStrings = [var[1] + str(var[0]) for var in qubitNo_qubitOp]
-            qubitNo_list = [var[0] for var in qubitNo_qubitOp]
-
-            max_qubit = int(PauliStrings[-1][1::])
-            Q_list = [i for i in range(max_qubit + 1)]
-
-            not_indexed = [qNo for qNo in Q_list if
-                           qNo not in qubitNo_list]
-
-            Identity_terms = ['I{}'.format(kk) for kk in not_indexed]
-
-            # seperator = ' '
-            # PauliWord = seperator.join(PauliStrings)
-            # missing_I = seperator.join(Identity_terms)
-
-            PauliStrings = [*PauliStrings, *Identity_terms]
-            # print(PauliStrings)
-
-            PauliStrings = sorted(PauliStrings, key=lambda x: digits(x))
             seperator = ' '
-            PauliWord = seperator.join(PauliStrings)
-            temp_list.append((PauliWord, constant))
-        PauliWord_list.append(temp_list)        # TODO note reverse order of this temp_list may be SOLUTION to problem... BUT gates putting into correct
+            PauliWord = seperator.join(qubit_OP_list)
+            T_Tdagg_Op_list.append((PauliWord, factor))
+        PauliWord_str_Second_Quant_CC_JW_OP_list.append(T_Tdagg_Op_list[::-1]) # reverse order (as need to do righthand side first!)
+    return PauliWord_str_Second_Quant_CC_JW_OP_list
 
-    return PauliWord_list
+
+
+PauliStrings = Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_JW_OP_list)
+from quchem.quantum_circuit_functions import *
+i=0
+j=0
+P = PauliStrings[i][j]
+print(P)
+Q_circuit = full_exponentiated_PauliWord_circuit(P, np.pi)
+print(
+    cirq.Circuit.from_ops(
+        cirq.decompose_once((Q_circuit(*cirq.LineQubit.range(Q_circuit.num_qubits()))))))
+
+class Ansatz_Circuit():
+    def __init__(self, PauliWord_str_Second_Quant_CC_JW_OP_list, n_electrons, n_qubits):
+        self.PauliWord_str_Second_Quant_CC_JW_OP_list = PauliWord_str_Second_Quant_CC_JW_OP_list
+        self.n_qubits = n_qubits
+        self.n_electrons = n_electrons
+
+    def Get_HF_Quantum_Circuit(self):
+        HF_state = HF_state_generator(self.n_electrons, self.n_qubits)
+        HF_state_prep = State_Prep(HF_state)
+        HF_state_prep_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
+            (HF_state_prep(*cirq.LineQubit.range(HF_state_prep.num_qubits())))))
+        return HF_state_prep_circuit.all_operations()
+    def Get_UCCSD_Quantum_Circuit(self, Theta_param_list):
+
+        Q_Circuit_generator_list =[]
+
+        for i in range(len(self.PauliWord_str_Second_Quant_CC_JW_OP_list)):
+            ExcitationOp = self.PauliWord_str_Second_Quant_CC_JW_OP_list[i]
+            Theta = Theta_param_list[i]
+            for Paulistring_and_Cofactor in ExcitationOp:
+                Q_circuit_gen = full_exponentiated_PauliWord_circuit(Paulistring_and_Cofactor, Theta)
+                Q_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
+                    (Q_circuit_gen(*cirq.LineQubit.range(Q_circuit_gen.num_qubits())))))
+                Q_Circuit_generator_list.append(Q_circuit.all_operations())
+        return Q_Circuit_generator_list
+
+    def Get_Full_HF_UCCSD_QC(self, Theta_param_list):
+        HF_QC = self.Get_HF_Quantum_Circuit()
+        UCCSD_QC_List = self.Get_UCCSD_Quantum_Circuit(Theta_param_list)
+
+        full_circuit = cirq.Circuit.from_ops(
+            [
+                HF_QC,
+                *UCCSD_QC_List,
+            ]
+        )
+        return full_circuit
+
+pp = Ansatz_Circuit(PauliStrings, 2, 4)
+x = pp.Get_Full_HF_UCCSD_QC([np.pi, 3*np.pi, 2*np.pi])
+
+# class PauliWord_Transforms():
+#     def __init__(self, Second_Quant_CC_JW_OP_list):
+#         self.Second_Quant_CC_JW_OP_list = Second_Quant_CC_JW_OP_list
+#
+#     def Convert_QubitOPerator_To_Pauliword_Str_list(self):
+#
+#         PauliWord_str_list = []
+#         max_No_terms = max([len(list(QubitOP.terms.keys())[0]) for QubitOP in Second_Quant_CC_JW_OP_list])
+#         all_indices = np.arange(0, max_No_terms, 1)
+#
+#         for QubitOP in self.Second_Quant_CC_JW_OP_list:
+#             T_Tdagg_Op_list = []
+#
+#             for tupleOfTuples, const in QubitOP.terms.items():
+#                 qubit_OP_list = [tupl[1] + str(tupl[0]) for tupl in tupleOfTuples]
+#
+#                 if len(qubit_OP_list) < max_No_terms:
+#                     # fill missing terms with Identity
+#                     indices_present = [int(qubitNo_and_OP[1::]) for qubitNo_and_OP in qubit_OP_list]
+#                     missing_indices = [index for index in all_indices if index not in indices_present]
+#
+#                     for index in missing_indices:
+#                         qubit_OP_list.append('I{}'.format(index))
+#
+#                     qubit_OP_list = sorted(qubit_OP_list, key=lambda x: int(x[1::]))
+#                     print(qubit_OP_list)
+#                 T_Tdagg_Op_list.append(qubit_OP_list)
+#             PauliWord_str_list.append(T_Tdagg_Op_list)
+#         return PauliWord_str_list
+
+
+
+from quchem.quantum_circuit_functions import *
+def Get_HF_Quantum_Circuit(HF_State):
+    """
+   Given HF state in occupation number basis (canonical orbitals), generate cirq circuit to give state.
+
+    Returns:
+        HF_prep_quantum_circuit (list): cirq quantum circuit
+    """
+    HF_state_prep = State_Prep(HF_State)
+    HF_state_prep_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
+        (HF_state_prep(*cirq.LineQubit.range(HF_state_prep.num_qubits())))))
+
+    return list(HF_state_prep_circuit.all_operations())
+
+def Get_Quantum_Circuit():
+    pass
+
+
+
+
+print(Second_Quant_CC_JW_OP_list[1].terms)
+for tuples, const in Second_Quant_CC_JW_OP_list[1].terms.items():
+    for qubitNo, OP in [*tuples]:
+        print(qubitNo, OP)
+
+
+
+
+
+class Change_of_Basis_initial(cirq.Gate):
+    def __init__(self, QubitOperator):
+        """
+         Circuit to perform change of basis in order to perform: e^(-i theta_sk/2 X_sk)
+         This cirq gate changes to correct basis.
+
+        :param QubitOperator: Qubit Operator
+        :type QubitOperator: openfermion.ops._qubit_operator.QubitOperator
+
+        e.g.: -0.5j [X1 Z2 Y3] + 0.5j [Y1 Z2 X3]
+
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: A circuit object to be used by cirq.Circuit.from_ops
+        :rtype: class
+       """
+
+        self.QubitOperator = QubitOperator
+
+    def _decompose_(self, qubits):
+
+        for tupleOfTuples, const in self.QubitOperator:
+            for qubitNo, qubitOp in [*tupleOfTuples]:
+                if qubitOp == 'X':
+                    yield cirq.H(qubits[qubitNo])
+                elif qubitOp == 'Y':
+                    yield cirq.Rx(np.pi / 2)(qubits[qubitNo])
+                elif qubitOp == 'Z' or 'I':
+                    continue
+                else:
+                    raise ValueError("Qubit Operation: {} is NOT a Pauli operation".format(qubitOp))
+
+
+    def _circuit_diagram_info_(self, args):
+
+        for tupleOfTuples, const in self.QubitOperator:
+
+        Ansatz_basis_change_list = []
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        for i in range(len(PauliWord)):
+                Ansatz_basis_change_list.append('Basis_change')
+        return Ansatz_basis_change_list
+
+    def num_qubits(self):
+        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
+        return len(PauliWord)
+
+if __name__ == '__main__':
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+
+    Basis_change_circuit = Change_of_Basis_initial(PauliWord_test)
+
+    print(cirq.Circuit.from_ops((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits())))))
+    print(
+        cirq.Circuit.from_ops(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
+
+
+
+
+
+
+
+
+
+
+#
+#
+#
+#
+#
+#
+#
+#
+# def Get_Occupied_and_Unoccupied_sites(HF_State):
+#     """
+#      Input is HF state in occupation number basis (canonical orbitals)
+#     e.g. |0011>  =  [0,0,1,1]
+#     Returns 4 lists of:
+#     1. spin up sites occupied
+#     2. spin down sites occupied
+#     3. spin up sites unoccupied
+#     4. spin down sites unoccupied
+#
+#     Args:
+#         HF_State (list): A list description of HF state... note that indexing from far right to left.
+#
+#     Raises:
+#         ValueError: HF state not in occupation number basis
+#
+#     Returns:
+#         list: Returns 4 lists of spin up sites occupied, spin down sites occupied, spin up sites unoccupied and finally
+#               spin down sites unoccupied
+#
+#     """
+#
+#     up_occ = []
+#     down_occ = []
+#     up_unocc = []
+#     down_unocc =[]
+#
+#     for i in range(len(HF_State)):
+#
+#         bit = HF_State[-1::-1][i]  # note this slice reverses order! (QM indexing)
+#
+#         if i % 2 == 0 and bit == 1: #modulo two checks if spin up or spin down... bit is if occupied or not
+#             up_occ.append(i)
+#
+#         elif bit == 1:
+#             down_occ.append(i)
+#
+#         if i % 2 == 0 and bit == 0:
+#             up_unocc.append(i)
+#
+#         elif bit == 0:
+#             down_unocc.append(i)
+#
+#         if bit != 0 and bit != 1:
+#             raise ValueError('HF state: {} not in correct format. bit at index {} is /'
+#                              'not 0 or 1 but {}'.format(HF_State,i, bit))
+#
+#
+#     return up_occ, down_occ, up_unocc, down_unocc
+#
+# def Get_ia_and_ijab_terms(up_occ, down_occ, up_unocc, down_unocc, const=0.25):
+#     """
+#
+#     Input is lists of occupied and unoccupied sites
+#     Returns 2 lists of:
+#     1. ia_terms
+#     2. ijab terms
+#
+#     notes:
+#     https://iopscience.iop.org/article/10.1088/2058-9565/aad3e4/pdf
+#
+#     Args:
+#         up_occ (list): sites that are spin UP and occupied
+#         down_occ (list): sites that are spin DOWN and occupied
+#         up_unocc (list): sites that are spin UP and UN-occupied
+#         down_unocc (list): sites that are spin down and UN-occupied
+#         const (float): Constant factor to times operator
+#
+#
+#     Returns:
+#         np.array: Two lists of ia and ijab terms
+#
+#     """
+#
+#     # SINGLE electron: spin UP transition
+#     ia_terms = np.zeros((1, 3))
+#     for i in up_occ:
+#         for alpha in up_unocc:
+#             if np.array_equal(ia_terms, np.zeros((1, 3))):
+#                 ia_terms = np.array([alpha, i, const])
+#                 # ia_terms = np.vstack((ia_terms, array))
+#             else:
+#                 array = np.array([alpha, i, const])
+#                 ia_terms = np.vstack((ia_terms, array))
+#
+#     # SINGLE electron: spin DOWN transition
+#     for i in down_occ:
+#         for alpha in down_unocc:
+#             if np.array_equal(ia_terms, np.zeros((1, 3))):
+#                 ia_terms = np.array([alpha, i, const])
+#             else:
+#                 array = np.array([alpha, i, const])
+#                 ia_terms = np.vstack((ia_terms, array))
+#
+#     ## DOUBLE electron: two spin UP transition
+#     ijab_terms = np.zeros((1, 5))
+#     for i in up_occ:
+#         for j in up_occ:
+#             if i > j:
+#                 for alpha in up_unocc:
+#                     for beta in up_unocc:
+#                         if alpha > beta:
+#                             if np.array_equal(ijab_terms, np.zeros((1, 5))):
+#                                 ijab_terms = np.array([alpha, beta, i, j, const])
+#                             else:
+#                                 array = np.array([alpha, beta, i, j, const])
+#                                 ijab_terms = np.vstack((ijab_terms, array))
+#
+#
+#     ## DOUBLE electron: two spin DOWN transition
+#     for i in down_occ:
+#         for j in down_occ:
+#             if i > j:
+#                 for alpha in down_unocc:
+#                     for beta in down_unocc:
+#                         if alpha > beta:
+#                             if np.array_equal(ijab_terms, np.zeros((1, 5))):
+#                                 ijab_terms = np.array([alpha, beta, i, j, const])
+#                             else:
+#                                 array = np.array([alpha, beta, i, j, const])
+#                                 ijab_terms = np.vstack((ijab_terms, array))
+#
+#     ## DOUBLE electron: one spin UP and one spin DOWN transition
+#     for i in up_occ:
+#         for j in down_occ:
+#             if i > j:
+#                 for alpha in up_unocc:
+#                     for beta in down_unocc:
+#                         if alpha > beta:
+#                             if np.array_equal(ijab_terms, np.zeros((1, 5))):
+#                                 ijab_terms = np.array([alpha, beta, i, j, const])
+#                             else:
+#                                 array = np.array([alpha, beta, i, j, const])
+#                                 ijab_terms = np.vstack((ijab_terms, array))
+#
+#     ## DOUBLE electron: one spin DOWN and one spin UP transition
+#     for i in down_occ:
+#         for j in up_occ:
+#             if i > j:
+#                 for alpha in down_unocc:
+#                     for beta in up_unocc:
+#                         if alpha > beta:
+#                             if np.array_equal(ijab_terms, np.zeros((1, 5))):
+#                                 ijab_terms = np.array([alpha, beta, i, j, const])
+#                             else:
+#                                 array = np.array([alpha, beta, i, j, const])
+#                                 ijab_terms = np.vstack((ijab_terms, array))
+#
+#     # this makes sure we have array of arrays! (not the case if only have one entry... this corrects for this)
+#     if len(ia_terms.shape) == 1:
+#         ia_terms = np.array([ia_terms])
+#
+#     if len(ijab_terms.shape) == 1:
+#         ijab_terms = np.array([ijab_terms])
+#
+#
+#     return ia_terms, ijab_terms
+#
+#
+# def Get_T1_terms_list(ia_terms):
+#     """
+#
+#     Gives list of T1 terms from defined ia_terms.
+#
+#     Args:
+#         ia_terms (list): sites that are spin UP and occupied
+#
+#     Returns:
+#         list: List of T1 Terms, where each object in list is a FermionOperator (openfermion.ops.FermionOperator)
+#
+#     """
+#
+#     from openfermion.ops import FermionOperator
+#
+#     T1_terms=[]
+#     for x in range(len(ia_terms)):
+#         i = int(ia_terms[x][0])
+#         alph = int(ia_terms[x][1])
+#         t_ia = float(ia_terms[x][2])
+#         term = FermionOperator('{}^ {}'.format(i, alph), t_ia)
+#         T1_terms.append(term)
+#     return T1_terms
+#
+# def Get_T2_terms_list(ijab_terms):
+#     """
+#
+#     Gives list of T2 terms from defined ijab_terms.
+#
+#     Args:
+#         ijab_terms (list): list of ijab terms
+#
+#     Returns:
+#         list: List of T2 Terms, where each object in list is a FermionOperator (openfermion.ops.FermionOperator)
+#
+#     """
+#
+#     from openfermion.ops import FermionOperator
+#
+#     T2_terms = []
+#     for x in range(len(ijab_terms)):
+#         i = int(ijab_terms[x][0])
+#         j = int(ijab_terms[x][1])
+#         alph = int(ijab_terms[x][2])
+#         beta = int(ijab_terms[x][3])
+#         t_ijab = float(ijab_terms[x][4])
+#
+#         term = FermionOperator('{}^ {}^ {} {} '.format(i, j, alph, beta), t_ijab)
+#         T2_terms.append(term)
+#
+#     return T2_terms
+#
+# def dagger_T_list(T_list):
+#     """
+#
+#     Input is list of FermionOperator, returns complex transpose.
+#
+#     Standard case is: T1 or T2 list, returns T1 dagger or T2 dagger (complex transpose)
+#
+#     Args:
+#         T_list (list): list of FermionOperator Operators. (openfermion.ops.FermionOperator)
+#
+#     Returns:
+#         list:  List of T dagger Terms (complex transpose), where each object in
+#                list is a FermionOperator (openfermion.ops.FermionOperator)
+#
+#     """
+#
+#     from openfermion.utils import hermitian_conjugated
+#
+#     dagger_terms_list = []
+#     for term in T_list:
+#         dagger_terms_list.append(hermitian_conjugated(term))
+#     return dagger_terms_list
+#
+#
+# def JW_transform(T_Terms, T_dagger_terms):
+#     """
+#
+#     Input is list of FermionOperators and their corresponding complex transpose. Performs the JW transform and
+#     returns list of QubitOperators.
+#
+#     Standard case is: T1 and T1 dagger OR T2 list and T2 dagger
+#
+#     Args:
+#         T_Terms (list): list of FermionOperator Operators. (openfermion.ops.FermionOperator)
+#         T_dagger_terms (list): list of FermionOperator Operators. (openfermion.ops.FermionOperator)
+#
+#     Returns:
+#         list:  A list containing Pauli Operators for each term. Note each object in
+#                list is a QubitOperator (openfermion.QubitOperator)
+#
+#     """
+#
+#     from openfermion import jordan_wigner
+#     T_Term_paulis = []
+#     for i in range(len(T_Terms)):
+#         T_Term_paulis.append(jordan_wigner(T_Terms[i] - T_dagger_terms[i]))
+#     return T_Term_paulis
+#
+#
+# # def Reformat_Pauli_terms(T_Term_Paulis):
+# #     """
+# #      Input is list of T Pauli QubitOperators. Output is list of lists to turn into quantum circuit.
+# #
+# #      e.g.
+# #      input (type = QubitOperator)
+# #      [
+# #         -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
+# #         -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
+# #      ]
+# #
+# #      output (type = list of lists, where inner list is QubitOperator)
+# #     [
+# #          [0.125j [Y0 Z1 X2], -0.125j [X0 Z1 Y2]],
+# #          [0.125j [Y1 Z2 X3], -0.125j [X1 Z2 Y3]]
+# #     ]
+# #     :param T_Term_Paulis: A list containing QubitOperator (OpenFermion) for each T term
+# #     :type T_Term_Paulis: list
+# #
+# #
+# #     ...
+# #     :raises [ErrorType]: [ErrorDescription]
+# #     ...
+# #     :return: A list of lists, where each term in list is QubitOperator (openfermion)
+# #     :rtype: list
+# #
+# #
+# #     """
+# #
+# #     Complete_Operation_list = []
+# #     for term in T_Term_Paulis:
+# #         sub_term_list = list(term)
+# #         QubitOperatorSubList = [sub_term for sub_term in sub_term_list]
+# #         Complete_Operation_list.append(QubitOperatorSubList)
+# #     return Complete_Operation_listHamiltonian_Transforms
+
+# def Reformat_Pauli_terms(T_Terms_Paulis):
+#     """
+#
+#      Input is list of (T Pauli) QubitOperators. Output is list of lists of PauliWords with factors
+#      to turn into quantum circuit.
+#
+#
+#     Args:
+#         T_Terms_Paulis (list): a list of T1 or T2 Terms, where each object in list is a
+#                                 QubitOperator (openfermion.QubitOperator)
+#
+#     Returns:
+#         list:  A list of lists... where inner list contains (PauliWord, factor) of T_Terms_Paulis
+#
+#
+#     from openfermion.ops._qubit_operator import QubitOperator
+#     T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
+#         (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
+#
+#     .. code-block:: python
+#        :emphasize-lines: 10
+#
+#        from openfermion.ops._qubit_operator import QubitOperator
+#        T1_Terms_Paulis = [(- QubitOperator('X0 Z1 Y2', 0.125j) + QubitOperator('Y0 Z1 X2', 0.125j)),
+#         (- QubitOperator('X1 Z2 Y3', 0.125j) + QubitOperator('Y1 Z2 X3', 0.125j))]
+#
+#         >> [
+#             -0.125j [X0 Z1 Y2] + 0.125j [Y0 Z1 X2],
+#             -0.125j [X1 Z2 Y3] + 0.125j [Y1 Z2 X3]
+#            ]
+#
+#         Reformat_Pauli_terms(T1_Terms_Paulis)
+#         >> [
+#                 [('Y0 Z1 X2', 0.125j), ('X0 Z1 Y2', -0.125j)],
+#                 [('Y1 Z2 X3', 0.125j), ('X1 Z2 Y3', -0.125j)]
+#             ]
+#     """
+#
+#     PauliWord_list = []
+#
+#     def digits(P_String):
+#         return int(P_String[1::])
+#
+#     for T_term in T_Terms_Paulis:
+#         temp_list = []
+#         for qubitNo_qubitOp, constant in T_term.terms.items():
+#             PauliStrings = [var[1] + str(var[0]) for var in qubitNo_qubitOp]
+#             qubitNo_list = [var[0] for var in qubitNo_qubitOp]
+#
+#             max_qubit = int(PauliStrings[-1][1::])
+#             Q_list = [i for i in range(max_qubit + 1)]
+#
+#             not_indexed = [qNo for qNo in Q_list if
+#                            qNo not in qubitNo_list]
+#
+#             Identity_terms = ['I{}'.format(kk) for kk in not_indexed]
+#
+#             # seperator = ' '
+#             # PauliWord = seperator.join(PauliStrings)
+#             # missing_I = seperator.join(Identity_terms)
+#
+#             PauliStrings = [*PauliStrings, *Identity_terms]
+#             # print(PauliStrings)
+#
+#             PauliStrings = sorted(PauliStrings, key=lambda x: digits(x))
+#             seperator = ' '
+#             PauliWord = seperator.join(PauliStrings)
+#             temp_list.append((PauliWord, constant))
+#         PauliWord_list.append(temp_list)        # TODO note reverse order of this temp_list may be SOLUTION to problem... BUT gates putting into correct
+#
+#     return PauliWord_list
 
 
 
