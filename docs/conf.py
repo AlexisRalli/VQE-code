@@ -13,7 +13,15 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
+#sys.path.insert(0, os.path.abspath('../quchem'))
+# sys.path.append(os.path.abspath('../..'))
+# sys.path.append(os.path.abspath('..'))
 
+import mock
+# http://blog.rtwilson.com/how-to-make-your-sphinx-documentation-compile-with-readthedocs-when-youre-using-numpy-and-scipy/
+MOCK_MODULES = ['cirq', 'openfermion', 'openfermion.hamiltonians']#, 'matplotlib', 'matplotlib.pyplot', 'scipy.interpolate']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
 
 # -- Project information -----------------------------------------------------
 
