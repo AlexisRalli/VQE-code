@@ -2,25 +2,27 @@ import cirq
 
 def Get_Histogram_key(PauliWord):
     """
-
-    :param PauliWord: PauliWord to measure as string.
-    :type PauliWord: str
+     Function to obtain histogram key string for Cirq Simulator.
 
     e.g.
-    PauliWord = 'I0 Z1 Z2 I3 I4 X5'
+            PauliWord = 'I0 Z1 Z2 I3 I4 X5'
 
+            code converts to list ['Z0', 'Z1', 'I2', 'I3', 'I4' 'X5']
+            and gets non identity terms
 
-    The code converts to list:
-    ['Z0', 'Z1', 'I2', 'I3', 'I4' 'X5']
+            returning: histogram_string = '0,1,5'
 
-    and gets non-identity qubit numbers!:
-    histogram_string = '0,1,5'
+    note running Get_Histogram_key('I0 I1 I2') returns empty string: ''
 
+    Args:
+        PauliWord (str): String Form of PauliWord to measure.
 
-    :return: histogram string
-    e.g.
-    '0,1,5'
+    Returns:
+        histogram_string (str): Returns string corresponding to histogram key (required for Cirq simulator)
+
     """
+
+
     PauliWord = PauliWord.split(' ')
 
     string_list = [PauliString[1::] for PauliString in PauliWord if PauliString[0] != 'I']
@@ -30,52 +32,85 @@ def Get_Histogram_key(PauliWord):
 
 def Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string):
     """
-    :param num_shots: number of repetitions of Q circuit
-    :type num_shots: int
-
-
-    :param quantum_circuit: Cirq quantum Circuit
-    :type quantum_circuit: cirq.circuits.circuit.Circuit
-
-    :param histogram_string: Histogram key string
-    :type histogram_string: str
-
-
-0: ───Rx(0.5π)───@────────────────────────@───Rx(0.5π)───H──────────@────────────────────────@───H──────────────────M
-                 │                        │                         │                        │                      │
-1: ──────────────X───@────────────────@───X─────────────────────────X───@────────────────@───X───Rx(0.5π)───@───────M
-                     │                │                                 │                │                  │       │
-2: ───X──────────H───X───Rz(1.921π)───X───────H──────────Rx(0.5π)───────X───Rz(1.921π)───X───────Rx(0.5π)───X───@───M
-                                                                                                                │   │
-3: ───X──────────────────────────────────────────────────────────────────────────────────────────H──────────────X───M
-
-
-    :return: Return counter result
-    :rtype: collections.Counter
+     Function to simulate quantum circuit and give counter corresponding to number of times state measured.
 
     e.g.
-    Counter({1: 654, 0: 346})
+            quantum_circuit =
+                                0: ───────@──────────────────────────────@───Z──────────────────────M───
+                                          │                              │                          │
+                                1: ───H───X──────────@───────────────@───X───H───────────X───H──────M───
+                                                     │               │                              │
+                                2: ───X──────────────┼───────────────┼──────────────────────────────┼───
+                                                     │               │                              │
+                                3: ───X───Rx(0.5π)───X───Rz(-0.5π)───X───────Rx(-0.5π)───Y───S^-1───M───
+
+            histogram_string = '0,1,3'
+            num_shots = 10000
+
+        Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string)
+        >> Counter({3: 2617, 2: 2365, 1: 2420, 0: 2598})
+
+
+    Args:
+        quantum_circuit (cirq.circuits.circuit.Circuit): Cirq Quantum circuit to simulate.
+        num_shots (int): Number of times to repeat simlation.
+        histogram_string (str): Histrogram key string (Corresponds to to string of qubit numbers to take results from)
+
+    Returns:
+        hist_result (collections.Counter): Return counter result dict with entries of (state: num times obtained)
+
     """
+
     simulator = cirq.Simulator()
     raw_result = simulator.run(quantum_circuit, repetitions=num_shots)
     hist_result = raw_result.histogram(key=histogram_string)
 
     return hist_result
 
+if __name__ == '__main__':
+    import numpy as np
+    from quchem.quantum_circuit_functions import *
+    HF_circ = State_Prep([0,0,1,1])
+    HF_circuit = cirq.Circuit.from_ops(cirq.decompose_once((HF_circ(*cirq.LineQubit.range(HF_circ.num_qubits())))))
+    P_Word_exponentiated = ('Z0 X1 I2 Y3',  0.5j)
+    theta = np.pi
+    entangle_circ = full_exponentiated_PauliWord_circuit(P_Word_exponentiated, theta)
+    entangle_circuit = cirq.Circuit.from_ops(cirq.decompose_once((entangle_circ(*cirq.LineQubit.range(entangle_circ.num_qubits())))))
+
+    P_Word = ('Z0 X1 I2 Y3', (0.8918294488900189+0j))
+    Pauilword_perform_measure = Perform_PauliWord_and_Measure(P_Word)
+    q_circuit_Pperform_measure =cirq.Circuit.from_ops(
+            cirq.decompose_once((Pauilword_perform_measure(*cirq.LineQubit.range(Pauilword_perform_measure.num_qubits())))))
+    full_circuit = cirq.Circuit.from_ops(
+       [
+           HF_circuit.all_operations(),
+           entangle_circuit.all_operations(),
+           q_circuit_Pperform_measure.all_operations()
+       ]
+    )
+    histogram_string = Get_Histogram_key(P_Word[0])
+    counter = Simulate_Quantum_Circuit(full_circuit, 10000, histogram_string)
+
 def Return_as_binary(counter_result, PauliWord):
     """
-    Takes in counter_result and gives result with keys as quantum states (binary)
-
-    :param counter_result: histogram counter results from quantum circuit simulation
-    :type counter_result: collections.Counter
+     Function to convert counter_result into counter with keys as quantum states (binary)
 
     e.g.
-    Counter({2: 485, 1: 515})
+           counter_result =  Counter({3: 2617, 2: 2365, 1: 2420, 0: 2598})
+           PauliWord = 'Z0 X1 I2 Y3'
 
-    :return:
-    e.g.
-    {'10': 485, '01': 515}
+           Return_as_binary(counter_result, PauliWord)
+           >> {'011': 2617, '010': 2365, '001': 2420, '000': 2598}
+
+    Args:
+        counter_result (collections.Counter): Counter result dict with entries of (state: num times obtained)
+        PauliWord (str): PauliWord measured as string
+
+    Returns:
+        state_dictionary (dict): Return counter result dict with states in binary form
+
     """
+
     state_dictionary ={}
 
     PauliWord = PauliWord.split(' ')

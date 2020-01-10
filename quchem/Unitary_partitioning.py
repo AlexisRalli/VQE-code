@@ -65,7 +65,7 @@ def convert_X_sk(X_sk):
 
     Returns:
         tuple: i* (P_s P_k) as a (Pauliword, constant). Note that constant here is NOT cofactor from Hamiltonian
-               but in fact the correction term from tensor all the Paulis. e.g. YX = -1i Z.
+               but in fact the correction term from multiplying all the Paulis. e.g. YX = -1i Z.
 
     .. code-block:: python
        :emphasize-lines: 7
@@ -134,81 +134,8 @@ def convert_X_sk(X_sk):
 
     return (new_PauliWord, new_constant_SIGN*new_constant)
 
-# def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): # TODO write function to select 'best' S term!
-#     """
-#     Function takes in normalised_anti_commuting_set and gets each R_sk operator according to
-#     eq (11) in ArXiv:1908.08067.
-#
-#     Output is a new dictionary, with PauliWords and new constant terms... in other part is correction factor!
-#     NOTE S is fixed here!!!
-#
-#     :param normalised_anticommuting_set_DICT: A dictionary containing a list of tuples: (PauliWord, normalised_Constant)
-#                                             AND normalisation correction factor.
-#     :type normalised_anticommuting_set_DICT: dict
-#
-#     e.g.
-#             {
-#                 'PauliWords': [   ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-#                                   ('Y0 X1 X2 Y3', (0.3198751585326103+0j)),
-#                                   ('X0 I1 I2 I3', (0.3198751585326103+0j))   ],
-#                 'gamma_l': (0.1538026463340925+0j)
-#             }
-#
-#     :param S: Index of s in R_sk operator. Note that default is zero. TODO can automate this choice!
-#     :type S: int
-#     ...
-#     :raises [ErrorType]: [ErrorDescription]
-#     ...
-#     :return: A dictionary containing each X_sk operators, (as a list) with associated
-#             theta_sk value, the PauliWord_S and the correction factor gamma_l
-#
-#     {
-#     'X_sk_theta_sk':    [     {'X_sk': ('X0 X1 X2 Y3', (0.28527408634774526+0j)),
-#                               'theta_sk': (0.34438034648829496+0j)},
-#
-#                              {'X_sk': ('Y0 I1 I2 I3', (-0.28527408634774526+0j)),
-#                                 'theta_sk': (0.3423076794345934+0j)}       ],
-#
-#      'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
-#      'gamma_l': (0.1538026463340925+0j)
-#      }
-#
-#
-#     NOTE: each element of the outermost dict is a list of sub dictionaries - each associated to one sk term.
-#
-#     :rtype: dict
-#     """
-#
-#     anti_commuting_set = normalised_anticommuting_set_DICT['PauliWords']
-#
-#     if len(anti_commuting_set) > 1:
-#
-#         k_indexes = [index for index in range(len(anti_commuting_set)) if
-#                    index != S]
-#
-#         Op_list = []
-#         beta_S = anti_commuting_set[S][1]
-#
-#         beta_j_sum = 0
-#         for k in k_indexes:
-#             X_sk_op =(anti_commuting_set[S], anti_commuting_set[k])
-#
-#             beta_K = anti_commuting_set[k][1]
-#             if beta_j_sum == 0:
-#                 tan_theta_sk = beta_K / np.sqrt(beta_S**2)
-#                 beta_j_sum += beta_K**2
-#             else:
-#                 tan_theta_sk = beta_K / np.sqrt(beta_S**2 + beta_j_sum**2)# B_k/B_s
-#                 beta_j_sum += beta_K**2
-#
-#             theta_sk = np.arctan(tan_theta_sk)
-#
-#             Op_list.append({'X_sk': convert_X_sk(X_sk_op), 'theta_sk': theta_sk})#, 'factor': normalised_anti_commuting_sets[key]['factor']})
-#
-#         new_beta_S = np.sqrt(beta_j_sum + anti_commuting_set[S][1]**2)
-#
-#         return {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], new_beta_S), 'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}
-def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): # TODO write function to select 'best' S term!
+
+def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): #
     """
 
     Function takes in a normalised_anti_commuting_set, which is a list of PauliWord tuples (PauliWord, constant),
@@ -216,7 +143,7 @@ def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): # TODO write fun
 
     Args:
         normalised_anticommuting_set_DICT (list): A list of Pauliwords, where each entry is a tuple of (PauliWord, constant)
-        S (optional, int) = index for PauliWord_S term. #TODO
+        S (optional, int) = index for PauliWord_S term. If not stated then takes first entry (index = 0)
 
     Returns:
         dict: A dictionary of 'PauliWord_S' yields (PauliWord, correction_factor_due_matrix_multiplication), t
@@ -273,6 +200,7 @@ def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): # TODO write fun
 
         return {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], beta_S), 'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}
 
+
 if __name__ == '__main__':
     ww = Get_X_sk_operators(vv)
 
@@ -325,24 +253,34 @@ if __name__ == '__main__':
 import cirq
 
 class Change_of_Basis_initial_X_sk(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate in order to perform: e^(-i theta_sk/2 * X_sk) ... eq (12) arXiv: 1908.08067
+
+    This class generates change of basis in oder to perform PauliWord as a Z terms only
+    aka: e^(cofactor * theta_sk/2 * PauliWord_Z_ONLY)
+
+
+
+    e.g.:
+           X_sk = ('X0 X1 X2 Y3', (1+0j))
+    gives:
+                0: ───H──────────
+                1: ───H──────────
+                2: ───H──────────
+                3: ───Rx(0.5π)───
+
+
+    Args:
+        X_sk (tuple): A tuple of tuples: (X_sk, constant). Note that constant here is NOT cofactor from Hamiltonian
+               but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
+
     def __init__(self, X_sk):
-        """
-         Circuit to perform change of basis in order to perform: e^(-i theta_sk/2 X_sk) ... eq (12) arXiv: 1908.08067
 
-        :param X_sk: A tuple of tuples: ((PauliWord P_s, constant), (PauliWord P_k)). note have P_s and P_k.
-        :type X_sk: tuple
-
-        e.g.: X_sk =
-        e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
-
-        Then build circuit!
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
         self.X_sk = X_sk
 
     def _decompose_(self, qubits):
@@ -387,16 +325,33 @@ if __name__ == '__main__':
 
 
 class Engtangle_initial_X_sk(cirq.Gate):
-    def __init__(self, X_sk):
-        """
-         blah
+    """
+    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
+    qubits in order to perform PauliWord as a Z terms only for: e^(cofactor * theta/2 * PauliWord_Z_ONLY)
+    where change of basis for  e^(-i theta_sk/2 * X_sk) already performed.
 
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
+    e.g.: X_sk = ('X0 X1 X2 Y3', (1+0j))
+        gives :
+                    0: ───@───────────
+                          │
+                    1: ───X───@───────
+                              │
+                    2: ───────X───@───
+                                  │
+                    3: ───────────X───
+
+    Args:
+        X_sk (tuple): A tuple of tuples: (X_sk, constant). Note that constant here is NOT cofactor from Hamiltonian
+               but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
+
+
+    def __init__(self, X_sk):
+
         self.X_sk = X_sk
 
     def _decompose_(self, qubits):
@@ -457,16 +412,14 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
 
     Args:
         theta_sk (float): angle to rotate by in radians.
-        dagger (bool): Where to have dagger or non dagger quantum gate
+        dagger (bool): Whether to have dagger or non dagger quantum gate
         correction_factor (optional, complex): Correction value from X_sk operator.
                                                e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
+                                              (due to X_sk = i*P_s*P_k... X_sk may require correction_factor!)
 
     Attributes:
         theta_sk_over_2 (float): angle to rotate by in radians. Note divided by 2 due to definition of exponentiated
                                  Pauli terms (https://arxiv.org/pdf/1001.3855.pdf)!
-        dagger (bool): Where to have dagger or non dagger quantum gate
-        correction_factor (optional, complex): Correction value from X_sk operator.
-                                               e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
 
     .. code-block:: python
        :emphasize-lines: 6
@@ -523,59 +476,6 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
             return 'R_sk = {} rad'.format(self.theta_sk_over_2 * self.correction_factor)
 
 
-# class My_R_sk_Gate(cirq.SingleQubitGate):
-#     def __init__(self, theta_sk, dagger=True, correction_factor=1):
-#         """""
-#     Circuit to build a R_sk^DAGGER gate ... eq (12) arXiv: 1908.08067
-#
-#     :param theta_sk: Value of theta_sk angle.
-#     :type theta_sk: float
-#
-#     NOTE that for iPsPk term = X_sk = ('X0 X1 X2 Y3', -0.28527408634774526j)
-#                                                         ^^^^^^ this is the correction factor!
-#
-#     ...
-#     :raises [ErrorType]: [ErrorDescription]
-#     ...
-#     :return: A circuit object to be used by cirq.Circuit.from_ops
-#     :rtype: class
-#         """
-#         self.theta_sk = theta_sk
-#         self.dagger = dagger
-#         self.correction_factor = correction_factor
-#
-#     def _unitary_(self):
-#         full_exponent_term = self.correction_factor * self.theta_sk
-#         # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
-#         # Takes into account PauliWord constant.
-#         if self.dagger:
-#             # R_sk_dag = np.array([
-#             #             [np.e** (+0.5j * full_exponent_term), 0],
-#             #             [0, np.e** (-0.5j * full_exponent_term)]
-#             #         ])
-#             R_sk_dag = cirq.Rz(full_exponent_term)
-#             return R_sk_dag._unitary_()
-#         else:
-#             # R_sk = np.array([
-#             #     [np.e ** (-0.5j * full_exponent_term), 0],
-#             #     [0, np.e ** (+0.5j * full_exponent_term)]
-#             # ])
-#             R_sk = cirq.Rz(full_exponent_term)**-1
-#             return R_sk._unitary_()
-#
-#     def num_qubits(self):
-#         return 1
-#
-#     def _circuit_diagram_info_(self, args):
-#         full_exponent_term = self.correction_factor * self.theta_sk
-#         # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
-#         # Takes into account PauliWord constant.
-#
-#         if self.dagger:
-#             return 'R_sk_DAGGER = {} rad'.format(full_exponent_term)
-#         else:
-#             return 'R_sk = {} rad'.format(full_exponent_term)
-
 if __name__ == '__main__':
     X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
     theta_sk = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['theta_sk']
@@ -589,17 +489,14 @@ class R_sk_DAGGER(cirq.Gate):
     Class that uses My_R_sk_Gate class to generate full R_sk OR R_sk dagger quantum circuit as a gate. Gate defined in
     eq (12) arXiv: 1908.08067.
 
+    Note this puts correct correction_factor for X_sk.
+
     Args:
         theta_sk (float): angle to rotate by in radians.
         dagger (bool): Where to have dagger or non dagger quantum gate
         X_sk (tuple): Tuple of (PauliWord, correction_factor)
                       e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
 
-    Attributes:
-        theta_sk (float): angle to rotate by in radians.
-        dagger (bool): Where to have dagger or non dagger quantum gate
-        X_sk (tuple): Tuple of (PauliWord, correction_factor)
-                      e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
 
     .. code-block:: python
        :emphasize-lines: 6
@@ -620,7 +517,6 @@ class R_sk_DAGGER(cirq.Gate):
     def __init__(self, X_sk, theta_sk, dagger=True):
 
         self.X_sk = X_sk
-
         self.theta_sk = theta_sk
         self.dagger = dagger
 
@@ -661,16 +557,33 @@ if __name__ == '__main__':
 
 
 class Engtangle_final_X_sk(cirq.Gate):
-    def __init__(self, X_sk):
-        """
-         blah
 
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
+    """
+    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
+    qubits in order to perform PauliWord as a Z terms only for: e^(cofactor * theta/2 * PauliWord_Z_ONLY)
+    where change of basis for  e^(-i theta_sk/2 * X_sk) already performed.
+
+    e.g.: X_sk = ('X0 X1 X2 Y3', (1+0j))
+        gives :
+                    0: ───────────@───
+                                  │
+                    1: ───────@───X───
+                              │
+                    2: ───@───X───────
+                          │
+                    3: ───X───────────
+
+    Args:
+        X_sk (tuple): A tuple of tuples: (X_sk, constant). Note that constant here is NOT cofactor from Hamiltonian
+               but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
+
+    def __init__(self, X_sk):
+
         self.X_sk = X_sk
 
     def _decompose_(self, qubits):
@@ -714,24 +627,33 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(cirq.decompose_once((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits()))))))
 
 class Change_of_Basis_final_X_sk(cirq.Gate):
+
+    """
+    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
+    qubits in order to perform PauliWord as a Z terms only for: e^(cofactor * theta/2 * PauliWord_Z_ONLY)
+    where change of basis for  e^(-i theta_sk/2 * X_sk) already performed.
+
+    e.g.: X_sk = ('X0 X1 X2 Y3', (1+0j))
+        gives :
+                    0: ───────────@───
+                                  │
+                    1: ───────@───X───
+                              │
+                    2: ───@───X───────
+                          │
+                    3: ───X───────────
+
+    Args:
+        X_sk (tuple): A tuple of tuples: (X_sk, constant). Note that constant here is NOT cofactor from Hamiltonian
+               but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
+
     def __init__(self, X_sk):
-        """
-         Circuit to perform change of basis in order to perform: e^(-i theta_sk/2 X_sk) ... eq (12) arXiv: 1908.08067
 
-        :param X_sk: A tuple of tuples: ((PauliWord P_s, constant), (PauliWord P_k)). note have P_s and P_k.
-        :type X_sk: tuple
-
-        e.g.: X_sk =
-        e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
-
-        Then build circuit!
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
         self.X_sk = X_sk
 
     def _decompose_(self, qubits):
@@ -773,22 +695,37 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
 
 class R_sk_full_circuit(cirq.Gate):
+
+    """
+    Class to generate cirq circuit as gate performing : e^(cofactor * theta * X_sk) OR e^(cofactor * theta * X_sk)^DAGGER
+
+    e.g.: X_SK_Test =('X0 X1 X2 Y3', (1+0j))
+          theta_sk = np.pi
+          dagger=True
+
+        gives :
+                0: ───H──────────@───────────────────────────────────────────────────────────────@───H───────────
+                                 │                                                               │
+                1: ───H──────────X───@───────────────────────────────────────────────────────@───X───H───────────
+                                     │                                                       │
+                2: ───H──────────────X───@───────────────────────────────────────────────@───X───────H───────────
+                                         │                                               │
+                3: ───Rx(0.5π)───────────X───R_sk_DAGGER = (1.5707963267948966+0j) rad───X───────────Rx(-0.5π)───
+
+    Args:
+        X_sk (tuple): A tuple of tuples: (X_sk, constant). Note that constant here is NOT cofactor from Hamiltonian
+                      but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
+        theta_sk (float): angle to rotate
+        dagger (bool): whether to have daggered or non dagger circuit.
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
+
+
     def __init__(self, X_sk, theta_sk, dagger):
-        """
-        :param X_sk: A tuple of tuples: (PauliWord P, constant).
-        :type X_sk: tuple
-        e.g. ('X0 X1 X2 Y3', -0.28527408634774526j)
 
-        :param theta_sk: angle
-        :type theta_sk: complex float
-
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
         self.X_sk = X_sk
         self.theta_sk = theta_sk
         self.dagger = dagger
@@ -846,10 +783,10 @@ if __name__ == '__main__':
 
 def Get_R_S_operators(X_sk_and_theta_sk, dagger=True):
     """
-    Function Takes in dictionary output from Get_X_sk_operators function...
+    Function takes in a dictionary from dictionary output from Get_X_sk_operators function... (dict of dict)
 
-    which is a  dictionary of 'PauliWord_S' yields (PauliWord, correction_factor_due_matrix_multiplication), t
-    he normalisation correction value 'gamma_l' (complex) and each 'X_sk_theta_sk'... which is a list of
+    which is a  dictionary of 'PauliWord_S' yields (PauliWord, correction_factor_due_matrix_multiplication), the
+    normalisation correction value 'gamma_l' (complex) and each 'X_sk_theta_sk'... which is a list of
     dictionaries that are defined with 'X_sk' = (PauliWord, correction_factor_due_matrix_multiplication) and
     'theta_sk' is rotational angle in radians. NOTE: each element of X_sk_theta_sk dict is a list of sub
     dictionaries each associated to one sk term.
@@ -859,23 +796,24 @@ def Get_R_S_operators(X_sk_and_theta_sk, dagger=True):
 
 
     Args:
-        X_sk_and_theta_sk (dict):
-        dagger (bool, optional):
+        X_sk_and_theta_sk (dict): A dictionary of
+        dagger (bool, optional): Whether to have daggered operation or not
 
     Returns:
         list: A list of quantum dictionaries, containing quantum circuit generators and gamma_l terms.
 
     .. code-block:: python
-       :emphasize-lines: 10
+       :emphasize-lines: 11
 
        from quchem.Unitary_partitioning import *
-       input =  {
-                     'X_sk_theta_sk': [   {'X_sk': ('X0 X1 X2 Y3', (1+0j)), 'theta_sk': (0.34438034648829496+0j)},
-                                            {'X_sk': ('Y0 I1 I2 I3', (-1+0j)), 'theta_sk': (0.325597719954341+0j)}
-                                        ],
-                     'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
-                     'gamma_l': (0.1538026463340925+0j)
-                }
+       X_sk_and_theta_sk =
+                      {
+                         'X_sk_theta_sk': [   {'X_sk': ('X0 X1 X2 Y3', (1+0j)), 'theta_sk': (0.34438034648829496+0j)},
+                                                {'X_sk': ('Y0 I1 I2 I3', (-1+0j)), 'theta_sk': (0.325597719954341+0j)}
+                                            ],
+                         'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
+                         'gamma_l': (0.1538026463340925+0j)
+                      }
 
        Get_R_S_operators(input, dagger=True)
        >> [
@@ -888,37 +826,6 @@ def Get_R_S_operators(X_sk_and_theta_sk, dagger=True):
 
     """
 
-    """
-
-
-
-    :param X_sk_and_theta_sk: A dictionary of X_sk values, with correction factor!
-    :type X_sk_and_theta_sk: dict
-
-        e.g.
-            {
-            'X_sk_theta_sk':    [     {'X_sk': ('X0 X1 X2 Y3', (0.28527408634774526+0j)),
-                                      'theta_sk': (0.34438034648829496+0j)},
-
-                                     {'X_sk': ('Y0 I1 I2 I3', (-0.28527408634774526+0j)),
-                                        'theta_sk': (0.3423076794345934+0j)}       ],
-
-             'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
-             'gamma_l': (0.1538026463340925+0j)
-             }
-
-
-    :return: dictionary of R_sk circuits with corresponding correction factor
-    :rtype: dict
-    e.g.
-        [
-            {'q_circuit': <__main__.R_sk_full_circuit at 0x7fb7dc2839b0>,
-             'gamma_l': (0.1538026463340925+0j)},
-
-            {'q_circuit': <__main__.R_sk_full_circuit at 0x7fb7dc2837f0>,
-            'gamma_l': (0.1538026463340925+0j)}
-        ]
-    """
     list_quantum_circuits_and_gammal = []
     for terms in X_sk_and_theta_sk['X_sk_theta_sk']:
         R_s_k_circuit_instance = R_sk_full_circuit(terms['X_sk'], terms['theta_sk'], dagger=dagger)
@@ -942,6 +849,25 @@ if __name__ == '__main__':
 from quchem.quantum_circuit_functions import *
 
 class UnitaryPartition(X_sk_terms):
+    """
+    Class that takes in dictionary of anti_commuting_sets of PauliStrings, full ansatz Q circuit and dictionary of
+    Pauli_S indices (index of which term to take as PauliS in anti_commuting_sets dict).
+
+    Args:
+        anti_commuting_sets (dict):
+        S_dict (): Dictionary with keys corresponding to anti_commuting_sets (dict) with values
+                    associated with which term to take as the Pauli_S term. If S_dict=None then takes 0th index
+                    of all anti_commuting sets.
+        full_anstaz_circuit (): cirq Ansatz Q circuit.
+
+    Attributes:
+        X_sk_Ops ():
+        normalised_anti_commuting_sets ():
+        circuits_and_constants ():
+
+    """
+
+
     def __init__(self, anti_commuting_sets, full_anstaz_circuit, S_dict=None):
         self.anti_commuting_sets = anti_commuting_sets
         super().__init__(anti_commuting_sets, S_dict=S_dict)
@@ -1183,7 +1109,7 @@ if __name__ == '__main__':
                            cirq.H.on(cirq.LineQubit(2)),
                            cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(3))]
     ANSATZ = cirq.Circuit.from_ops(*full_anstaz_circuit)
-    zz = UnitaryPartition(anti_commuting_sets, ANSATZ, S=0)
+    zz = UnitaryPartition(anti_commuting_sets, ANSATZ, S_dict=None)
     zz.Get_Quantum_circuits_and_constants()
     zz.circuits_and_constants
 

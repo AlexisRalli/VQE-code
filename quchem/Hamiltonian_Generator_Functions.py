@@ -50,7 +50,6 @@ class Hamiltonian():
         self.molecule = None
 
 
-
     def Run_Psi4(self):
 
         if self.geometry is None:
@@ -82,7 +81,6 @@ class Hamiltonian():
         geometry = geometry_from_pubchem(self.MoleculeName)
 
         self.geometry = geometry
-
 
     def Get_CCSD_Amplitudes(self):
         """
@@ -140,6 +138,14 @@ class Hamiltonian():
         from openfermion.transforms import get_sparse_operator
         self.MolecularHamiltonianMatrix = get_sparse_operator(self.MolecularHamiltonian)
 
+    def Get_FCI_from_MolecularHamialtonian(self):
+        from scipy.sparse.linalg import eigs
+        eig_values, eig_vectors = eigs(self.MolecularHamiltonianMatrix)
+        FCI_Energy = min(eig_values)
+
+        if not np.isclose(FCI_Energy.real, self.molecule.fci_energy, rtol=1e-09, atol=0.0):
+            raise ValueError('Calculated FCI energy from Moleular Hamiltonian Operator not equivalent to PSI4 calculation')
+        return FCI_Energy
 
     def  Get_Basis_state_in_occ_num_basis(self, occupied_orbitals_index_list=None):
         """
@@ -578,7 +584,6 @@ class CalcEnergy():
         self.n_qubits = n_qubits
         self.JW_CC_ops_list = JW_CC_ops_list
 
-
     def Calc_HF_Energy(self):
         """
         Returns Hartree-Fock Energy calculated by multiplying HF state with Molecular Hamiltonian matrix.
@@ -653,7 +658,6 @@ class CalcEnergy():
         energy = new_bra.dot(self.MolecularHamiltonianMatrix.dot(new_state))
         print('UCCSD with trotterisation E: ', energy.toarray()[0][0].real)
         return energy.toarray()[0][0].real
-
 
 if __name__ == '__main__':
 

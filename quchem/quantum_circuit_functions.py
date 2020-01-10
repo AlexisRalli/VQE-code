@@ -806,7 +806,7 @@ def Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(Full_Ansatz_Q_Circuit, Paul
         n_qubits (int): number of qubits
 
     Returns:
-        full_circuit (cirq.circuits.circuit.Circuit): Full cirq VQE circuit
+        dic_holder (dict): Returns a dictionary of each quantum circuit, with cofactor, PauliWord and cirq Q Circuit
 
     """
     # dic_holder = []
@@ -823,12 +823,15 @@ def Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(Full_Ansatz_Q_Circuit, Paul
         PauliString_and_Constant = PauliWord_str_list_Qubit_Hamiltonian[i]
         temp_d={}
         if PauliString_and_Constant[0] == PauliWord_I_only:
-            temp_d['Q_circuit'] = PauliString_and_Constant[0]
-            temp_d['constant'] = PauliString_and_Constant[1]
+            temp_d['circuit'] = None
+            temp_d['gamma_l'] = PauliString_and_Constant[1]
+            temp_d['PauliWord'] = PauliString_and_Constant[0]
         else:
             Q_circuit = Generate_Full_Q_Circuit(Full_Ansatz_Q_Circuit, PauliString_and_Constant)
-            temp_d['Q_circuit'] = Q_circuit
-            temp_d['constant'] = PauliString_and_Constant[1]
+            temp_d['circuit'] = Q_circuit
+            temp_d['gamma_l'] = PauliString_and_Constant[1]
+            temp_d['PauliWord'] = PauliString_and_Constant[0]
         dic_holder[i] = temp_d
 
     return dic_holder
+
