@@ -482,6 +482,83 @@ class Hamiltonian_Transforms():
             JW_CC_ops.append(get_sparse_operator(classical_op, n_qubits=self.n_qubits))
         return JW_CC_ops
 
+    def Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(self, QubitMolecularHamiltonian):
+        """
+         From a Molecular Qubit Hamiltonian (openfermion.ops._qubit_operator.QubitOperator) generate corresponding
+         list of PauliStrings with cofactor!
+
+        Args:
+            QubitMolecularHamiltonian (openfermion.ops._qubit_operator.QubitOperator): Qubit Operator of molecular
+                                                                                        Hamiltonian
+                                                                                        (from Get_Qubit_Hamiltonian_JW method)
+
+        Returns:
+            PauliWord_str_list (list): List of tuples (PauliWord_str, cofactor)
+
+        e.g.
+        QubitMolecularHamiltonian  =
+                            (-0.32760818995565577+0j) [] +
+                            (-0.04919764587885283+0j) [X0 X1 Y2 Y3] +
+                            (0.04919764587885283+0j) [X0 Y1 Y2 X3] +
+                            (0.04919764587885283+0j) [Y0 X1 X2 Y3] +
+                            (-0.04919764587885283+0j) [Y0 Y1 X2 X3] +
+                            (0.1371657293179602+0j) [Z0] +
+                            (0.15660062486143395+0j) [Z0 Z1] +
+                            (0.10622904488350779+0j) [Z0 Z2] +
+                            (0.15542669076236065+0j) [Z0 Z3] +
+                            (0.1371657293179602+0j) [Z1] +
+                            (0.15542669076236065+0j) [Z1 Z2] +
+                            (0.10622904488350779+0j) [Z1 Z3] +
+                            (-0.13036292044009176+0j) [Z2] +
+                            (0.1632676867167479+0j) [Z2 Z3] +
+                            (-0.13036292044009176+0j) [Z3]
+
+        becomes
+
+         PauliWord_str_list=
+                         [
+                            [('I0 I1 I2 I3', (-0.32760818995565577+0j)),
+                             ('Z0 I1 I2 I3', (0.1371657293179602+0j)),
+                             ('I0 Z1 I2 I3', (0.1371657293179602+0j)),
+                             ('I0 I1 Z2 I3', (-0.13036292044009176+0j)),
+                             ('I0 I1 I2 Z3', (-0.13036292044009176+0j)),
+                             ('Z0 Z1 I2 I3', (0.15660062486143395+0j)),
+                             ('Y0 X1 X2 Y3', (0.04919764587885283+0j)),
+                             ('Y0 Y1 X2 X3', (-0.04919764587885283+0j)),
+                             ('X0 X1 Y2 Y3', (-0.04919764587885283+0j)),
+                             ('X0 Y1 Y2 X3', (0.04919764587885283+0j)),
+                             ('Z0 I1 Z2 I3', (0.10622904488350779+0j)),
+                             ('Z0 I1 I2 Z3', (0.15542669076236065+0j)),
+                             ('I0 Z1 Z2 I3', (0.15542669076236065+0j)),
+                             ('I0 Z1 I2 Z3', (0.10622904488350779+0j)),
+                             ('I0 I1 Z2 Z3', (0.1632676867167479+0j))]
+                         ]
+        """
+
+        PauliWord_str_list = []
+        max_No_terms = max([len(list(QubitOP.terms.keys())[0]) for QubitOP in QubitMolecularHamiltonian])
+        all_indices = np.arange(0, max_No_terms, 1)
+
+        for QubitOP in QubitMolecularHamiltonian:
+            for tupleOfTuples, factor in QubitOP.terms.items():
+                qubit_OP_list = [tupl[1] + str(tupl[0]) for tupl in tupleOfTuples]
+
+                if len(qubit_OP_list) < max_No_terms:
+                    # fill missing terms with Identity
+                    indices_present = [int(qubitNo_and_OP[1::]) for qubitNo_and_OP in qubit_OP_list]
+                    missing_indices = [index for index in all_indices if index not in indices_present]
+
+                    for index in missing_indices:
+                        qubit_OP_list.append('I{}'.format(index))
+
+                    qubit_OP_list = sorted(qubit_OP_list, key=lambda x: int(x[1::]))  # sort by qubitNo!
+
+                seperator = ' '
+                PauliWord = seperator.join(qubit_OP_list)
+                PauliWord_str_list.append((PauliWord, factor))
+
+        return PauliWord_str_list
+
 class CalcEnergy():
     """
     The CalcEnergy object calculates Energies using LINEAR ALG.
@@ -513,7 +590,7 @@ class CalcEnergy():
         """
 
         HF_ket = self.MolecularHamiltonianMatrix.dot(self.reference_ket).toarray()  # H |HF_ref> =   E*|HF> (all in one vecotr)
-        HF_energy = np.dot(HF_ref_bra.toarray(), HF_ket)  # selects correct entries as in vector giving E (aka uses E |state vec>)
+        HF_energy = np.dot(np.transpose(self.reference_ket.toarray()), HF_ket)  # selects correct entries as in vector giving E (aka uses E |state vec>)
         print('HF Energy from lin alg: ', HF_energy)
         return HF_energy
 
@@ -602,6 +679,8 @@ if __name__ == '__main__':
 
     QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW()
     print('Qubit Hamiltonian: ', QubitHam)
+    QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam)
+    print('Qubit Hamiltonian P_Strings: ', QubitHam_PauliStr)
 
     UCC_JW_excitation_matrix_list = HF_transformations.Get_Jordan_Wigner_CC_Matrices()
 
