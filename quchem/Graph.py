@@ -1099,7 +1099,7 @@ if __name__ == '__main__':
 
     G = nx.Graph()
     G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
-    G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes,'C', plot_graph = True)
+    G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes, 'C', plot_graph = True)
 
     #comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
 
