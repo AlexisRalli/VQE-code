@@ -3,7 +3,7 @@ import cirq
 def Get_Histogram_key(PauliWord):
     """
 
-    :param PauliWord:
+    :param PauliWord: PauliWord to measure as string.
     :type PauliWord: str
 
     e.g.

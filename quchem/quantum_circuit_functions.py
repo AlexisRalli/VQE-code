@@ -80,22 +80,24 @@ if __name__ == '__main__':
 
 ##
 class Change_of_Basis_initial(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate... which performs a change of basis for in order to
+    perform PauliWord as a Z terms only for: e^(cofactor * theta * PauliWord_Z_ONLY)
+
+    e.g.: ('X0 I1 Y2 X3', 0.125j)
+    gives:
+            0: ───H──────────
+            2: ───Rx(0.5π)───
+            3: ───H──────────
+
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
     def __init__(self, PauliWord_and_cofactor):
-        """
-         Circuit to perform change of basis in order to perform: e^(cofactor * theta_sk * PauliWord)
-         This cirq gate changes to correct basis.
-
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-        e.g.: ('X0 X1 Y2 X3', 0.125j)
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
 
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
 
@@ -128,7 +130,7 @@ class Change_of_Basis_initial(cirq.Gate):
         return len(PauliWord)
 
 if __name__ == '__main__':
-    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', 0.125j)
 
     Basis_change_circuit = Change_of_Basis_initial(PauliWord_test)
 
@@ -137,22 +139,28 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
 
 class Engtangle_initial(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
+    qubits in order to perform PauliWord as a Z terms only for: e^(cofactor * theta * PauliWord_Z_ONLY)
+
+    e.g.: ('X0 I1 Y2 X3', 0.125j)
+        gives :
+                0: ───@───────
+                      │
+                2: ───X───@───
+                          │
+                3: ───────X───
+
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
+
     def __init__(self, PauliWord_and_cofactor):
-        """
-         Circuit to perform change of basis in order to perform: e^(cofactor * theta_sk * PauliWord)
-         This cirq gate entangles qubits prior to rotation
 
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-        e.g.: ('X0 X1 Y2 X3', 0.125j)
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
 
     def _decompose_(self, qubits):
@@ -186,7 +194,7 @@ class Engtangle_initial(cirq.Gate):
         return len(PauliWord)
 
 if __name__ == '__main__':
-    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', 0.125j)
     Ent_initial = Engtangle_initial(PauliWord_test)
 
     print(cirq.Circuit.from_ops((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits())))))
@@ -194,32 +202,24 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(cirq.decompose_once((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits()))))))
 
 class PauliWord_exponential_rotation(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate... which generates rotationional gate to perform
+    perform PauliWord as a Z terms only for: e^(cofactor * theta * PauliWord_Z_ONLY)
 
+    e.g.: ('X0 I1 Y2 X3', 0.125j) and theta= pi
+        gives :
+                3: ───Rz(-0.125π)───
+
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+        theta (float): angle to rotate
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
     def __init__(self, PauliWord_and_cofactor, theta):
-        """
-         Circuit to perform change of basis in order to perform: e^(cofactor * theta * PauliWord)
-         This cirq gate entangles qubits prior to rotation
 
-         note of UCCSD: U=exp [t02(a†2a0−a†0a2)] × exp [t13(a†3a1−a†1a3)] × exp [t0123(a†3a†2a1a0−a†0a†1a2a3)]
-         cofactors (t02, t13, t0123) determine if rotate by theta (if cofactor is -i term) of -theta (if cofactor is +i term)
-
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-         e.g.: ('X0 X1 Y2 X3', 0.125j)
-
-
-
-
-        :param theta: angle to rotate by
-        :type theta: float
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
         self.theta = theta
 
@@ -253,7 +253,7 @@ class PauliWord_exponential_rotation(cirq.Gate):
         return string_list
 
 if __name__ == '__main__':
-    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10',  0.125j)
     theta = np.pi
 
     Rzz = PauliWord_exponential_rotation(PauliWord_test, theta)
@@ -263,22 +263,27 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(cirq.decompose_once((Rzz(*cirq.LineQubit.range(Rzz.num_qubits()))))))
 
 class Engtangle_final(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
+    qubits in order to perform PauliWord as a Z terms only for: e^(cofactor * theta * PauliWord_Z_ONLY)
+
+    e.g.: ('X0 I1 Y2 X3', 0.125j)
+        gives :
+                0: ───────@───
+                          │
+                2: ───@───X───
+                      │
+                3: ───X───────
+
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
     def __init__(self, PauliWord_and_cofactor):
-        """
-         Circuit to perform change of basis in order to perform: e^(cofactor * theta_sk * X_sk)
-         This cirq gate entangles qubits post rotation
 
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-        e.g.: ('X0 X1 Y2 X3', 0.125j)
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
 
     def _decompose_(self, qubits):
@@ -311,7 +316,7 @@ class Engtangle_final(cirq.Gate):
         return len(PauliWord)
 
 if __name__ == '__main__':
-    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', 0.125j)
     Ent_final = Engtangle_final(PauliWord_test)
 
     print(cirq.Circuit.from_ops((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits())))))
@@ -319,22 +324,24 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(cirq.decompose_once((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits()))))))
 
 class Change_of_Basis_final(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
+    qubits in order to perform PauliWord: e^(cofactor * theta * PauliWord)
+
+    e.g.: ('X0 I1 Y2 X3', 0.125j)
+        gives :
+                0: ───H───────────
+                2: ───Rx(-0.5π)───
+                3: ───H───────────
+
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
     def __init__(self, PauliWord_and_cofactor):
-        """
-         Circuit to perform change of basis in order to perform: e^(-i theta_sk/2 X_sk)
-         This cirq gate changes to correct basis.
-
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
 
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
 
@@ -367,7 +374,7 @@ class Change_of_Basis_final(cirq.Gate):
         return len(PauliWord)
 
 if __name__ == '__main__':
-    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10',  0.125j)
 
     Basis_change_circuit = Change_of_Basis_final(PauliWord_test)
 
@@ -376,24 +383,27 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
 
 class full_exponentiated_PauliWord_circuit(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate performing : e^(cofactor * theta * PauliWord_Z_ONLY)
+
+    e.g.: ('X0 I1 Y2 X3', 0.125j) and theta= pi
+        gives :
+                0: ───H──────────@─────────────────────────@───H───────────
+                                 │                         │
+                2: ───Rx(0.5π)───X───@─────────────────@───X───Rx(-0.5π)───
+                                     │                 │
+                3: ───H──────────────X───Rz(-0.125π)───X───────H───────────
+
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+        theta (float): angle to rotate
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
+
     def __init__(self, PauliWord_and_cofactor, theta):
-        """
-        This circuit takes in PauliWord and angle and performs: e^(-i theta_sk/2 X_sk)
-
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-        :param theta: angle to rotate by
-        :type theta: float
-
-        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
         self.theta = theta
 
@@ -431,7 +441,7 @@ class full_exponentiated_PauliWord_circuit(cirq.Gate):
         return len(PauliWord)
 
 if __name__ == '__main__':
-    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10', (0.8918294488900189+0j))
+    PauliWord_test = ('Z0 X1 Y2 Z3 I4 I5 I6 I7 I8 Y9 X10',  0.125j)
     theta = np.pi
 
     full_Oper = full_exponentiated_PauliWord_circuit(PauliWord_test, theta)
@@ -443,28 +453,29 @@ if __name__ == '__main__':
 
 
 
-
 ##### For Hamiltonian ####
 
 
 class Perform_PauliWord(cirq.Gate):
+
+    """
+    Class to generate cirq circuit as gate that performs PauliWord
+
+    e.g.: ('X0 Y1 Z2 Y3', -0.28527408634774526j)
+        gives :
+                0: ───X───
+                2: ───Y───
+                3: ───X───
+
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
+
     def __init__(self, PauliWord_and_cofactor):
-        """
-        NOTE this is NOT the exponentiated operator: e^(-i theta/2 PAULI)
-
-        This class builds a quantum circuit that performs a PauliWord
-
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
 
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
 
@@ -507,25 +518,23 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(
             cirq.decompose_once((Pauilword_circuit(*cirq.LineQubit.range(Pauilword_circuit.num_qubits()))))))
 
-
 class Change_Basis_to_Measure_PauliWord(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate that performs change of basis to measure PauliWord in Z BASIS.
+
+    e.g.: ('X0 Y1 Z2 Y3', -0.28527408634774526j)
+        gives :
+                0: ───H──────
+                1: ───S^-1───
+                3: ───S^-1───
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
     def __init__(self, PauliWord_and_cofactor):
-        """
-        NOTE this is NOT the exponentiated operator: e^(-i theta/2 PAULI)
-
-        This class builds a quantum circuit that performs a PauliWord
-
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
 
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
 
@@ -560,23 +569,27 @@ class Change_Basis_to_Measure_PauliWord(cirq.Gate):
         return len(PauliWord)
 
 class Measure_PauliWord(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate that measures PauliWord in Z BASIS (all non I terms).
+
+    e.g.: ('X0 Y1 Z2 I3 Y4', -0.28527408634774526j)
+        gives :
+                0: ───M───
+                      │
+                1: ───M───
+                      │
+                2: ───M───
+                      │
+                4: ───M───
+
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
     def __init__(self, PauliWord_and_cofactor):
-        """
-        NOTE this is NOT the exponentiated operator: e^(-i theta/2 PAULI)
-
-        This class builds a quantum circuit that performs a PauliWord
-
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
 
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
 
@@ -631,26 +644,28 @@ if __name__ == '__main__':
         cirq.Circuit.from_ops(
             cirq.decompose_once((Pauilword_Measure_circuit(*cirq.LineQubit.range(Pauilword_Measure_circuit.num_qubits()))))))
 
-
 class Change_Basis_and_Measure_PauliWord(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate that changes basis and measures PauliWord in Z BASIS (all non I terms).
+
+    e.g.: ('X0 Y1 Z2 I3 Y4', -0.28527408634774526j)
+        gives :
+                0: ───H──────M───
+                             │
+                1: ───S^-1───M───
+                             │
+                2: ──────────M───
+                             │
+                4: ───S^-1───M───
+
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
     def __init__(self, PauliWord_and_cofactor):
-        """
-        blah
-
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-        :param theta: angle to rotate by
-        :type theta: float
-
-        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
 
 
@@ -691,24 +706,29 @@ if __name__ == '__main__':
 
 
 class Perform_PauliWord_and_Measure(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate that performs PauliWord, changes basis
+    and measures PauliWord (all non I terms).
+
+    e.g.: ('X0 Y1 Z2 I3 Y4', -0.28527408634774526j)
+        gives :
+                0: ───X───H──────M───
+                                 │
+                1: ───Y───S^-1───M───
+                                 │
+                2: ───Z──────────M───
+                                 │
+                4: ───Y───S^-1───M───
+
+    Args:
+        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops
+
+    """
     def __init__(self, PauliWord_and_cofactor):
-        """
-        blah
 
-        :param PauliWord_and_cofactor: (PauliWord, constant)
-        :type PauliWord_and_cofactor: tuple
-
-        :param theta: angle to rotate by
-        :type theta: float
-
-        e.g.: ('X0 X1 X2 Y3', -0.28527408634774526j)
-
-        ...
-        :raises [ErrorType]: [ErrorDescription]
-        ...
-        :return: A circuit object to be used by cirq.Circuit.from_ops
-        :rtype: class
-       """
         self.PauliWord_and_cofactor = PauliWord_and_cofactor
 
 
@@ -748,3 +768,67 @@ if __name__ == '__main__':
     print(
         cirq.Circuit.from_ops(
             cirq.decompose_once((Pauilword_FULL_circuit(*cirq.LineQubit.range(Pauilword_FULL_circuit.num_qubits()))))))
+
+
+#### Get Full VQE quantum circuit functions
+
+def Generate_Full_Q_Circuit(Full_Ansatz_Q_Circuit, PauliString_and_Constant):
+    """
+     Function that appends Ansatz Quantum Circuit to Pauli perform and measure circuit instance.
+
+    Args:
+        Full_Ansatz_Q_Circuit (cirq.circuits.circuit.Circuit): Full cirq Ansatz Q circuit
+        PauliString_and_Constant (tuple): Tuple of PauliWord to perform and constant -> (PauliWord, constant)
+
+    Returns:
+        full_circuit (cirq.circuits.circuit.Circuit): Full cirq VQE circuit
+
+    """
+
+    perform_and_measure_PauliString = Perform_PauliWord_and_Measure(PauliString_and_Constant)
+    perform_and_measure_PauliString_Q_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
+        (perform_and_measure_PauliString(*cirq.LineQubit.range(perform_and_measure_PauliString.num_qubits())))))
+    full_circuit = cirq.Circuit.from_ops(
+       [
+           Full_Ansatz_Q_Circuit.all_operations(),
+           *perform_and_measure_PauliString_Q_circuit.all_operations(),
+       ]
+    )
+    return full_circuit
+
+def Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(Full_Ansatz_Q_Circuit, PauliWord_str_list_Qubit_Hamiltonian, n_qubits):
+    """
+     Function that appends Ansatz Quantum Circuit to Pauli perform and measure circuit instance.
+
+    Args:
+        Full_Ansatz_Q_Circuit (cirq.circuits.circuit.Circuit): Full cirq Ansatz Q circuit
+        PauliWord_str_list (list): List of tuples containing PauliWord to perform and constant -> (PauliWord, constant)
+        n_qubits (int): number of qubits
+
+    Returns:
+        full_circuit (cirq.circuits.circuit.Circuit): Full cirq VQE circuit
+
+    """
+    # dic_holder = []
+    # for PauliString_and_Constant in PauliWord_str_list_Qubit_Hamiltonian:
+    #     Q_circuit = Generate_Full_Q_Circuit(Full_Ansatz_Q_Circuit, PauliString_and_Constant)
+    #     dic_holder.append([Q_circuit, PauliString_and_Constant[1]])
+
+    I_Measure = ['I{}'.format(i) for i in range(n_qubits)]
+    seperator = ' '
+    PauliWord_I_only = seperator.join(I_Measure)
+
+    dic_holder = {}
+    for i in range(len(PauliWord_str_list_Qubit_Hamiltonian)):
+        PauliString_and_Constant = PauliWord_str_list_Qubit_Hamiltonian[i]
+        temp_d={}
+        if PauliString_and_Constant[0] == PauliWord_I_only:
+            temp_d['Q_circuit'] = PauliString_and_Constant[0]
+            temp_d['constant'] = PauliString_and_Constant[1]
+        else:
+            Q_circuit = Generate_Full_Q_Circuit(Full_Ansatz_Q_Circuit, PauliString_and_Constant)
+            temp_d['Q_circuit'] = Q_circuit
+            temp_d['constant'] = PauliString_and_Constant[1]
+        dic_holder[i] = temp_d
+
+    return dic_holder
