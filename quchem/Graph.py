@@ -729,6 +729,7 @@ def Build_Graph_Edges_defined_by_indices(Graph, Node_and_connected_Nodes, plot_g
 
 def Commutativity(P1, P2, anti_comm_QWC):
     """
+
      Find if two PauliWords either commute or anti_commute.
      By default it will check if they commute.
 
@@ -759,6 +760,7 @@ def Commutativity(P1, P2, anti_comm_QWC):
 
        Commutativity(P1, P2, anti_comm_QWC='AC')
        >> False
+
     """
     P1 = P1.split(' ')
     P2 = P2.split(' ')
@@ -796,7 +798,6 @@ def Commutativity(P1, P2, anti_comm_QWC):
             raise KeyError('Incorrect flag used. anti_comm_QWC must be: \'QWC\', \'C\' or \'AC\'')
 
 def Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(Graph, PauliWord_string_nodes_list, anti_comm_QWC, plot_graph = False):
-
     """
 
     Function builds graph edges for commuting / anticommuting / QWC PauliWords
@@ -815,7 +816,6 @@ def Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(Graph, PauliWord_string_nodes_
 
     """
 
-
     for i in tqdm(range(len(PauliWord_string_nodes_list)), ascii=True, desc='Building Graph Edges'):
 
         selected_PauliWord = PauliWord_string_nodes_list[i]
@@ -829,8 +829,6 @@ def Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(Graph, PauliWord_string_nodes_
                 Graph.add_edge(PauliWord_string_nodes_list[i], PauliWord_string_nodes_list[j])
             else:
                 continue
-
-
 
     if plot_graph == True:
         plt.figure()
