@@ -1,9 +1,9 @@
 from quchem.Hamiltonian_Generator_Functions import *
 
 ### Variable Parameters
-Molecule = 'H2'
+Molecule = 'LiH'
 geometry = None
-HF_occ_index = [0, 1] # for occupied_orbitals_index_list
+HF_occ_index = [0, 1,2] # for occupied_orbitals_index_list
 #######
 
 ### Get Hamiltonian
