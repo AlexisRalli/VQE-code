@@ -204,7 +204,7 @@ print(xx.Calc_energy_via_parity())
 # yy = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
 # print(yy.Calc_energy_via_parity())
 
-from scipy.optimize import minimize
+
 def CalcE_QC(THETA_params):
     ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
     circuits_and_constants = Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(ansatz_Q_cicuit, QubitHam_PauliStr,
@@ -214,7 +214,54 @@ def CalcE_QC(THETA_params):
     print(E, THETA_params)
     return E
 
-
+from quchem.Scipy_Optimizer import *
 THETA_params = [0,1,2]
-res = minimize(CalcE_QC, THETA_params, method='nelder-mead',
-               options={'xatol': 1e-8, 'disp': True})
+GG = Optimizer(CalcE_QC, THETA_params, 'Nelder-Mead', store_values=True, display_iter_steps=True,  tol=1e-3,
+               display_convergence_message= True)
+GG.get_env(20)
+GG.plot_convergence()
+
+from quchem.Ansatz_Generator_Functions import *
+from quchem.Simulating_Quantum_Circuit import *
+def Calculate_Gradient_by_QC(theta_guess_list):
+
+
+    #HF_UCCSD_ansatz = Ansatz_Circuit(PauliWord_list, Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits)
+    partial_gradient_list = []
+    for j in range(len(theta_guess_list)):
+        theta = theta_guess_list[j]
+
+
+        theta_list_PLUS = theta_guess_list
+        theta_list_PLUS[j] = theta_guess_list[j] + np.pi
+        ansatz_Q_cicuit_PLUS = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(theta_list_PLUS)
+        circuits_and_constants_PLUS = Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(ansatz_Q_cicuit_PLUS, QubitHam_PauliStr,
+                                                                                  Hamilt.molecule.n_qubits)
+        E_Plus = Simulation_Quantum_Circuit_Dict(circuits_and_constants_PLUS, num_shots).Calc_energy_via_parity()
+
+        theta_list_MINUS = theta_guess_list
+        theta_list_MINUS[j] = theta_guess_list[j] + np.pi
+        ansatz_Q_cicuit_MINUS = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(theta_list_MINUS)
+        circuits_and_constants_MINUS = Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(ansatz_Q_cicuit_MINUS, QubitHam_PauliStr,
+                                                                                  Hamilt.molecule.n_qubits)
+        E_MINUS = Simulation_Quantum_Circuit_Dict(circuits_and_constants_MINUS, num_shots).Calc_energy_via_parity()
+
+        Gradient = (E_Plus - E_MINUS)  # /2
+        partial_gradient_list.append((Gradient, theta))  # .append(Gradient)
+    return partial_gradient_list
+
+theta_guess_list = [1,2,3]
+Calculate_Gradient_by_QC(theta_guess_list)
+
+from quchem.TensorFlow_Opt import *
+GG = Tensor_Flow_Optimizer(CalcE_QC, theta_guess_list, 'Adam', Calculate_Gradient_by_QC, learning_rate=0.1, beta1=0.9,
+                           beta2=0.999, store_values=True, display_iter_steps=True)
+GG.optimize(50)
+GG.plot_convergence()
+
+
+# THETA_params = [0,1,2]
+# ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
+# circuits_and_constants = Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(ansatz_Q_cicuit, QubitHam_PauliStr, Hamilt.molecule.n_qubits)
+# xx = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
+# print(xx.Calc_energy_via_parity())
