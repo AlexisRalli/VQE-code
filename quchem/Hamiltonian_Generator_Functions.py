@@ -622,7 +622,7 @@ class CalcEnergy():
         new_bra = new_state.transpose().conj()
         assert (new_bra.dot(new_state).toarray()[0][0] - 1 < 0.0000001)
         energy = new_bra.dot(self.MolecularHamiltonianMatrix.dot(new_state))
-        print('UCCSD WITHOUT trotterisation E: ', energy.toarray()[0][0].real)
+        #print('UCCSD WITHOUT trotterisation E: ', energy.toarray()[0][0].real)
         return energy.toarray()[0][0].real
 
     def Calc_UCCSD_with_Trot(self, parameters):
@@ -656,7 +656,7 @@ class CalcEnergy():
         new_bra = new_state.transpose().conj()
         assert (new_bra.dot(new_state).toarray()[0][0] - 1 < 0.0000001)
         energy = new_bra.dot(self.MolecularHamiltonianMatrix.dot(new_state))
-        print('UCCSD with trotterisation E: ', energy.toarray()[0][0].real)
+        #print('UCCSD with trotterisation E: ', energy.toarray()[0][0].real)
         return energy.toarray()[0][0].real
 
 if __name__ == '__main__':
@@ -702,8 +702,16 @@ if __name__ == '__main__':
     w.Calc_HF_Energy()
     THETA_params = [2.8, 2.1, 1]
 
-    w.Calc_UCCSD_No_Trot(THETA_params)
-    w.Calc_UCCSD_with_Trot(THETA_params)
+    print('UCCSD withOUT trotterisation E: ',w.Calc_UCCSD_No_Trot(THETA_params))
+    print('UCCSD with trotterisation E: ',w.Calc_UCCSD_with_Trot(THETA_params))
+
+    from quchem.Scipy_Optimizer import *
+    THETA_params = [1, 2, 3]
+    GG = Optimizer(w.Calc_UCCSD_with_Trot, THETA_params, 'Nelder-Mead', store_values=True, display_iter_steps=True,
+                   tol=1e-5,
+                   display_convergence_message=True)
+    GG.get_env(50)
+    GG.plot_convergence()
 
 
 
