@@ -42,7 +42,8 @@ class Tensor_Flow_Optimizer:
         self.display_iter_steps = display_iter_steps
 
 
-        tf.reset_default_graph()
+        # tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
 
     def object_function_TENSOR(self, Input_TENSOR_vector):
         """
@@ -111,13 +112,14 @@ class Tensor_Flow_Optimizer:
             max_iter (int): Max number of iterations for optimizer
 
         """
-        tf.reset_default_graph()
+        # tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
 
         if self.store_values is True:
             self.obj_fun_output_values=[]
             self.obj_fun_input_vals=[]
 
-
+        # tf.compat.v1.train.GradientDescentOptimizer
         if self.method == 'Adam':
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, beta1=self.beta1, beta2=self.beta2)
         elif self.method == 'GradientDescent':
