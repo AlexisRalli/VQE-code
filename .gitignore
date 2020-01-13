@@ -19,6 +19,9 @@ Projects/*.hdf5
 Projects/*.inp
 Projects/*.out
 
+*.hdf5
+*.inp
+*.out
 
 # egg files
 #*egg*
