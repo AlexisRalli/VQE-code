@@ -245,8 +245,10 @@ class X_sk_terms():
         self.Get_X_sk_Operators()
 
 if __name__ == '__main__':
-    ALL_X_SK_TERMS = X_sk_terms(anti_commuting_sets, S_dict={0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0})
+    ALL_X_SK_TERMS = X_sk_terms(anti_commuting_sets, S_dict={0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1,
+                                                             10: 1})
     ALL_X_SK_TERMS.Get_all_X_sk_operators()
+    print(ALL_X_SK_TERMS.X_sk_Ops)
 
 
 
@@ -1109,7 +1111,8 @@ if __name__ == '__main__':
                            cirq.H.on(cirq.LineQubit(2)),
                            cirq.Rx(np.pi * -0.5).on(cirq.LineQubit(3))]
     ANSATZ = cirq.Circuit.from_ops(*full_anstaz_circuit)
-    zz = UnitaryPartition(anti_commuting_sets, ANSATZ, S_dict=None)
+    zz = UnitaryPartition(anti_commuting_sets, ANSATZ, S_dict={0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1,
+                                                             10: 1})
     zz.Get_Quantum_circuits_and_constants()
     zz.circuits_and_constants
 
