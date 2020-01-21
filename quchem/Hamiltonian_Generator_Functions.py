@@ -19,6 +19,8 @@ class Hamiltonian():
         run_fci (int): Boolean to FCI calculation.
         multiplicity_(int): Multiplicity of molecule (1=singlet, 2=doublet ... etc)
         geometry (list, optional): Geometry of Molecule (if None will find it online)
+        delete_input (bool, optional): Optional boolean to delete psi4 input file.
+        delete_output: Optional boolean to delete psi4 output file
 
     Attributes:
         molecule (openfermion.hamiltonians._molecular_data.MolecularData): An instance of the MolecularData class
@@ -33,10 +35,8 @@ class Hamiltonian():
 
     """
     def __init__(self, MoleculeName,
-                 run_scf = 1, run_mp2 = 1, run_cisd = 1, run_ccsd = 1, run_fci = 1,
-                 basis = 'sto-3g',
-                 multiplicity = 1,
-                 geometry = None):
+                 run_scf = 1, run_mp2 = 1, run_cisd = 1, run_ccsd = 1, run_fci=1,
+                 basis='sto-3g', multiplicity=1, geometry=None, delete_input=False, delete_output=False):
 
         self.MoleculeName = MoleculeName
         self.run_scf = bool(run_scf)
@@ -48,6 +48,8 @@ class Hamiltonian():
         self.multiplicity = multiplicity
         self.basis = basis
         self.molecule = None
+        self.delete_input = delete_input
+        self.delete_output = delete_output
 
 
     def Run_Psi4(self):
@@ -78,9 +80,11 @@ class Hamiltonian():
     def Get_Geometry(self):
 
         from openfermion.utils import geometry_from_pubchem
-        geometry = geometry_from_pubchem(self.MoleculeName)
+        self.geometry = geometry_from_pubchem(self.MoleculeName)
 
-        self.geometry = geometry
+        if self.geometry is None:
+            raise ValueError('Unable to find molecule in the PubChem database.')
+
 
     def Get_CCSD_Amplitudes(self):
         """
