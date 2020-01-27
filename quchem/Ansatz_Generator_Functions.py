@@ -240,6 +240,6 @@ if __name__ == '__main__':
     HF_UCCSD_ansatz = Ansatz_Circuit(PauliWord_list, Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits)
 
     THETA_params = [np.pi, 3*np.pi, 2*np.pi]
-    # THETA_params = [random.uniform(0, 2 * np.pi) for _ in range(len(THETA_params))]
+    # THETA_params = [random.uniform(0, 2 * np.pi) for _ in range(Hamilt.num_theta_parameters)]
     ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
     #print(ansatz_Q_cicuit)

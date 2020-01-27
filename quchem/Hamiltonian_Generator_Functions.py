@@ -32,6 +32,7 @@ class Hamiltonian():
         doubles_hamiltonian (numpy.ndarray): h_pqrs (n_qubits x n_qubits x n_qubits x n_qubits) matrix
         MolecularHamiltonian (openfermion.ops._interaction_operator.InteractionOperator):
         MolecularHamiltonianMatrix (scipy.sparse.csc.csc_matrix): Sparse matrix of Molecular Hamiltonian
+        num_theta_parameters(int): Number of theta parameters in for ia_and_ijab_terms
 
     """
     def __init__(self, MoleculeName,
@@ -50,6 +51,7 @@ class Hamiltonian():
         self.molecule = None
         self.delete_input = delete_input
         self.delete_output = delete_output
+        self.num_theta_parameters = None
 
 
     def Run_Psi4(self):
@@ -363,6 +365,7 @@ class Hamiltonian():
 
                             Sec_Quant_CC_ops.append(two_elec)
 
+        self.num_theta_parameters = len(theta_parameters)
         return Sec_Quant_CC_ops, theta_parameters
 
 class Hamiltonian_Transforms():
