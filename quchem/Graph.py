@@ -1055,6 +1055,53 @@ def Get_unique_graph_colours(List_of_Coloured_Graphs_dicts):
             iter += 1
     return overall_colours
 
+def Get_PauliWord_constant_tuples(coloured_sets, dict_str_label='Cofactors'):
+    """
+    Function to give back list of PauliWords and cofactor tuples
+
+
+    Args:
+        coloured_sets (dict): Dictionary of PauliWords and node attributes
+        dict_str_label (str): string key of Hamiltonian cofactors
+
+    Returns:
+        stripped_set (dict): dictionary of sets, each is a list of (PauliWord, constant)
+
+    coloured_sets = {
+                0: [{'I0 I1 I2 I3': {'Cofactors': (-0.32760818995565577+0j),
+                                        'random_attribute': 0}}],
+                1: [{'I0 Z1 I2 I3': {'Cofactors': (0.1371657293179602+0j),
+                                        'random_attribute': 2}},
+                    {'Y0 Y1 X2 X3': {'Cofactors': (-0.04919764587885283+0j),
+                                     'random_attribute': 7}}],
+                2: [{'I0 I1 Z2 I3': {'Cofactors': (-0.13036292044009176+0j),
+                                        'random_attribute': 3}},
+                     {'X0 X1 Y2 Y3': {'Cofactors': (-0.04919764587885283+0j),
+                                        'random_attribute': 8}}],
+                3: [{'I0 I1 I2 Z3': {'Cofactors': (-0.13036292044009176+0j),
+                                      'random_attribute': 4}},
+                     {'X0 Y1 Y2 X3': {'Cofactors': (0.04919764587885283+0j),
+                                       'random_attribute': 9}}]
+            }
+
+    gives:
+             0: [('I0 I1 I2 I3', (-0.32760818995565577+0j))],
+             1: [('I0 Z1 I2 I3', (0.1371657293179602+0j)), ('Y0 Y1 X2 X3', (-0.04919764587885283+0j))],
+             2: [('I0 I1 Z2 I3', (-0.13036292044009176+0j)), ('X0 X1 Y2 Y3', (-0.04919764587885283+0j))],
+             3: [('I0 I1 I2 Z3', (-0.13036292044009176+0j)), ('X0 Y1 Y2 X3', (0.04919764587885283+0j))]}
+
+    """
+
+    stripped_set={}
+    for key in coloured_sets:
+        SET = coloured_sets[key]
+
+        stripped = [(PauliWord, const[dict_str_label]) for DICT in SET for PauliWord, const in
+                          DICT.items()]
+
+        stripped_set[key] = stripped
+    return stripped_set
+
 
 # without using indices
 if __name__ == '__main__':
@@ -1180,7 +1227,58 @@ if __name__ == '__main__':
                                     strategy='largest_first')
 
     anti_commuting_set = Get_unique_graph_colours(s_colour + m_colour)
-    print(anti_commuting_set)
+
+    anti_commuting_set_stripped = Get_PauliWord_constant_tuples(anti_commuting_set, dict_str_label='Cofactors')
+
+    print(anti_commuting_set_stripped)
+
+
+# class Hamiltonian_Graph():
+#
+#     def __init__(self, List_of_nodes, Graph_colouring_strategy='largest_first', attribute_dictionary=None):
+#
+#         self.List_of_nodes = List_of_nodes
+#         self.Graph_colouring_strategy = Graph_colouring_strategy
+#         # self.index_node_and_connected_node_index = index_node_and_connected_node_index
+#         self.attribute_dictionary = attribute_dictionary
+#
+#         self.Graph = nx.Graph()
+#         self.anti_commuting_set = None
+#         self.node_attributes_dict = None
+#
+#     def _Get_node_attributes_dict(self):
+#         List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(self.List_of_nodes,
+#                                                                         attribute_dictionary=self.attribute_dictionary)
+#         self.node_attributes_dict = node_attributes_dict
+#
+#     def _Build_Graph_nodes(self, plot_graph=False):
+#
+#         if self.attribute_dictionary is not None:
+#             self._Get_node_attributes_dict()
+#
+#         self.Graph = Build_Graph_Nodes(self.List_of_nodes, self.Graph, node_attributes_dict=self.node_attributes_dict,
+#                                        plot_graph=plot_graph)
+#
+#     def _Build_Graph_edges(self, commutativity_flag, plot_graph=False):
+#         self.Graph = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(self.Graph, self.List_of_nodes, commutativity_flag,
+#                                                                    plot_graph=plot_graph)
+#
+#     def _Colour_Graph(self, plot_graph=False):
+#         single_G, multi_G = Get_subgraphs(self.Graph, node_attributes_dict=self.node_attributes_dict)
+#         s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=self.node_attributes_dict, plot_graph=plot_graph,
+#                                         strategy=self.Graph_colouring_strategy)
+#         m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=self.node_attributes_dict, plot_graph=plot_graph,
+#                                         strategy=self.Graph_colouring_strategy)
+#
+#         output_sets =  Get_unique_graph_colours(s_colour + m_colour)
+#         return output_sets
+#
+#     def Get_Pauli_grouping(self, commutativity_flag, plot_graph=False):
+#         self.Graph.clear()
+#         self._Build_Graph_nodes(plot_graph=plot_graph)
+#         self._Build_Graph_edges(commutativity_flag, plot_graph=plot_graph)
+#         output_sets = self._Colour_Graph(plot_graph=plot_graph)
+#         return output_sets
 
 # # TODO
 #  Find reduction term which has best properties
