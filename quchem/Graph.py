@@ -1037,13 +1037,18 @@ def Colour_list_of_Graph(Graph_list, attribute_dictionary=None, plot_graph=False
 
             for colour in colour_key_for_nodes:
                 nx.draw_networkx_nodes(graph, pos,
-                                       nodelist=[PauliWord for PauliWord, const in
-                                                 colour_key_for_nodes[colour]],
+                                       nodelist=[P_word for i in colour_key_for_nodes[colour]
+                                                 for P_word, const in i.items()],
                                        node_color=colour_list[colour],
                                        node_size=500,
-                                       alpha=0.8)
+                                       alpha=0.8
+                                     )
+                labels = {P_word: P_word for i in colour_key_for_nodes[colour] for P_word, const in i.items()}
+                nx.draw_networkx_labels(graph, pos, labels)  # , font_size=8)
 
             nx.draw_networkx_edges(graph, pos, width=1.0, alpha=0.5)
+            plt.show()
+
     return List_of_Coloured_Graphs_dicts
 
 def Get_unique_graph_colours(List_of_Coloured_Graphs_dicts):
