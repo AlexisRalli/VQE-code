@@ -57,145 +57,75 @@ attribute_dictionary = {'Cofactors': HamiltonainCofactors}
 List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_PauliWords,
                                                                        attribute_dictionary=attribute_dictionary)
 
-G = nx.Graph()
-G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
-G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes, 'C', plot_graph=False)
+G =  Hamiltonian_Graph(List_PauliWords, Graph_colouring_strategy='largest_first', attribute_dictionary=attribute_dictionary)
+anti_commuting_sets = X.Get_Pauli_grouping('C', plot_graph=False)
 
-# comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
-
-single_G, multi_G = Get_subgraphs(G, node_attributes_dict=node_attributes_dict)
-s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
-                                strategy='largest_first')
-m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
-                                strategy='largest_first')
-
-anti_commuting_sets = Get_unique_graph_colours(s_colour + m_colour)
+# G = nx.Graph()
+# G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
+# G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes, 'C', plot_graph=False)
+#
+# # comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
+#
+# single_G, multi_G = Get_subgraphs(G, node_attributes_dict=node_attributes_dict)
+# s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
+#                                 strategy='largest_first')
+# m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
+#                                 strategy='largest_first')
+#
+# anti_commuting_sets = Get_unique_graph_colours(s_colour + m_colour)
 
 anti_commuting_set_stripped = Get_PauliWord_constant_tuples(anti_commuting_sets, dict_str_label='Cofactors')
-
 print(anti_commuting_set_stripped)
 
 ### NEXT graph!
 set1_P, set1_C = zip(*anti_commuting_set_stripped[6])
 set2_P, set2_C = zip(*anti_commuting_set_stripped[8])
-set1_P=[set1_P[0]]
-set1_C=[set1_C[0]]
+# set1_P=[set1_P[0]]
+# set1_C=[set1_C[0]]
 
 NEW_attribute_dictionary = {'Cofactors': [*set1_C,*set2_C]}
 
-
-List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes([*set1_P,*set2_P],
+List_of_nodes_NEW, node_attributes_dict_NEW = Get_list_of_nodes_and_attributes([*set1_P,*set2_P],
                                                                        attribute_dictionary=NEW_attribute_dictionary)
 
-G = nx.Graph()
-G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
-G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes, 'AC', plot_graph=False)
+G_NEW =  Hamiltonian_Graph(List_of_nodes_NEW, Graph_colouring_strategy='largest_first', attribute_dictionary=attribute_dictionary)
+commuting_sets = X.Get_Pauli_grouping('AC', plot_graph=False)
 
-single_G, multi_G = Get_subgraphs(G, node_attributes_dict=node_attributes_dict)
-s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
-                                strategy='largest_first')
-m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=True,
-                                strategy='largest_first')
+# G = nx.Graph()
+# G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
+# G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes, 'AC', plot_graph=False)
+#
+# single_G, multi_G = Get_subgraphs(G, node_attributes_dict=node_attributes_dict)
+# s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
+#                                 strategy='largest_first')
+# m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=True,
+#                                 strategy='largest_first')
+#
+# commuting_sets = Get_unique_graph_colours(s_colour + m_colour)
 
-commuting_sets = Get_unique_graph_colours(s_colour + m_colour)
+anti_comm_QWC_FLAG = 'C'
+H = Graph_of_two_sets(set1_P, set2_P, anti_comm_QWC_FLAG, plot_graph = True)
 
-
-key_i=6
-term_i=0
-key_j=8
-term_j=0
-
-P1 =list(commuting_sets[key_i][term_i].keys())[0]
-P2 =list(commuting_sets[key_j][term_j].keys())[0]
-print(Commutativity(P1, P2, 'C'))
-
-
-def Graph_of_two_sets(Graph, PauliWord_string_nodes_list_1, PauliWord_string_nodes_list_2,
-                                                  anti_comm_QWC, plot_graph = False):
-    """
-
-    Function builds graph edges for commuting / anticommuting / QWC PauliWords
-
-    Args:
-        PauliWord_string_nodes_list (list): list of PauliWords (str)
-        Graph: networkX graph with nodes already defined
-        anti_comm_QWC (str): flags to find either:
-                                           qubit wise commuting (QWC) terms  -> flag = 'QWC',
-                                                             commuting terms -> flag = 'C',
-                                                        anti-commuting terms -> flag = 'AC'
-        plot_graph (optional, bool): whether to plot graph
-
-    Returns:
-        Graph: Graph with nodes connected if they commute / QWC / anti-commute
-
-    """
-
-    # Build nodes
-    labels={}
-    for node in [*PauliWord_string_nodes_list_1, *PauliWord_string_nodes_list_2]:
-        Graph.add_node(node)
-        labels[node] = node
-
-    pos = nx.circular_layout(Graph)
-
-    nx.draw_networkx_nodes(Graph, pos,
-                           nodelist=PauliWord_string_nodes_list_1,
-                           node_color='r',
-                           node_size=500,
-                           alpha=0.8)
-    nx.draw_networkx_nodes(Graph, pos,
-                           nodelist=PauliWord_string_nodes_list_2,
-                           node_color='b',
-                           node_size=500,
-                           alpha=0.8)
-
-    nx.draw_networkx_labels(Graph, pos, labels)  # , font_size=8)
-
-    if node_attributes_dict is not None:
-        nx.set_node_attributes(Graph, node_attributes_dict)
-
-
-    # Build Edges
-    edgelist=[]
-    for i in tqdm(range(len(PauliWord_string_nodes_list_1)), ascii=True, desc='Building Graph Edges'):
-        selected_PauliWord = PauliWord_string_nodes_list_1[i]
-
-        for comparison_PauliWord in PauliWord_string_nodes_list_2:
-
-            if Commutativity(selected_PauliWord, comparison_PauliWord, anti_comm_QWC) is True:
-                Graph.add_edge(selected_PauliWord, comparison_PauliWord)
-                edgelist.append((selected_PauliWord,comparison_PauliWord))
-            else:
-                continue
-    nx.draw_networkx_edges(Graph, pos,
-                           edgelist=edgelist,
-                           width=2, alpha=0.5, edge_color='k')
-
-    if plot_graph == True:
-        plt.figure()
-        plt.show()
-    return Graph
-
-H = nx.Graph()
-anti_comm_QWC = 'C'
-H = Graph_of_two_sets(H, set1_P, set2_P, anti_comm_QWC, plot_graph = True)
-
-adj_mat = nx.adjacency_matrix(H,nodelist=[*set1_P, *set1_P])
+adj_mat = nx.adjacency_matrix(H,nodelist=[*set1_P, *set2_P])
 # I, J, Val = scipy.sparse.find(adj_mat[0:2,:])
 
-def Check_if_sets_completely_connected(GRAPH,set1_P, set2_P):
-    adj_mat = nx.adjacency_matrix(GRAPH, nodelist=[*set1_P, *set2_P])
+Check_if_sets_completely_connected(H,set1_P, set2_P)
 
-    # select correct part of adjacency matrix!
-    check_connected = adj_mat[:len(set1_P), len(set1_P):len(set1_P)+len(set2_P)]
 
-    #Get number of connected terms
-    num_non_zero = check_connected.nnz
+###CHECK in loop:
+checker=[]
+for i in range(len(anti_commuting_set_stripped)):
+    j=8
+    if i !=j:
+        set1_P, set1_C = zip(*anti_commuting_set_stripped[j])
+        set2_P, set2_C = zip(*anti_commuting_set_stripped[i])
 
-    #Get number of connected terms if completely connected
-    num_non_zero_full = check_connected.shape[0]*check_connected.shape[1]
+        if len(set2_P)>1: # checks if set2 is worth looking at!
 
-    if num_non_zero == num_non_zero_full:
-        return True
-    else:
-        return False
+            anti_comm_QWC_FLAG = 'C'
+            H_NEW = Graph_of_two_sets(set1_P, set2_P, anti_comm_QWC_FLAG, plot_graph = False)
+
+            adj_mat = nx.adjacency_matrix(H_NEW,nodelist=[*set1_P, *set2_P])
+            # I, J, Val = scipy.sparse.find(adj_mat[0:2,:])
+
+            checker.append(Check_if_sets_completely_connected(H,set1_P, set2_P))
