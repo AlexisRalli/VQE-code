@@ -78,11 +78,13 @@ print(anti_commuting_set_stripped)
 ### NEXT graph!
 set1_P, set1_C = zip(*anti_commuting_set_stripped[6])
 set2_P, set2_C = zip(*anti_commuting_set_stripped[8])
+set1_P=[set1_P[0]]
+set1_C=[set1_C[0]]
 
-NEW_attribute_dictionary = {'Cofactors': set1_C+set2_C}
+NEW_attribute_dictionary = {'Cofactors': [*set1_C,*set2_C]}
 
 
-List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(set1_P+set2_P,
+List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes([*set1_P,*set2_P],
                                                                        attribute_dictionary=NEW_attribute_dictionary)
 
 G = nx.Graph()
@@ -103,8 +105,8 @@ term_i=0
 key_j=8
 term_j=0
 
-P1 =list(commuting_sets[i][term_i].keys())[0]
-P2 =list(commuting_sets[j][term_j].keys())[0]
+P1 =list(commuting_sets[key_i][term_i].keys())[0]
+P2 =list(commuting_sets[key_j][term_j].keys())[0]
 print(Commutativity(P1, P2, 'C'))
 
 
@@ -177,3 +179,23 @@ def Graph_of_two_sets(Graph, PauliWord_string_nodes_list_1, PauliWord_string_nod
 H = nx.Graph()
 anti_comm_QWC = 'C'
 H = Graph_of_two_sets(H, set1_P, set2_P, anti_comm_QWC, plot_graph = True)
+
+adj_mat = nx.adjacency_matrix(H,nodelist=[*set1_P, *set1_P])
+# I, J, Val = scipy.sparse.find(adj_mat[0:2,:])
+
+def Check_if_sets_completely_connected(GRAPH,set1_P, set2_P):
+    adj_mat = nx.adjacency_matrix(GRAPH, nodelist=[*set1_P, *set2_P])
+
+    # select correct part of adjacency matrix!
+    check_connected = adj_mat[:len(set1_P), len(set1_P):len(set1_P)+len(set2_P)]
+
+    #Get number of connected terms
+    num_non_zero = check_connected.nnz
+
+    #Get number of connected terms if completely connected
+    num_non_zero_full = check_connected.shape[0]*check_connected.shape[1]
+
+    if num_non_zero == num_non_zero_full:
+        return True
+    else:
+        return False
