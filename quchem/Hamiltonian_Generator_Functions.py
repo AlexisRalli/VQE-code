@@ -119,7 +119,7 @@ class Hamiltonian():
         print('CCSD: ', self.molecule.ccsd_energy)
         print('FCI: ', self.molecule.fci_energy)
 
-    def Get_Molecular_Hamiltonian(self):
+    def Get_Molecular_Hamiltonian(self, Get_H_matrix=False):
         """
         Get sparse matrix of molecular Hamiltonian
 
@@ -141,8 +141,9 @@ class Hamiltonian():
 
 
         # Get Matrix Form of QubitHamiltonian
-        from openfermion.transforms import get_sparse_operator
-        self.MolecularHamiltonianMatrix = get_sparse_operator(self.MolecularHamiltonian)
+        if Get_H_matrix is True:
+            from openfermion.transforms import get_sparse_operator
+            self.MolecularHamiltonianMatrix = get_sparse_operator(self.MolecularHamiltonian)
 
     def Get_FCI_from_MolecularHamialtonian(self):
         from scipy.sparse.linalg import eigs

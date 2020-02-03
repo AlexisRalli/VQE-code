@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from functools import reduce
 from tqdm import tqdm
+import matplotlib
+matplotlib.use('TkAgg')
 
 
 class BuildGraph_string():
@@ -1287,7 +1289,7 @@ class Hamiltonian_Graph():
 
 
 def Graph_of_two_sets(PauliWord_string_nodes_list_1, PauliWord_string_nodes_list_2,
-                                                  anti_comm_QWC, plot_graph = False):
+                                                  anti_comm_QWC, plot_graph=False, node_attributes_dict=None):
     """
 
     Function builds graph edges for commuting / anticommuting / QWC PauliWords
@@ -1312,24 +1314,8 @@ def Graph_of_two_sets(PauliWord_string_nodes_list_1, PauliWord_string_nodes_list
         Graph.add_node(node)
         labels[node] = node
 
-    pos = nx.circular_layout(Graph)
-
-    nx.draw_networkx_nodes(Graph, pos,
-                           nodelist=PauliWord_string_nodes_list_1,
-                           node_color='r',
-                           node_size=500,
-                           alpha=0.8)
-    nx.draw_networkx_nodes(Graph, pos,
-                           nodelist=PauliWord_string_nodes_list_2,
-                           node_color='b',
-                           node_size=500,
-                           alpha=0.8)
-
-    nx.draw_networkx_labels(Graph, pos, labels)  # , font_size=8)
-
     if node_attributes_dict is not None:
         nx.set_node_attributes(Graph, node_attributes_dict)
-
 
     # Build Edges
     edgelist=[]
@@ -1337,19 +1323,34 @@ def Graph_of_two_sets(PauliWord_string_nodes_list_1, PauliWord_string_nodes_list
         selected_PauliWord = PauliWord_string_nodes_list_1[i]
 
         for comparison_PauliWord in PauliWord_string_nodes_list_2:
-
             if Commutativity(selected_PauliWord, comparison_PauliWord, anti_comm_QWC) is True:
                 Graph.add_edge(selected_PauliWord, comparison_PauliWord)
                 edgelist.append((selected_PauliWord,comparison_PauliWord))
             else:
                 continue
-    nx.draw_networkx_edges(Graph, pos,
-                           edgelist=edgelist,
-                           width=2, alpha=0.5, edge_color='k')
 
-    if plot_graph == True:
-        plt.figure()
+    if plot_graph is True:
+        pos = nx.circular_layout(Graph)
+
+        nx.draw_networkx_nodes(Graph, pos,
+                               nodelist=PauliWord_string_nodes_list_1,
+                               node_color='r',
+                               node_size=500,
+                               alpha=0.8)
+        nx.draw_networkx_nodes(Graph, pos,
+                               nodelist=PauliWord_string_nodes_list_2,
+                               node_color='b',
+                               node_size=500,
+                               alpha=0.8)
+
+        nx.draw_networkx_labels(Graph, pos, labels)  # , font_size=8)
+
+        nx.draw_networkx_edges(Graph, pos,
+                               edgelist=edgelist,
+                               width=2, alpha=0.5, edge_color='k')
+
         plt.show()
+
     return Graph
 
 

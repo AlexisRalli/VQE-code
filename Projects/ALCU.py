@@ -24,18 +24,6 @@ QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW()
 #print('Qubit Hamiltonian: ', QubitHam)
 QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam)
 
-### Ansatz ###
-# from quchem.Ansatz_Generator_Functions import *
-#
-# UCCSD = UCCSD_Trotter(SQ_CC_ops, THETA_params)
-# Second_Quant_CC_JW_OP_list = UCCSD.SingleTrotterStep()
-# PauliWord_list = Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_JW_OP_list)
-# HF_UCCSD_ansatz = Ansatz_Circuit(PauliWord_list, Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits)
-# # THETA_params = [random.uniform(0, 2 * np.pi) for _ in range(len(THETA_params))]
-# ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
-# print(ansatz_Q_cicuit)
-
-
 ### Graph Colouring
 from quchem.Graph import *
 
@@ -46,20 +34,9 @@ attribute_dictionary = {'Cofactors': HamiltonainCofactors}
 List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_PauliWords,
                                                                        attribute_dictionary=attribute_dictionary)
 
-G = nx.Graph()
-G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
-G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes, 'C', plot_graph=False)
-
-# comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
-
-single_G, multi_G = Get_subgraphs(G, node_attributes_dict=node_attributes_dict)
-s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
-                                strategy='largest_first')
-m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
-                                strategy='largest_first')
-
-anti_commuting_set = Get_unique_graph_colours(s_colour + m_colour)
-print(anti_commuting_set)
+G =  Hamiltonian_Graph(List_PauliWords, Graph_colouring_strategy='largest_first', attribute_dictionary=attribute_dictionary)
+anti_commuting_sets = G.Get_Pauli_grouping('C', plot_graph=False)
+print(anti_commuting_sets)
 
 # ALCU!!!
 # R = exp(−iαX/2) = cos(α/2)I − isin(α/2)X
@@ -73,3 +50,15 @@ print(anti_commuting_set)
 ### |A > = 1/||a||_{1}   ∑_{Ω} (β_{Ω})^0.5|Ω >  # ancilla line!
 ### c-H_{s} = ∑_{Ω} |Ω >< Ω| ⊗ P_{Ω}            # control H_s (controlled by ancilla line)
 # applying:
+
+# note: https://arxiv.org/pdf/quant-ph/0104030.pdf
+
+from scipy.sparse import kron
+from functools import reduce
+zero = np.array([[1],
+                 [0]])
+
+one = np.array([[0],
+                [1]])
+
+tensored_PauliWord = reduce(kron, [zero,zero,zero])
