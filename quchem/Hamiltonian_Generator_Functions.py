@@ -683,7 +683,7 @@ if __name__ == '__main__':
                          multiplicity=1,
                          geometry=geometry)  # normally None!
 
-    Hamilt.Get_Molecular_Hamiltonian()
+    Hamilt.Get_Molecular_Hamiltonian(Get_H_matrix=True)
     SQ_CC_ops, THETA_params = Hamilt.Get_ia_and_ijab_terms(Coupled_cluser_param=True)
     print(SQ_CC_ops)
 
