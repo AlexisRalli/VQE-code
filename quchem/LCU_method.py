@@ -98,7 +98,7 @@ class My_U_Gate(cirq.SingleQubitGate):
 
     def _circuit_diagram_info_(self,args):
         return cirq.CircuitDiagramInfo(
-            wire_symbols=tuple([*['@' for _ in range(self.num_control_qubits-1)],' U = {} rad '.format(self.theta)]),exponent=1)
+            wire_symbols=tuple([*['@' for _ in range(self.num_control_qubits-1)],' U = {} rad '.format(self.theta.__round__(4))]),exponent=1)
 
 if __name__ == '__main__':
     theta = np.pi
@@ -107,6 +107,67 @@ if __name__ == '__main__':
     op = U_single_qubit.on(cirq.LineQubit(1))
     print(cirq.Circuit.from_ops(op))
 
-    U_multi_qubit = My_U_Gate(theta,3)
-    op2 = U_multi_qubit.on(cirq.LineQubit(1)).controlled_by(cirq.LineQubit(2),cirq.LineQubit(3),cirq.LineQubit(4))
-    print(cirq.Circuit.from_ops(op2))
+    # cirq.Gate.controlled().on(control_qubit, target_qubit)
+    op = U_single_qubit.controlled(num_controls=3, control_values=[0, 0, 1]).on(
+        *[cirq.LineQubit(1), cirq.LineQubit(2), cirq.LineQubit(3)], cirq.LineQubit(4))
+    print(cirq.Circuit.from_ops(op))
+
+
+class State_Prep_Circuit(cirq.Gate):
+    """
+    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
+    qubits in order to perform PauliWord as a Z terms only for: e^(cofactor * theta * PauliWord_Z_ONLY)
+
+    e.g.: ('X0 I1 Y2 X3', 0.125j)
+        gives :
+0: ─ U = 0.4564 rad ─(0)───────────────@──────────────────(0)────────────────(0)────────────────@──────────────────@──────────────────
+                     │                 │                  │                  │                  │                  │
+1: ────────────────── U = 0.694 rad ─── U = 1.2733 rad ───(0)────────────────@──────────────────(0)────────────────@──────────────────
+                                                          │                  │                  │                  │
+2: ────────────────────────────────────────────────────── U = 1.1919 rad ─── U = 0.6788 rad ─── U = 1.4576 rad ─── U = 0.8557 rad ───
+
+    Args:
+        circuit_param_dict (dict): A Dictionary of Tuples (qubit, control_val(int)) value is angle
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops to generate arbitrary state
+
+    """
+    def __init__(self, circuit_param_dict):
+
+        self.circuit_param_dict = circuit_param_dict
+
+    def _decompose_(self, qubits):
+
+        for Tuple in self.circuit_param_dict:
+
+            theta = self.circuit_param_dict[Tuple]
+            U_single_qubit = My_U_Gate(theta, 0)
+
+            if Tuple[0]==1:
+                num_controls = 0
+                control_values = []
+            else:
+                num_controls = Tuple[0] - 1
+                control_values=[int(bit) for bit in Get_state_as_str(num_controls, Tuple[1])]
+
+            qubit_list = cirq.LineQubit.range(0,Tuple[0])
+
+            yield U_single_qubit.controlled(num_controls=num_controls, control_values=control_values).on(*qubit_list)
+
+    def _circuit_diagram_info_(self, args):
+
+        max_qubit = max(Tuple[0] for Tuple in alpha_j)
+        string_list = []
+        for i in range(max_qubit):
+            string_list.append('state prep circuit')
+        return string_list
+
+    def num_qubits(self):
+        max_qubit = max(Tuple[0] for Tuple in alpha_j)
+        return max_qubit
+if __name__ == '__main__':
+    state_circ = State_Prep_Circuit(alpha_j)
+    print(cirq.Circuit.from_ops((state_circ(*cirq.LineQubit.range(state_circ.num_qubits())))))
+    print(
+        cirq.Circuit.from_ops(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))

@@ -27,10 +27,11 @@ setup(
         'scipy>=1.0.0',
         'tqdm>=4',
         'cirq>=0.4.0',
-        'openfermion>=0.10.0',
+        'openfermion>=0.9.0',
         'psi4>=1.3.2',
         'openfermionpsi4>=0.4',
-        'networkx>=2.3',
+        'networkx>=2.3'
+        'openfermionpsi4>=0.4',
     ],
     extras_require={
         'optimizers': [
