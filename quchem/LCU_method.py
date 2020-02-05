@@ -3,9 +3,27 @@
 import numpy as np
 import cirq
 
-def Get_state_as_str(n_qubits, integer):
+def Get_state_as_str(n_qubits, qubit_state_int):
+    """
+    converts qubit state int into binary form.
+
+    Args:
+        n_qubits (int): Number of qubits
+        qubit_state_int (int): qubit state as int (NOT BINARY!)
+    Returns:
+        string of qubit state in binary!
+
+    state = |000> + |001> + |010> + |011> + |100> + |101 > + |110 > + |111>
+    state  = |0> +   |1> +   |2> +   |3> +   |4> +   |5 > +   |6 > +   |7>
+
+    n_qubits = 3
+    state = 5
+    Get_state_as_str(n_qubits, state)
+    >> '101'
+
+    """
     bin_str_len = '{' + "0:0{}b".format(n_qubits) + '}'
-    return bin_str_len.format(integer)
+    return bin_str_len.format(qubit_state_int)
 
 # state = |000> + |001> + |010> + |011> + |100> + |101 > + |110 > + |111>
 
@@ -66,8 +84,6 @@ def Get_state_prep_dict(num_qubits, Coefficient_list=None):
                         lower_sum.append(Coefficient_list[i] ** 2)
                 alpha_j[(j, ii)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
     return alpha_j
-
-
 
 
 
@@ -192,11 +208,11 @@ class State_Prep_Circuit(cirq.Gate):
 
 gives :
 
-0: ─ U = 0.45 rad ─(0)──────────────@────────────────(0)──────────────(0)──────────────@─────────────@──────────────
-                   │                │                │                │                │             │
-1: ──────────────── U = 0.69 rad ─── U = 1.27 rad ───(0)──────────────@────────────────(0)───────────@──────────────
-                                                     │                │                │             │
-2: ───────────────────────────────────────────────── U = 1.19 rad ─── U = 0.67 rad ─── U = 1.4 rad ─ U = 0.85 rad ──
+0: ── U = 0.51 rad ──(0)─────────────@──────────────(0)────────────(0)──────────────@────────────────@────────────────
+                     │               │              │              │                │                │
+1: ────────────────── U = 0.91 rad ── U = 0.93 rad ─(0)────────────@────────────────(0)──────────────@────────────────
+                                                    │              │                │                │
+2: ───────────────────────────────────────────────── U = 0.30 rad ─ U = 0.59 rad ─── U = 0.72 rad ─── U = 0.71 rad ───
 
     Args:
         circuit_param_dict (dict): A Dictionary of Tuples (qubit, control_val(int)) value is angle
