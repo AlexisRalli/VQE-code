@@ -9,67 +9,129 @@ def Get_state_as_str(n_qubits, integer):
 
 # state = |000> + |001> + |010> + |011> + |100> + |101 > + |110 > + |111>
 
+def Get_state_prep_dict(num_qubits, Coefficient_list=None):
 
-num_qubits = 3
-constants = np.random.rand(2 ** num_qubits)
-state_list = [Get_state_as_str(num_qubits, i) for i in range(2 ** num_qubits)]
-alpha_j = {}
-for j in np.arange(1, num_qubits + 1, 1):  # for j=1 to j=n-1
-    if j == 1:
-        upper_list_full = set(['1' + state[j:] for state in state_list])
-        lower_list_full = set(['0' + state[j:] for state in state_list])
+    if Coefficient_list is None:
+        Coefficient_list= np.random.rand(2 ** num_qubits)
 
-        upper_sum = []
-        lower_sum = []
-        for i in range(len(state_list)):
-            state = state_list[i]
-            if state in upper_list_full:
-                upper_sum.append(constants[i] ** 2)
-            elif state in lower_list_full:
-                lower_sum.append(constants[i] ** 2)
-        alpha_j[(j, 0)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
-
-    elif j == num_qubits:
-        upper_list_full = list(set([state[:j-1] + '1' for state in state_list]))
-        lower_list_full = list(set([state[:j-1] + '0' for state in state_list]))
-
-        for k in range(len(upper_list_full)):
-            upper_term = upper_list_full[k]
-            lower_term = lower_list_full[k]
+    state_list = [Get_state_as_str(num_qubits, i) for i in range(2 ** num_qubits)]
+    alpha_j = {}
+    for j in np.arange(1, num_qubits + 1, 1):  # for j=1 to j=n-1
+        if j == 1:
+            upper_list_full = set(['1' + state[j:] for state in state_list])
+            lower_list_full = set(['0' + state[j:] for state in state_list])
 
             upper_sum = []
             lower_sum = []
-            for i in range(len(state_list)):
-                state = state_list[i]
-                if state == upper_term:
-                    upper_sum.append(constants[i])
-                elif state == lower_term:
-                    lower_sum.append(constants[i])
-            print('sum: ', upper_sum)
-            alpha_j[(j, k)] = np.arctan(sum(upper_sum) / sum(lower_sum))  # note no sqrt!
-
-    else:
-        print("###")
-        print(j)
-        for ii in np.arange(0, 2 ** (j - 1), 1):
-            # print('i_list:', ii)
-            upper_str = Get_state_as_str(j - 1, ii) + '1'
-            lower_str = Get_state_as_str(j - 1, ii) + '0'
-
-            upper_list_full = set([upper_str + state[j:] for state in state_list])
-            lower_list_full = set([lower_str + state[j:] for state in state_list])
-            # print(upper_list_full)
-            # print(lower_list_full)
-            lower_sum = []
-            upper_sum = []
             for i in range(len(state_list)):
                 state = state_list[i]
                 if state in upper_list_full:
-                    upper_sum.append(constants[i] ** 2)
+                    upper_sum.append(Coefficient_list[i] ** 2)
                 elif state in lower_list_full:
-                    lower_sum.append(constants[i] ** 2)
-            alpha_j[(j, ii)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
-alpha_j
+                    lower_sum.append(Coefficient_list[i] ** 2)
+            alpha_j[(j, 0)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+
+        elif j == num_qubits:
+            upper_list_full = list(set([state[:j - 1] + '1' for state in state_list]))
+            lower_list_full = list(set([state[:j - 1] + '0' for state in state_list]))
+
+            for k in range(len(upper_list_full)):
+                upper_term = upper_list_full[k]
+                lower_term = lower_list_full[k]
+
+                upper_sum = []
+                lower_sum = []
+                for i in range(len(state_list)):
+                    state = state_list[i]
+                    if state == upper_term:
+                        upper_sum.append(Coefficient_list[i])
+                    elif state == lower_term:
+                        lower_sum.append(Coefficient_list[i])
+                alpha_j[(j, k)] = np.arctan(sum(upper_sum) / sum(lower_sum))  # note no sqrt!
+
+        else:
+            for ii in np.arange(0, 2 ** (j - 1), 1):
+                upper_str = Get_state_as_str(j - 1, ii) + '1'
+                lower_str = Get_state_as_str(j - 1, ii) + '0'
+
+                upper_list_full = set([upper_str + state[j:] for state in state_list])
+                lower_list_full = set([lower_str + state[j:] for state in state_list])
+                lower_sum = []
+                upper_sum = []
+                for i in range(len(state_list)):
+                    state = state_list[i]
+                    if state in upper_list_full:
+                        upper_sum.append(Coefficient_list[i] ** 2)
+                    elif state in lower_list_full:
+                        lower_sum.append(Coefficient_list[i] ** 2)
+                alpha_j[(j, ii)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+    return alpha_j
+
+
+
+
+
+
+# num_qubits = 3
+# constants = np.random.rand(2 ** num_qubits)
+# state_list = [Get_state_as_str(num_qubits, i) for i in range(2 ** num_qubits)]
+# alpha_j = {}
+# for j in np.arange(1, num_qubits + 1, 1):  # for j=1 to j=n-1
+#     if j == 1:
+#         upper_list_full = set(['1' + state[j:] for state in state_list])
+#         lower_list_full = set(['0' + state[j:] for state in state_list])
+#
+#         upper_sum = []
+#         lower_sum = []
+#         for i in range(len(state_list)):
+#             state = state_list[i]
+#             if state in upper_list_full:
+#                 upper_sum.append(constants[i] ** 2)
+#             elif state in lower_list_full:
+#                 lower_sum.append(constants[i] ** 2)
+#         alpha_j[(j, 0)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+#
+#     elif j == num_qubits:
+#         upper_list_full = list(set([state[:j-1] + '1' for state in state_list]))
+#         lower_list_full = list(set([state[:j-1] + '0' for state in state_list]))
+#
+#         for k in range(len(upper_list_full)):
+#             upper_term = upper_list_full[k]
+#             lower_term = lower_list_full[k]
+#
+#             upper_sum = []
+#             lower_sum = []
+#             for i in range(len(state_list)):
+#                 state = state_list[i]
+#                 if state == upper_term:
+#                     upper_sum.append(constants[i])
+#                 elif state == lower_term:
+#                     lower_sum.append(constants[i])
+#             print('sum: ', upper_sum)
+#             alpha_j[(j, k)] = np.arctan(sum(upper_sum) / sum(lower_sum))  # note no sqrt!
+#
+#     else:
+#         print("###")
+#         print(j)
+#         for ii in np.arange(0, 2 ** (j - 1), 1):
+#             # print('i_list:', ii)
+#             upper_str = Get_state_as_str(j - 1, ii) + '1'
+#             lower_str = Get_state_as_str(j - 1, ii) + '0'
+#
+#             upper_list_full = set([upper_str + state[j:] for state in state_list])
+#             lower_list_full = set([lower_str + state[j:] for state in state_list])
+#             # print(upper_list_full)
+#             # print(lower_list_full)
+#             lower_sum = []
+#             upper_sum = []
+#             for i in range(len(state_list)):
+#                 state = state_list[i]
+#                 if state in upper_list_full:
+#                     upper_sum.append(constants[i] ** 2)
+#                 elif state in lower_list_full:
+#                     lower_sum.append(constants[i] ** 2)
+#             alpha_j[(j, ii)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+# alpha_j
 # NOTE : control is ii value in alpha_j dict!
 
 
@@ -115,16 +177,26 @@ if __name__ == '__main__':
 
 class State_Prep_Circuit(cirq.Gate):
     """
-    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
-    qubits in order to perform PauliWord as a Z terms only for: e^(cofactor * theta * PauliWord_Z_ONLY)
+    Function to build cirq Circuit that will make an arbitrary state!
 
-    e.g.: ('X0 I1 Y2 X3', 0.125j)
-        gives :
-0: ─ U = 0.4564 rad ─(0)───────────────@──────────────────(0)────────────────(0)────────────────@──────────────────@──────────────────
-                     │                 │                  │                  │                  │                  │
-1: ────────────────── U = 0.694 rad ─── U = 1.2733 rad ───(0)────────────────@──────────────────(0)────────────────@──────────────────
-                                                          │                  │                  │                  │
-2: ────────────────────────────────────────────────────── U = 1.1919 rad ─── U = 0.6788 rad ─── U = 1.4576 rad ─── U = 0.8557 rad ───
+    e.g.:
+   {
+        (1, 0): 0.5092156980522868,
+        (2, 0): 0.9097461710606383,
+        (2, 1): 0.9338960671361634,
+        (3, 0): 0.3007458481278772,
+        (3, 1): 0.5945638342986989,
+        (3, 2): 0.7174996992546281,
+        (3, 3): 0.7105908988639925
+    }
+
+gives :
+
+0: ─ U = 0.45 rad ─(0)──────────────@────────────────(0)──────────────(0)──────────────@─────────────@──────────────
+                   │                │                │                │                │             │
+1: ──────────────── U = 0.69 rad ─── U = 1.27 rad ───(0)──────────────@────────────────(0)───────────@──────────────
+                                                     │                │                │             │
+2: ───────────────────────────────────────────────── U = 1.19 rad ─── U = 0.67 rad ─── U = 1.4 rad ─ U = 0.85 rad ──
 
     Args:
         circuit_param_dict (dict): A Dictionary of Tuples (qubit, control_val(int)) value is angle
@@ -151,7 +223,8 @@ class State_Prep_Circuit(cirq.Gate):
                 num_controls = Tuple[0] - 1
                 control_values=[int(bit) for bit in Get_state_as_str(num_controls, Tuple[1])]
 
-            qubit_list = cirq.LineQubit.range(0,Tuple[0])
+            # qubit_list = cirq.LineQubit.range(0,Tuple[0])
+            qubit_list = qubits[0:Tuple[0]]
 
             yield U_single_qubit.controlled(num_controls=num_controls, control_values=control_values).on(*qubit_list)
 
@@ -166,8 +239,50 @@ class State_Prep_Circuit(cirq.Gate):
     def num_qubits(self):
         max_qubit = max(Tuple[0] for Tuple in alpha_j)
         return max_qubit
+
 if __name__ == '__main__':
+    num_qub = 3
+    Coefficient_list=None
+    alpha_j = Get_state_prep_dict(num_qub, Coefficient_list=Coefficient_list)
     state_circ = State_Prep_Circuit(alpha_j)
     print(cirq.Circuit(state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))
     print(
         cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
+
+
+if __name__ == '__main__':
+    num_qub = 2
+    Coefficient_list=[1/2,1/2,1/2,1/2]  #[0.9, 0.3, 0.3, 0.1]
+    alpha_j = Get_state_prep_dict(num_qub, Coefficient_list=Coefficient_list)
+    state_circ = State_Prep_Circuit(alpha_j)
+    circuit = (cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
+
+    # MEASURE
+    qubits_to_measure = (cirq.LineQubit(q_No) for q_No in range(num_qub))
+    circuit.append(cirq.measure(*qubits_to_measure))
+    print(circuit)
+
+    # simulate
+    simulator = cirq.Simulator()
+    results = simulator.run(circuit, repetitions=100000)
+    print(results.histogram(key='0,1'))
+
+
+    print('actual state:')
+    # NOTE! must not have any measurement (otherwise collapses state!)
+    state_circ = State_Prep_Circuit(alpha_j)
+    circuit = (cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
+    qubits_to_measure = (cirq.LineQubit(q_No) for q_No in range(num_qub))
+    result = simulator.simulate(circuit, qubit_order=qubits_to_measure)
+    print(np.around(result.final_state, 3))
+
+    # alternative key method! key fined by ## HERE ###
+    # # MEASURE
+    # qubits_to_measure = (cirq.LineQubit(q_No) for q_No in range(num_qub))
+    # circuit.append(cirq.measure(*qubits_to_measure, key='Z'))             ## HERE ### (can be any str)
+    # print(circuit)
+    #
+    # # simulate
+    # simulator = cirq.Simulator()
+    # results = simulator.run(circuit, repetitions=1000)
+    # print(results.histogram(key='Z'))                         ## re-use ###
