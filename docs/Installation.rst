@@ -34,3 +34,17 @@ The core packages ``quchem`` requires are:
     :class: quchemnote
 
     To install Psi4 please follow `Psi4_install <https://admiring-tesla-08529a.netlify.com/installs/v132/>`_
+    for anaconda distribution do:
+
+.. code-block:: bash
+
+    conda config --add channels http://conda.anaconda.org/psi4
+    #check
+    cat ~/.condarc
+    >> channels:
+      - http://conda.anaconda.org/psi4
+      - defaults
+
+    #to install
+    conda install psi4
+
