@@ -168,6 +168,6 @@ class State_Prep_Circuit(cirq.Gate):
         return max_qubit
 if __name__ == '__main__':
     state_circ = State_Prep_Circuit(alpha_j)
-    print(cirq.Circuit.from_ops((state_circ(*cirq.LineQubit.range(state_circ.num_qubits())))))
+    print(cirq.Circuit(state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))
     print(
-        cirq.Circuit.from_ops(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
+        cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
