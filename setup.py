@@ -21,14 +21,13 @@ setup(
     author='Alexis Ralli',
     author_email="alexis.ralli.18@ucl.ac.uk",
     license='MIT',
-    packages=find_packages(exclude=['tests*']), #finds quchem!
+    packages=find_packages(exclude=['tests*', 'PSI4']), #finds quchem!
     install_requires=[
         'numpy>=1.12',
         'scipy>=1.0.0',
         'tqdm>=4',
         'cirq>=0.4.0',
         'openfermion>=0.9.0',
-        'psi4>=1.3.2',
         'openfermionpsi4>=0.4',
         'networkx>=2.3'
         'openfermionpsi4>=0.4',
@@ -37,6 +36,9 @@ setup(
         'optimizers': [
             'tensorflow>=1.14.0',
             'scipy>=1.0.0',
+        ],
+        'PSI4': [
+            'psi4>=1.3.2',
         ],
         'tests': [
             'coverage',
