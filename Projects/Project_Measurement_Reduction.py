@@ -1,7 +1,7 @@
 from quchem.Hamiltonian_Generator_Functions import *
 
 ### Variable Parameters
-Molecule = 'H2O'#LiH'
+Molecule = 'BeH2'#LiH'
 geometry = None
 num_shots = 10000
 HF_occ_index = [0,1,2] #[0, 1,2] # for occupied_orbitals_index_list

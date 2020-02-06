@@ -256,19 +256,19 @@ gives :
         max_qubit = max(Tuple[0] for Tuple in alpha_j)
         return max_qubit
 
-if __name__ == '__main__':
-    num_qub = 3
-    Coefficient_list=None
-    alpha_j = Get_state_prep_dict(num_qub, Coefficient_list=Coefficient_list)
-    state_circ = State_Prep_Circuit(alpha_j)
-    print(cirq.Circuit(state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))
-    print(
-        cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
+# if __name__ == '__main__':
+#     num_qub = 3
+#     Coefficient_list=None
+#     alpha_j = Get_state_prep_dict(num_qub, Coefficient_list=Coefficient_list)
+#     state_circ = State_Prep_Circuit(alpha_j)
+#     print(cirq.Circuit(state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))
+#     print(
+#         cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
 
 
 if __name__ == '__main__':
     num_qub = 2
-    Coefficient_list=[1/2,1/2,1/2,1/2]  #[0.9, 0.3, 0.3, 0.1]
+    Coefficient_list= [np.sqrt(0.5), np.sqrt(0.2), np.sqrt(0.2), np.sqrt(0.1)] #[1/2,1/2,1/2,1/2]  #[0.9, 0.3, 0.3, 0.1]
     alpha_j = Get_state_prep_dict(num_qub, Coefficient_list=Coefficient_list)
     state_circ = State_Prep_Circuit(alpha_j)
     circuit = (cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
@@ -302,3 +302,141 @@ if __name__ == '__main__':
     # simulator = cirq.Simulator()
     # results = simulator.run(circuit, repetitions=1000)
     # print(results.histogram(key='Z'))                         ## re-use ###
+
+
+
+num_qubits=3
+state_list = [Get_state_as_str(num_qubits, i) for i in range(2 ** num_qubits)]
+alpha_j = {}
+for j in np.arange(1, num_qubits + 1, 1):  # for j=1 to j=n-1
+    if j == num_qubits:
+        pass
+    else:
+
+        J_i_jneg1 = [Get_state_as_str(j - 1, i) for i in range(2 ** (j - 1))]
+
+        for start_index in J_i_jneg1:
+            upper_index = start_index + '1'
+            lower_index = start_index + '0'
+
+            upper_sum = []
+            lower_sum = []
+            for k in range(len(state_list)):
+                state = state_list[k]
+                if state[:j] == upper_index:
+                    upper_sum.append(Coefficient_list[i] ** 2)
+                elif state[:j] == lower_index:
+                    lower_sum.append(Coefficient_list[i]**2)
+            alpha_j[(j, start_index)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+
+
+
+        upper_sum = []
+        lower_sum = []
+        for ii in np.arange(0, 2 ** (j - 1), 1):
+            upper_start_index=upper_start_indices[ii]
+            lower_start_index=lower_start_indices[ii]
+            for i in range(len(state_list)):
+                state = state_list[i]
+                if state[:j] in upper_start_indices:
+                    upper_sum.append(Coefficient_list[i] ** 2)
+                elif state[:j] in lower_list_full:
+                    lower_sum.append(Coefficient_list[i] ** 2)
+            alpha_j[(j, ii)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+
+    elif j == num_qubits:
+        upper_list_full = list(set([state[:j - 1] + '1' for state in state_list]))
+        lower_list_full = list(set([state[:j - 1] + '0' for state in state_list]))
+
+        for k in range(len(upper_list_full)):
+            upper_term = upper_list_full[k]
+            lower_term = lower_list_full[k]
+
+            upper_sum = []
+            lower_sum = []
+            for i in range(len(state_list)):
+                state = state_list[i]
+                if state == upper_term:
+                    upper_sum.append(Coefficient_list[i])
+                elif state == lower_term:
+                    lower_sum.append(Coefficient_list[i])
+            alpha_j[(j, k)] = np.arctan(sum(upper_sum) / sum(lower_sum))  # note no sqrt!
+
+    else:
+        for ii in np.arange(0, 2 ** (j - 1), 1):
+            upper_str = Get_state_as_str(j - 1, ii) + '1'
+            lower_str = Get_state_as_str(j - 1, ii) + '0'
+
+            upper_list_full = set([upper_str + state[j:] for state in state_list])
+            lower_list_full = set([lower_str + state[j:] for state in state_list])
+            lower_sum = []
+            upper_sum = []
+            for i in range(len(state_list)):
+                state = state_list[i]
+                if state in upper_list_full:
+                    upper_sum.append(Coefficient_list[i] ** 2)
+                elif state in lower_list_full:
+                    lower_sum.append(Coefficient_list[i] ** 2)
+            alpha_j[(j, ii)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+alpha_j
+
+
+
+
+# CODE still WRONG!
+# e.g for two qubit case... expect 1 rotation on first qubit
+#                           and 2 controlled single qubit rotations on 2nd
+# BUT currently getting 4 controlled operations!
+# Need to look at case when j = n (aka the last run of the loop!)
+
+num_qubits = 2
+state_list = [Get_state_as_str(num_qubits, i) for i in range(2 ** num_qubits)]
+Coefficient_list = np.random.rand(2 ** num_qubits) # [np.sqrt(0.5), np.sqrt(0.2), np.sqrt(0.2), np.sqrt(0.1)]
+alpha_j = {}
+for j in np.arange(1, num_qubits + 1, 1):  # for j=1 to j=n-1
+    if j == num_qubits:
+        upper_index_end = '1'
+        lower_index_end = '0'
+
+        for k in range(len(state_list)):
+            state = state_list[k]
+            if state == state[:-1] + upper_index_end:
+                upper_sum.append(Coefficient_list[k] ** 2)
+            elif state == state[:-1] + lower_index_end:
+                lower_sum.append(Coefficient_list[k] ** 2)
+
+            alpha_j[(j, k)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+
+    elif j == 1:
+        upper_index = '1'
+        lower_index = '0'
+
+        upper_sum = []
+        lower_sum = []
+
+        for k in range(len(state_list)):
+            state = state_list[k]
+            if state[0] == upper_index:
+                upper_sum.append(Coefficient_list[k] ** 2)
+            elif state[0] == lower_index:
+                lower_sum.append(Coefficient_list[k] ** 2)
+        alpha_j[(j, int(lower_index))] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+
+    else:
+        J_i_jneg1 = [Get_state_as_str(j - 1, i) for i in range(2 ** (j - 1))]
+
+        for start_index in J_i_jneg1:
+            upper_index = start_index + '1'
+            lower_index = start_index + '0'
+
+            upper_sum = []
+            lower_sum = []
+
+            for k in range(len(state_list)):
+                state = state_list[k]
+                if state[:j] == upper_index:
+                    upper_sum.append(Coefficient_list[k] ** 2)
+                elif state[:j] == lower_index:
+                    lower_sum.append(Coefficient_list[k] ** 2)
+            alpha_j[(j, int(start_index))] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+alpha_j

@@ -10,6 +10,8 @@ and running:
 .. code-block:: bash
 
     git clone https://github.com/AlexisRalli/VQE-code.git
+
+    pip install -r requirements.txt
     python setup.py develop
 
 
