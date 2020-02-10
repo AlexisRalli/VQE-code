@@ -57,8 +57,8 @@ attribute_dictionary = {'Cofactors': HamiltonainCofactors}
 List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_PauliWords,
                                                                        attribute_dictionary=attribute_dictionary)
 
-G = Hamiltonian_Graph(List_PauliWords, Graph_colouring_strategy='largest_first', attribute_dictionary=attribute_dictionary)
-anti_commuting_sets = G.Get_Pauli_grouping('C', plot_graph=False)
+G = Hamiltonian_Graph(List_PauliWords, attribute_dictionary=attribute_dictionary)
+anti_commuting_sets = G.Get_Pauli_grouping('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
 
 # G = nx.Graph()
 # G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
@@ -88,8 +88,8 @@ NEW_attribute_dictionary = {'Cofactors': [*set1_C,*set2_C]}
 List_of_nodes_NEW, node_attributes_dict_NEW = Get_list_of_nodes_and_attributes([*set1_P,*set2_P],
                                                                        attribute_dictionary=NEW_attribute_dictionary)
 
-G_NEW =  Hamiltonian_Graph(List_of_nodes_NEW, Graph_colouring_strategy='largest_first', attribute_dictionary=NEW_attribute_dictionary)
-commuting_sets = G_NEW.Get_Pauli_grouping('AC', plot_graph=False)
+G_NEW =  Hamiltonian_Graph(List_of_nodes_NEW, attribute_dictionary=NEW_attribute_dictionary)
+commuting_sets = G_NEW.Get_Pauli_grouping('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
 
 anti_comm_QWC_FLAG = 'C'
 H = Graph_of_two_sets(set1_P, set2_P, anti_comm_QWC_FLAG, plot_graph=True)

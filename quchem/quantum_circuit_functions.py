@@ -112,7 +112,7 @@ class Change_of_Basis_initial(cirq.Gate):
             if qubitOp == 'X':
                 yield cirq.H(qubits[qubitNo])
             elif qubitOp == 'Y':
-                 yield cirq.Rx(np.pi / 2)(qubits[qubitNo])
+                 yield cirq.rx(np.pi / 2)(qubits[qubitNo])
             elif qubitOp == 'Z' or 'I':
                 continue
             else:
@@ -235,9 +235,9 @@ class PauliWord_exponential_rotation(cirq.Gate):
         control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list])
 
         if cofactor.imag<0:
-            yield cirq.Rz(self.theta* np.abs(cofactor.imag)).on(qubits[control_qubit])
+            yield cirq.rz(self.theta* np.abs(cofactor.imag)).on(qubits[control_qubit])
         else:
-            yield cirq.Rz(self.theta* np.abs(cofactor.imag) *-1).on(qubits[control_qubit])
+            yield cirq.rz(self.theta* np.abs(cofactor.imag) *-1).on(qubits[control_qubit])
 
 
 
@@ -356,7 +356,7 @@ class Change_of_Basis_final(cirq.Gate):
             if qubitOp == 'X':
                 yield cirq.H(qubits[qubitNo])
             elif qubitOp == 'Y':
-                 yield cirq.Rx(-np.pi / 2)(qubits[qubitNo])
+                 yield cirq.rx(-np.pi / 2)(qubits[qubitNo])
             elif qubitOp == 'Z' or 'I':
                 continue
             else:
