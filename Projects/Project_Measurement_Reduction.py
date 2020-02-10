@@ -1,7 +1,7 @@
 from quchem.Hamiltonian_Generator_Functions import *
 
 ### Variable Parameters
-Molecule = 'BeH2'#LiH'
+Molecule = 'LiH'#LiH'
 geometry = None
 num_shots = 10000
 HF_occ_index = [0,1,2] #[0, 1,2] # for occupied_orbitals_index_list
@@ -57,7 +57,7 @@ attribute_dictionary = {'Cofactors': HamiltonainCofactors}
 List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_PauliWords,
                                                                        attribute_dictionary=attribute_dictionary)
 
-G =  Hamiltonian_Graph(List_PauliWords, Graph_colouring_strategy='largest_first', attribute_dictionary=attribute_dictionary)
+G = Hamiltonian_Graph(List_PauliWords, Graph_colouring_strategy='largest_first', attribute_dictionary=attribute_dictionary)
 anti_commuting_sets = G.Get_Pauli_grouping('C', plot_graph=False)
 
 # G = nx.Graph()
@@ -138,3 +138,27 @@ set1_P, set1_C = zip(*anti_commuting_set_stripped[num_success[index][0]])
 set2_P, set2_C = zip(*anti_commuting_set_stripped[num_success[index][1]])
 anti_comm_QWC_FLAG = 'C'
 H = Graph_of_two_sets(set1_P, set2_P, anti_comm_QWC_FLAG, plot_graph=True)
+
+
+
+
+
+
+List_PauliWords, HamiltonainCofactors = zip(*QubitHam_PauliStr)
+attribute_dictionary = {'Cofactors': HamiltonainCofactors}
+G=nx.Graph()
+G = Build_Graph_Nodes(List_PauliWords, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
+G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_PauliWords, 'AC', plot_graph=False)
+comp_GRAPH = nx.complement(G)
+# nx.draw(comp_GRAPH, with_labels=1)
+greedy_colouring_output_dic = nx.greedy_color(comp_GRAPH, strategy='largest_first', interchange=False)
+unique_colours = set(greedy_colouring_output_dic.values())
+
+colour_key_for_nodes = {}
+for colour in unique_colours:
+    colour_key_for_nodes[colour] = [k for k in greedy_colouring_output_dic.keys()
+                                        if greedy_colouring_output_dic[k] == colour]
+print(colour_key_for_nodes)
+P1='Y0 X1 X2 Z3 Z4 Y5 I6 I7 I8 I9 I10 I11'
+P2='Y0 Y1 X2 Z3 Z4 X5 I6 I7 I8 I9 I10 I11'
+Commutativity(P1, P2, 'C')
