@@ -852,154 +852,56 @@ def Get_Complemenary_Graph(Graph, node_attributes_dict=None, plot_graph=False):
         plt.show()
     return Complement_Graph
 
-def Get_subgraphs(Graph, node_attributes_dict=None):
+def Get_clique_cover(Graph, strategy='largest_first', plot_graph=False):
+    """
+    https: // en.wikipedia.org / wiki / Clique_cover
 
-    # -*- coding: utf-8 -*-
-    #    Copyright (C) 2004-2016 by
-    #    Aric Hagberg <hagberg@lanl.gov>
-    #    Dan Schult <dschult@colgate.edu>
-    #    Pieter Swart <swart@lanl.gov>
-    #    All rights reserved.
-    #    BSD license.
-    #
-    # Authors: Eben Kenah
-    #          Aric Hagberg (hagberg@lanl.gov)
-    #          Christopher Ellison
-    """Connected components."""
-    import networkx as nx
+    Function gets clique cover of a graph
+
+    Args:
+        Graph (): networkx graph
+        strategy (str): graph colouring method to find clique cover. (note is a heuristic alg)
+        plot_graph (optional, bool): whether to plot graph
+
+    Returns:
+        colour_key_for_nodes (dict): A dictionary containing colours (sets) as keys and item as list of nodes
+                                     that are completely connected by edges
+
+    """
+    comp_GRAPH = nx.complement(Graph)
+    # nx.draw(comp_GRAPH, with_labels=1)
+    greedy_colouring_output_dic = nx.greedy_color(comp_GRAPH, strategy=strategy, interchange=False)
+    unique_colours = set(greedy_colouring_output_dic.values())
+
+    colour_key_for_nodes = {}
+    for colour in unique_colours:
+        colour_key_for_nodes[colour] = [k for k in greedy_colouring_output_dic.keys()
+                                        if greedy_colouring_output_dic[k] == colour]
 
 
-    if isinstance(Graph, nx.classes.digraph.DiGraph):
-        raise TypeError('Cannot have a directed graph, must be a undirected graph')
+    if plot_graph is True:
+        import matplotlib.cm as cm
+        colour_list = cm.rainbow(np.linspace(0, 1, len(colour_key_for_nodes)))
+        pos = nx.circular_layout(Graph)
+
+        for colour in colour_key_for_nodes:
+            nx.draw_networkx_nodes(Graph, pos,
+                                   nodelist=[node for node in colour_key_for_nodes[colour]],
+                                   node_color=colour_list[colour],
+                                   node_size=500,
+                                   alpha=0.8
+                                   )
+
+        labels = {node: node for node in list(Graph.nodes)}
+        nx.draw_networkx_labels(Graph, pos, labels)  # , font_size=8)
+
+        nx.draw_networkx_edges(Graph, pos, width=1.0, alpha=0.5)
+        nx.draw_networkx_edges(Graph, pos, width=1.0, alpha=0.5)
+
+    return colour_key_for_nodes
 
 
-    def connected_components(G):
-        """Generate connected components.
 
-        Parameters
-        ----------
-        G : NetworkX graph
-           An undirected graph
-
-        Returns
-        -------
-        comp : generator of sets
-           A generator of sets of nodes, one for each component of G.
-
-        Raises
-        ------
-        NetworkXNotImplemented:
-            If G is undirected.
-
-        Examples
-        --------
-        Generate a sorted list of connected components, largest first.
-
-        # >>> G = nx.path_graph(4)
-        # >>> nx.add_path(G, [10, 11, 12])
-        # >>> [len(c) for c in sorted(nx.connected_components(G), key=len, reverse=True)]
-        [4, 3]
-
-        If you only want the largest connected component, it's more
-        efficient to use max instead of sort.
-
-        # >>> largest_cc = max(nx.connected_components(G), key=len)
-
-        See Also
-        --------
-        strongly_connected_components
-        weakly_connected_components
-
-        Notes
-        -----
-        For undirected graphs only.
-
-        """
-        seen = set()
-        for v in G:
-            if v not in seen:
-                c = set(_plain_bfs(G, v))
-                yield c
-                seen.update(c)
-    def connected_component_subgraphs(G, copy=True):
-        """Generate connected components as subgraphs.
-
-        Parameters
-        ----------
-        G : NetworkX graph
-           An undirected graph.
-
-        copy: bool (default=True)
-          If True make a copy of the graph attributes
-
-        Returns
-        -------
-        comp : generator
-          A generator of graphs, one for each connected component of G.
-
-        Raises
-        ------
-        NetworkXNotImplemented:
-            If G is undirected.
-
-        Examples
-        --------
-        # >>> G = nx.path_graph(4)
-        # >>> G.add_edge(5,6)
-        # >>> graphs = list(nx.connected_component_subgraphs(G))
-
-        If you only want the largest connected component, it's more
-        efficient to use max instead of sort:
-
-        # >>> Gc = max(nx.connected_component_subgraphs(G), key=len)
-
-        See Also
-        --------
-        connected_components
-        strongly_connected_component_subgraphs
-        weakly_connected_component_subgraphs
-
-        Notes
-        -----
-        For undirected graphs only.
-        Graph, node, and edge attributes are copied to the subgraphs by default.
-
-        """
-        for c in connected_components(G):
-            if copy:
-                yield G.subgraph(c).copy()
-            else:
-                yield G.subgraph(c)
-    def _plain_bfs(G, source):
-        """A fast BFS node generator"""
-        seen = set()
-        nextlevel = {source}
-        while nextlevel:
-            thislevel = nextlevel
-            nextlevel = set()
-            for v in thislevel:
-                if v not in seen:
-                    yield v
-                    seen.add(v)
-                    nextlevel.update(G[v])
-
-    connected_graphs = list(connected_component_subgraphs(Graph))
-    multi_node_G = []
-    single_node_G = []
-    for graph in connected_graphs:
-        if len(graph.nodes) > 1:
-            # pos = nx.circular_layout(graph)
-            # plt.figure()
-            # nx.draw(graph, pos, with_labels=1)
-            if node_attributes_dict is not None:
-                nx.set_node_attributes(graph, node_attributes_dict)
-            multi_node_G.append(graph)
-        else:
-            if node_attributes_dict is not None:
-                nx.set_node_attributes(graph, node_attributes_dict)
-            single_node_G.append(graph)
-
-    return single_node_G, multi_node_G
 
 def Colour_list_of_Graph(Graph_list, attribute_dictionary=None, plot_graph=False, strategy='largest_first'):
     # different strategies at:
@@ -1152,19 +1054,15 @@ if __name__ == '__main__':
 
     G = nx.Graph()
     G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
-    G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes, 'C', plot_graph = True)
+    G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes, 'AC', plot_graph = True)
+
+    anti_commuting_set = Get_clique_cover(G, strategy='largest_first', plot_graph=False)
+    print(anti_commuting_set)
 
     #comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
 
 
-    single_G, multi_G = Get_subgraphs(G, node_attributes_dict=node_attributes_dict)
-    s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
-                                    strategy='largest_first')
-    m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
-                                    strategy='largest_first')
 
-    anti_commuting_set = Get_unique_graph_colours(s_colour + m_colour)
-    print(anti_commuting_set)
 
 
 #using indices
