@@ -65,7 +65,6 @@ anti_commuting_set_stripped = Get_PauliWord_constant_tuples(anti_commuting_sets,
 print(anti_commuting_set_stripped)
 
 # GET SUBGRAPH of graph:
-
 GRAPH = nx.Graph()
 for key in anti_commuting_set_stripped:
     GRAPH.add_node(key)
@@ -80,193 +79,31 @@ for key in anti_commuting_set_stripped:
                                                   'C', plot_graph=False, node_attributes_dict=None)
 
         if Check_if_sets_completely_connected(Graph_of_sets, set1_P, set2_P):
-            GRAPH.add_edge(key, k)
+            GRAPH.add_edge(key, k) # connection of anti_commuting set key if completely connected
 
 # list(GRAPH.edges)
+print('No of edges: ', len(list(GRAPH.edges)))
+print('unique: ', len(set([i[0] for i in list(GRAPH.edges)])))
 
+comp_GRAPH = nx.complement(GRAPH)
+nx.draw(comp_GRAPH, with_labels=1)
 
+greedy_colouring_output_dic = nx.greedy_color(comp_GRAPH, strategy='largest_first', interchange=False)
+unique_colours = set(greedy_colouring_output_dic.values())
 
-single_G, multi_G = Get_subgraphs(GRAPH, node_attributes_dict=None)
-s_colour = Colour_list_of_Graph(GRAPH, attribute_dictionary=None, plot_graph=False,
-                                strategy='largest_first')
-m_colour = Colour_list_of_Graph(GRAPH, attribute_dictionary=None, plot_graph=False,
-                                strategy='largest_first')
+colour_key_for_nodes = {}
+for colour in unique_colours:
+    colour_key_for_nodes[colour] = [k for k in greedy_colouring_output_dic.keys()
+                                        if greedy_colouring_output_dic[k] == colour]
+print(colour_key_for_nodes)
+# note each colour given by key... each term is completely commuting sets!
 
-output_sets = Get_unique_graph_colours(s_colour + m_colour)
+print('reduction: ', len(anti_commuting_set_stripped) - len(colour_key_for_nodes))
 
-
-def Get_subgraphs(Graph):
-
-    # -*- coding: utf-8 -*-
-    #    Copyright (C) 2004-2016 by
-    #    Aric Hagberg <hagberg@lanl.gov>
-    #    Dan Schult <dschult@colgate.edu>
-    #    Pieter Swart <swart@lanl.gov>
-    #    All rights reserved.
-    #    BSD license.
-    #
-    # Authors: Eben Kenah
-    #          Aric Hagberg (hagberg@lanl.gov)
-    #          Christopher Ellison
-    """Connected components."""
-
-    if isinstance(Graph, nx.classes.digraph.DiGraph):
-        raise TypeError('Cannot have a directed graph, must be a undirected graph')
-
-    def connected_components(G):
-        """Generate connected components.
-
-        Parameters
-        ----------
-        G : NetworkX graph
-           An undirected graph
-
-        Returns
-        -------
-        comp : generator of sets
-           A generator of sets of nodes, one for each component of G.
-
-        Raises
-        ------
-        NetworkXNotImplemented:
-            If G is undirected.
-
-        Examples
-        --------
-        Generate a sorted list of connected components, largest first.
-
-        # >>> G = nx.path_graph(4)
-        # >>> nx.add_path(G, [10, 11, 12])
-        # >>> [len(c) for c in sorted(nx.connected_components(G), key=len, reverse=True)]
-        [4, 3]
-
-        If you only want the largest connected component, it's more
-        efficient to use max instead of sort.
-
-        # >>> largest_cc = max(nx.connected_components(G), key=len)
-
-        See Also
-        --------
-        strongly_connected_components
-        weakly_connected_components
-
-        Notes
-        -----
-        For undirected graphs only.
-
-        """
-        seen = set()
-        for v in G:
-            if v not in seen:
-                c = set(_plain_bfs(G, v))
-                yield c
-                seen.update(c)
-    def connected_component_subgraphs(G, copy=True):
-        """Generate connected components as subgraphs.
-
-        Parameters
-        ----------
-        G : NetworkX graph
-           An undirected graph.
-
-        copy: bool (default=True)
-          If True make a copy of the graph attributes
-
-        Returns
-        -------
-        comp : generator
-          A generator of graphs, one for each connected component of G.
-
-        Raises
-        ------
-        NetworkXNotImplemented:
-            If G is undirected.
-
-        Examples
-        --------
-        # >>> G = nx.path_graph(4)
-        # >>> G.add_edge(5,6)
-        # >>> graphs = list(nx.connected_component_subgraphs(G))
-
-        If you only want the largest connected component, it's more
-        efficient to use max instead of sort:
-
-        # >>> Gc = max(nx.connected_component_subgraphs(G), key=len)
-
-        See Also
-        --------
-        connected_components
-        strongly_connected_component_subgraphs
-        weakly_connected_component_subgraphs
-
-        Notes
-        -----
-        For undirected graphs only.
-        Graph, node, and edge attributes are copied to the subgraphs by default.
-
-        """
-        for c in connected_components(G):
-            if copy:
-                yield G.subgraph(c).copy()
-            else:
-                yield G.subgraph(c)
-    def _plain_bfs(G, source):
-        """A fast BFS node generator"""
-        seen = set()
-        nextlevel = {source}
-        while nextlevel:
-            thislevel = nextlevel
-            nextlevel = set()
-            for v in thislevel:
-                if v not in seen:
-                    yield v
-                    seen.add(v)
-                    nextlevel.update(G[v])
-
-    connected_graphs = list(connected_component_subgraphs(Graph))
-    multi_node_G = []
-    single_node_G = []
-    for graph in connected_graphs:
-        if len(graph.nodes) > 1:
-            multi_node_G.append(graph)
-        else:
-            single_node_G.append(graph)
-
-    return single_node_G, multi_node_G
-
-def Colour_list_of_Graph(Graph_list, plot_graph=False, strategy='largest_first'):
-    # different strategies at:
-    # https://networkx.github.io/documentation/stable/reference/algorithms/generated/networkx.algorithms.coloring.greedy_color.html#networkx.algorithms.coloring.greedy_color
-
-    List_of_Coloured_Graphs_dicts = []
-    for graph in Graph_list:
-        greedy_colouring_output_dic = nx.greedy_color(graph, strategy=strategy, interchange=False)
-        unique_colours = set(greedy_colouring_output_dic.values())
-
-        colour_key_for_nodes = {}
-        for colour in unique_colours:
-            if attribute_dictionary is None:
-                colour_key_for_nodes[colour] = [k for k in greedy_colouring_output_dic.keys()
-                                                       if greedy_colouring_output_dic[k] == colour]
-
-        List_of_Coloured_Graphs_dicts.append(colour_key_for_nodes)
-
-        if plot_graph == True:
-            import matplotlib.cm as cm
-            plt.figure()
-            colour_list = cm.rainbow(np.linspace(0, 1, len(colour_key_for_nodes)))
-            pos = nx.circular_layout(graph)
-            for colour in colour_key_for_nodes:
-                nx.draw_networkx_nodes(graph, pos,
-                                       nodelist=[P_word for i in colour_key_for_nodes[colour]
-                                                 for P_word, const in i.items()],
-                                       node_color=colour_list[colour],
-                                       node_size=500,
-                                       alpha=0.8
-                                     )
-                labels = {P_word: P_word for i in colour_key_for_nodes[colour] for P_word, const in i.items()}
-                nx.draw_networkx_labels(graph, pos, labels)  # , font_size=8)
-
-            nx.draw_networkx_edges(graph, pos, width=1.0, alpha=0.5)
-            plt.show()
-    return List_of_Coloured_Graphs_dicts
+### chekcing commutativity!:
+# set1_P, set1_C = zip(*anti_commuting_set_stripped[105])
+# set2_P, set2_C = zip(*anti_commuting_set_stripped[106])
+#
+# Graph_of_sets = Graph_of_two_sets(set1_P, set2_P,
+#                                                   'C', plot_graph=False, node_attributes_dict=None)
+# Check_if_sets_completely_connected(Graph_of_sets, set1_P, set2_P)
