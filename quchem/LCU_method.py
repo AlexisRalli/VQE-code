@@ -187,7 +187,7 @@ if __name__ == '__main__':
     # simulate
     simulator = cirq.Simulator()
     results = simulator.run(circuit, repetitions=100000)
-    print(results.histogram(key='0,1,2'))
+    print(results.histogram(key='0,1,2')) # Need key to match number of qubits!!!
     print('actual state:')
     # NOTE! must not have any measurement (otherwise collapses state!)
     state_circ = State_Prep_Circuit(alpha_j)
