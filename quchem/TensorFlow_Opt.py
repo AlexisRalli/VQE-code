@@ -206,3 +206,22 @@ if __name__ == '__main__':
                                 beta2=0.999, args=const, store_values=True, display_iter_steps=True)
     GG.optimize(50)
     GG.plot_convergence()
+
+
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+    from mpl_toolkits.mplot3d import Axes3D
+    import numpy as np
+
+    x = np.arange(-10, 10, 0.25)
+    y = np.arange(-10, 10, 0.25)
+    const = 2
+
+    x, y = np.meshgrid(x, y)
+    z = x ** 2 + y ** 2 + const
+
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap=cm.viridis)
+    plt.show()
+    print('Minimum should be:', 2.0)

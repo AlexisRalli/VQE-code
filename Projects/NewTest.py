@@ -57,27 +57,15 @@ attribute_dictionary = {'Cofactors': HamiltonainCofactors}
 List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_PauliWords,
                                                                        attribute_dictionary=attribute_dictionary)
 
-G = nx.Graph()
-G = Build_Graph_Nodes(List_of_nodes, G, node_attributes_dict=node_attributes_dict, plot_graph=False)
-G = Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(G, List_of_nodes, 'C', plot_graph=False)
-
-# comp_G = Get_Complemenary_Graph(G, node_attributes_dict=node_attributes_dict, plot_graph=True) # <- not currently used
-
-single_G, multi_G = Get_subgraphs(G, node_attributes_dict=node_attributes_dict)
-s_colour = Colour_list_of_Graph(single_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
-                                strategy='largest_first')
-m_colour = Colour_list_of_Graph(multi_G, attribute_dictionary=attribute_dictionary, plot_graph=False,
-                                strategy='largest_first')
-
-anti_commuting_sets = Get_unique_graph_colours(s_colour + m_colour)
-#print(anti_commuting_sets)
+G = Hamiltonian_Graph(List_PauliWords, attribute_dictionary=attribute_dictionary)
+anti_commuting_sets = G.Get_Pauli_grouping('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
 
 
 ### Simulating Q Circuit
 
 # Quantum Circuit dict
-circuits_and_constants = Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(ansatz_Q_cicuit, QubitHam_PauliStr, Hamilt.molecule.n_qubits)
 from quchem.Simulating_Quantum_Circuit import *
+circuits_and_constants = Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(ansatz_Q_cicuit, QubitHam_PauliStr, Hamilt.molecule.n_qubits)
 xx = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
 print(xx.Calc_energy_via_parity())
 
@@ -114,7 +102,7 @@ GG = Optimizer(CalcE_QC, THETA_params, 'Nelder-Mead', store_values=True, display
 GG.get_env(20)
 GG.plot_convergence()
 
-from quchem.Ansatz_Generator_Functions import *
+
 from quchem.Simulating_Quantum_Circuit import *
 def Calculate_Gradient_by_QC(theta_guess_list):
 
@@ -141,7 +129,6 @@ def Calculate_Gradient_by_QC(theta_guess_list):
         Gradient = (E_Plus - E_MINUS)  # /2
         partial_gradient_list.append((Gradient, theta))  # .append(Gradient)
     return partial_gradient_list
-
 
 def Calc_Gradient_by_finite_differencing(theta_guess_list, delta=0.1):
     # gives very similar result when delta = 0.1 (#TODO think that when setting delta to very small value, errors in cirq simulation become important == wrong gradient given...
@@ -193,7 +180,9 @@ from quchem.Unitary_partitioning import *
 def CalcE_QC_UP(THETA_params):
     ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
 
-    zz = UnitaryPartition(anti_commuting_sets, ansatz_Q_cicuit,S_dict={0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 1, 9: 1, 10: 1}) #) None)
+    zz = UnitaryPartition(anti_commuting_sets, ansatz_Q_cicuit,
+                          S_dict={0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1,
+                                  10: 1})
     zz.Get_Quantum_circuits_and_constants()
     circuits_and_constants = zz.circuits_and_constants
 
