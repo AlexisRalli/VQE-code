@@ -608,7 +608,7 @@ class Measure_PauliWord(cirq.Gate):
                 raise ValueError("Qubit Operation: {} is NOT a Pauli operation".format(qubitOp))
 
         qubits_to_measure = (qubits[q_No] for q_No in q_No_measure)
-        if qubits_to_measure != []:
+        if q_No_measure != []:
             yield cirq.measure(*qubits_to_measure)
         else:
             return None

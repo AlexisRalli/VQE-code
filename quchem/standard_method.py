@@ -110,8 +110,6 @@ def Get_quantum_circuits_and_constants_NORMAL(full_anstaz_circuit, PauliWords_an
                                            'gamma_l': PauliWord_constant[1], 'PauliWord': PauliWord_constant[0]}
     return circuits_and_constants
 
-
-
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
@@ -202,7 +200,6 @@ class OptimizerSTANDARD:
         plt.xlabel('iterations')
         plt.ylabel('objective function value')
         # plt.savefig(dir_path + '/' + file)
-
 
 import tensorflow as tf
 

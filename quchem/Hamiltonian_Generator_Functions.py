@@ -720,6 +720,7 @@ if __name__ == '__main__':
                    display_convergence_message=True)
     GG.get_env(50)
     GG.plot_convergence()
+    plt.show()
 
 
 

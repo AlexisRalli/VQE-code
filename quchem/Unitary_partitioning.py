@@ -278,7 +278,7 @@ class Change_of_Basis_initial_X_sk(cirq.Gate):
                but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
 
     Returns
-        A cirq circuit object to be used by cirq.Circuit.from_ops
+        A cirq circuit object to be used by cirq.Circuit
 
     """
 
@@ -321,9 +321,9 @@ if __name__ == '__main__':
 
     Basis_change_circuit = Change_of_Basis_initial_X_sk(X_SK_Test)
 
-    print(cirq.Circuit.from_ops((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits())))))
+    print(cirq.Circuit((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits())))))
     print(
-        cirq.Circuit.from_ops(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
+        cirq.Circuit(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
 
 
 
@@ -348,7 +348,7 @@ class Engtangle_initial_X_sk(cirq.Gate):
                but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
 
     Returns
-        A cirq circuit object to be used by cirq.Circuit.from_ops
+        A cirq circuit object to be used by cirq.Circuit
 
     """
 
@@ -396,9 +396,9 @@ if __name__ == '__main__':
 
     Ent_initial = Engtangle_initial_X_sk(X_SK_Test)
 
-    print(cirq.Circuit.from_ops((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits())))))
+    print(cirq.Circuit((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits())))))
     print(
-        cirq.Circuit.from_ops(cirq.decompose_once((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits()))))))
+        cirq.Circuit(cirq.decompose_once((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits()))))))
 
 
 class My_R_sk_Gate(cirq.SingleQubitGate):
@@ -436,7 +436,7 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
 
        # example of use with cirq.
        Q_circuit = R_S.on(cirq.LineQubit(1))
-       print(cirq.Circuit.from_ops(Q_circuit))
+       print(cirq.Circuit(Q_circuit))
 
        >> 1: ───R_sk_DAGGER = (0.34438034648829496+0j) rad───
     """
@@ -484,7 +484,7 @@ if __name__ == '__main__':
     theta_sk = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['theta_sk']
     R_S = My_R_sk_Gate(theta_sk, dagger=True, correction_factor=X_SK_Test[1])
     w = R_S.on(cirq.LineQubit(1))
-    print(cirq.Circuit.from_ops(w))
+    print(cirq.Circuit(w))
 
 
 class R_sk_DAGGER(cirq.Gate):
@@ -512,7 +512,7 @@ class R_sk_DAGGER(cirq.Gate):
        Q_circuit = R_sk_DAGGER(X_SK_Test, theta_sk, dagger=True)
 
        # example of use with cirq.
-       print(cirq.Circuit.from_ops(cirq.decompose_once(
+       print(cirq.Circuit(cirq.decompose_once(
          (R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits()))))))
 
        >> 3: ───R_sk_DAGGER = (0.34438034648829496+0j) rad───
@@ -553,9 +553,9 @@ if __name__ == '__main__':
 
     R_sk_rot_circuit = R_sk_DAGGER(X_SK_Test, theta_sk, dagger=True)
 
-    print(cirq.Circuit.from_ops((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits())))))
+    print(cirq.Circuit((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits())))))
     print(
-        cirq.Circuit.from_ops(cirq.decompose_once((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits()))))))
+        cirq.Circuit(cirq.decompose_once((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits()))))))
 
 
 
@@ -581,7 +581,7 @@ class Engtangle_final_X_sk(cirq.Gate):
                but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
 
     Returns
-        A cirq circuit object to be used by cirq.Circuit.from_ops
+        A cirq circuit object to be used by cirq.Circuit
 
     """
 
@@ -625,9 +625,9 @@ if __name__ == '__main__':
 
     Ent_final = Engtangle_final_X_sk(X_SK_Test)
 
-    print(cirq.Circuit.from_ops((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits())))))
+    print(cirq.Circuit((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits())))))
     print(
-        cirq.Circuit.from_ops(cirq.decompose_once((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits()))))))
+        cirq.Circuit(cirq.decompose_once((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits()))))))
 
 class Change_of_Basis_final_X_sk(cirq.Gate):
 
@@ -651,7 +651,7 @@ class Change_of_Basis_final_X_sk(cirq.Gate):
                but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
 
     Returns
-        A cirq circuit object to be used by cirq.Circuit.from_ops
+        A cirq circuit object to be used by cirq.Circuit
 
     """
 
@@ -693,9 +693,9 @@ if __name__ == '__main__':
 
     Basis_change_circuit = Change_of_Basis_final_X_sk(X_SK_Test)
 
-    print(cirq.Circuit.from_ops((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits())))))
+    print(cirq.Circuit((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits())))))
     print(
-        cirq.Circuit.from_ops(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
+        cirq.Circuit(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
 
 class R_sk_full_circuit(cirq.Gate):
 
@@ -722,7 +722,7 @@ class R_sk_full_circuit(cirq.Gate):
         dagger (bool): whether to have daggered or non dagger circuit.
 
     Returns
-        A cirq circuit object to be used by cirq.Circuit.from_ops
+        A cirq circuit object to be used by cirq.Circuit
 
     """
 
@@ -774,9 +774,9 @@ if __name__ == '__main__':
 
     R_sk_full = R_sk_full_circuit(X_SK_Test, theta_sk, dagger=True)
 
-    print(cirq.Circuit.from_ops((R_sk_full(*cirq.LineQubit.range(R_sk_full.num_qubits())))))
+    print(cirq.Circuit((R_sk_full(*cirq.LineQubit.range(R_sk_full.num_qubits())))))
     print(
-        cirq.Circuit.from_ops(
+        cirq.Circuit(
             cirq.decompose_once((R_sk_full(*cirq.LineQubit.range(R_sk_full.num_qubits()))))))
 
 
@@ -843,9 +843,9 @@ def Get_R_S_operators(X_sk_and_theta_sk, dagger=True):
 if __name__ == '__main__':
     X_sk_and_theta_sk = ALL_X_SK_TERMS.X_sk_Ops[7]
     qq = Get_R_S_operators(X_sk_and_theta_sk, dagger=True)
-    print(cirq.Circuit.from_ops(
+    print(cirq.Circuit(
         (qq[0]['q_circuit'](*cirq.LineQubit.range(qq[0]['q_circuit'].num_qubits())))))
-    print(cirq.Circuit.from_ops(cirq.decompose_once(
+    print(cirq.Circuit(cirq.decompose_once(
         (qq[0]['q_circuit'](*cirq.LineQubit.range(qq[0]['q_circuit'].num_qubits()))))))
 
 
@@ -898,7 +898,7 @@ class UnitaryPartition(X_sk_terms):
                     circuits_and_constants[key] = {'circuit': None,
                                                    'gamma_l': PauliWord_constant[0][1], 'PauliWord': PauliWord_constant[0][0]}
                 else:
-                    full_circuit = cirq.Circuit.from_ops(
+                    full_circuit = cirq.Circuit(
                         [
                             *ansatz_circuit,
                             *circuit_ops
@@ -916,7 +916,7 @@ class UnitaryPartition(X_sk_terms):
                 Pauliword_S = self.X_sk_Ops[key]['PauliWord_S']
                 q_circuit_Pauliword_S_object = Perform_PauliWord(Pauliword_S)
 
-                q_circuit_Pauliword_S = cirq.Circuit.from_ops(
+                q_circuit_Pauliword_S = cirq.Circuit(
                     cirq.decompose_once((q_circuit_Pauliword_S_object(
                         *cirq.LineQubit.range(q_circuit_Pauliword_S_object.num_qubits())))))
 
@@ -928,12 +928,12 @@ class UnitaryPartition(X_sk_terms):
 
                 q_circuit_change_basis_and_measure = Change_Basis_and_Measure_PauliWord(Pauliword_S)
 
-                q_circuit_Pauliword_S_change_basis_and_measure = cirq.Circuit.from_ops(
+                q_circuit_Pauliword_S_change_basis_and_measure = cirq.Circuit(
                     cirq.decompose_once(
                         (q_circuit_change_basis_and_measure(
                             *cirq.LineQubit.range(q_circuit_change_basis_and_measure.num_qubits())))))
 
-                full_circuit = cirq.Circuit.from_ops(
+                full_circuit = cirq.Circuit(
                     [
                         *ansatz_circuit,
                         *term_reduction_circuits_first,
