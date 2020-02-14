@@ -39,11 +39,47 @@ The ``quchem`` module:
 To Install
 ^^^^^^^^^^
 
-First clone github repo then run:
+**quchem** is a pure python package. The code is hosted on  `github <https://github.com/AlexisRalli/VQE-code/>`_
+and if the dependencies are satisfied, a development version can be installed directly by cloning the github repo
+and running:
 
 .. code-block:: bash
 
+    git clone https://github.com/AlexisRalli/VQE-code.git
+
+    pip install -r requirements.txt
     python setup.py develop
+
+Special Dependencies
+^^^^^^^^^^^^^^^^^^^^
+.. note::
+    :class: quchemnote
+
+    To install Psi4 please follow `Psi4_install <https://admiring-tesla-08529a.netlify.com/installs/v132/>`_
+    for anaconda distribution do:
+
+    .. code-block:: bash
+
+        conda config --add channels http://conda.anaconda.org/psi4
+        #check
+        cat ~/.condarc
+        >> channels:
+          - http://conda.anaconda.org/psi4
+          - defaults
+
+        #to install
+        conda install psi4
+
+.. note::
+    :class: quchem_Tensor_Note
+
+    TensorFlow version 1 required!
+    To install for anaconda distribution do:
+
+    .. code-block:: bash
+
+        conda install -c conda-forge tensorflow=1.15
+
 
 Documentation
 ^^^^^^^^^^^^^
