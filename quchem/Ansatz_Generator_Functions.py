@@ -172,7 +172,7 @@ class Ansatz_Circuit():
     def Get_HF_Quantum_Circuit(self):
         HF_state = HF_state_generator(self.n_electrons, self.n_qubits)
         HF_state_prep = State_Prep(HF_state)
-        HF_state_prep_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
+        HF_state_prep_circuit = cirq.Circuit(cirq.decompose_once(
             (HF_state_prep(*cirq.LineQubit.range(HF_state_prep.num_qubits())))))
         self.HF_QCirc = list(HF_state_prep_circuit.all_operations())
 
@@ -185,7 +185,7 @@ class Ansatz_Circuit():
             Theta = Theta_param_list[i]
             for Paulistring_and_Cofactor in ExcitationOp:
                 Q_circuit_gen = full_exponentiated_PauliWord_circuit(Paulistring_and_Cofactor, Theta)
-                Q_circuit = cirq.Circuit.from_ops(cirq.decompose_once(
+                Q_circuit = cirq.Circuit(cirq.decompose_once(
                     (Q_circuit_gen(*cirq.LineQubit.range(Q_circuit_gen.num_qubits())))))
                 Q_Circuit_generator_list.append(Q_circuit.all_operations())
         return Q_Circuit_generator_list
@@ -197,7 +197,7 @@ class Ansatz_Circuit():
 
         UCCSD_QC_List = self.Get_UCCSD_Quantum_Circuit(Theta_param_list)
 
-        full_circuit = cirq.Circuit.from_ops(
+        full_circuit = cirq.Circuit(
             [
                 self.HF_QCirc,
                 *UCCSD_QC_List,
@@ -243,3 +243,205 @@ if __name__ == '__main__':
     # THETA_params = [random.uniform(0, 2 * np.pi) for _ in range(Hamilt.num_theta_parameters)]
     ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
     #print(ansatz_Q_cicuit)
+
+class Ansatz_MATRIX():
+    """
+
+    Build the ansatz state through linear algebra rather than quantum circuits.
+
+    Args:
+        PauliWord_str_Second_Quant_CC_JW_OP_list (list): List of Fermionic Operators (openfermion.ops._fermion_operator.FermionOperator)
+        n_electrons (int): Number of electrons
+        n_qubits (int): Number of qubits
+
+    Attributes:
+        reference_ket ():
+        UCCSD_ops_matrix_list ():
+
+    """
+    def __init__(self, Second_Quant_CC_JW_OP_list, n_electrons, n_qubits):
+        self.Second_Quant_CC_JW_OP_list = Second_Quant_CC_JW_OP_list
+        self.n_qubits = n_qubits
+        self.n_electrons = n_electrons
+
+        self.reference_ket = None
+        self.UCCSD_ops_matrix_list = None
+
+    def _Get_Basis_state_in_occ_num_basis(self, occupied_orbitals_index_list):
+        """
+
+        Method to obtain basis state under JW transform of state defined in occupation number basis.
+        e.g. for H2 under the Jordan Wigner transfrom has |HF> = |0011> in occ no. basis
+        occupied_orbitals_index_list = [0,1] <- as first orbitals occupied
+
+        These outputs (|HF> and <HF|) can be used with MolecularHamiltonianMatrix!.
+
+        Args:
+            occupied_orbitals_index_list (list): list of orbital indices that are OCCUPIED
+
+        returns:
+            reference_ket (scipy.sparse.csr.csr_matrix): Sparse matrix of KET corresponding to occ no basis state under
+                                                         JW transform
+
+
+        """
+
+        from openfermion import jw_configuration_state
+
+        reference_ket = scipy.sparse.csc_matrix(jw_configuration_state(occupied_orbitals_index_list,
+                                                                       self.n_qubits)).transpose()
+        # reference_bra = reference_ket.transpose().conj()
+        self.reference_ket = reference_ket
+
+    def _Get_UCCSD_matrices(self):
+        from openfermion.transforms import get_sparse_operator
+        UCCSD_ops_matrix_list = []
+        for classical_op in self.Second_Quant_CC_JW_OP_list:
+            # matrix operator of coupled cluster operations
+            UCCSD_ops_matrix_list.append(get_sparse_operator(classical_op, n_qubits=self.n_qubits))
+        self.UCCSD_ops_matrix_list =  UCCSD_ops_matrix_list
+
+    def Calc_ansatz_state_WITH_trot(self, parameters):
+
+        if self.UCCSD_ops_matrix_list is None:
+             self._Get_UCCSD_matrices()
+
+        new_state = self.reference_ket
+        for k in reversed(range(0, len(parameters))):
+            new_state = scipy.sparse.linalg.expm_multiply((parameters[k] * self.UCCSD_ops_matrix_list[k]), new_state)
+        # bra = new_state.transpose().conj()
+        return new_state
+
+    def Calc_ansatz_state_withOUT_trot(self, parameters):
+
+        if self.UCCSD_ops_matrix_list is None:
+            self._Get_UCCSD_matrices()
+
+        generator = scipy.sparse.csc_matrix((2 ** (self.n_qubits), 2 ** (self.n_qubits)), dtype=complex)
+        for mat_op in range(0, len(self.UCCSD_ops_matrix_list)):
+            generator = generator + parameters[mat_op] * self.UCCSD_ops_matrix_list[mat_op]
+        new_state = scipy.sparse.linalg.expm_multiply(generator, self.reference_ket)
+        # new_bra = new_state.transpose().conj()
+        return new_state
+
+if __name__ == '__main__':
+    XX = Ansatz_MATRIX(Second_Quant_CC_JW_OP_list, Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits,)
+    XX._Get_Basis_state_in_occ_num_basis([0, 1])
+    state_with_T = XX.Calc_ansatz_state_WITH_trot([1, 2, 3])
+    state_without_T = XX.Calc_ansatz_state_withOUT_trot([1, 2, 3])
+
+class Qubit_Hamiltonian_MATRIX(Ansatz_MATRIX):
+    """
+
+    Build the ansatz state through linear algebra rather than quantum circuits.
+
+    Args:
+        PauliWord_str_Second_Quant_CC_JW_OP_list (list): List of Fermionic Operators (openfermion.ops._fermion_operator.FermionOperator)
+        n_electrons (int): Number of electrons
+        n_qubits (int): Number of qubits
+        QubitOperator ( openfermion.ops._qubit_operator.QubitOperator):
+
+    Attributes:
+        Qubit_Ham_matrix ():
+        occupied_orbitals_index_list ():
+
+    QubitOperator =
+                (-0.09706626861762581+0j) [] +
+                (-0.045302615508689394+0j) [X0 X1 Y2 Y3] +
+                (0.045302615508689394+0j) [X0 Y1 Y2 X3] +
+                (0.045302615508689394+0j) [Y0 X1 X2 Y3] +
+                (-0.045302615508689394+0j) [Y0 Y1 X2 X3] +
+                (0.17141282639402383+0j) [Z0] +
+                (0.168688981686933+0j) [Z0 Z1] +
+                (0.12062523481381841+0j) [Z0 Z2] +
+                (0.16592785032250779+0j) [Z0 Z3] +
+                (0.1714128263940239+0j) [Z1] +
+                (0.16592785032250779+0j) [Z1 Z2] +
+                (0.12062523481381841+0j) [Z1 Z3] +
+                (-0.22343153674663985+0j) [Z2] +
+                (0.1744128761065161+0j) [Z2 Z3] +
+                (-0.22343153674663985+0j) [Z3]
+
+    """
+    def __init__(self, Second_Quant_CC_JW_OP_list, n_electrons, n_qubits, QubitOperator,
+                 occupied_orbitals_index_list):
+        super().__init__(Second_Quant_CC_JW_OP_list, n_electrons, n_qubits)
+        self.QubitOperator=QubitOperator
+
+        self.Qubit_Ham_matrix = None
+        self.occupied_orbitals_index_list = occupied_orbitals_index_list
+
+    def _get_qubit_hamiltonian_matrix(self):
+        from openfermion.transforms import get_sparse_operator
+        self.Qubit_Ham_matrix = get_sparse_operator(self.QubitOperator)
+
+    def find_energy_WITH_trot(self,parameters):
+        if self.Qubit_Ham_matrix is None:
+            self._get_qubit_hamiltonian_matrix()
+
+        self._Get_Basis_state_in_occ_num_basis(self.occupied_orbitals_index_list)
+
+        ket = self.Calc_ansatz_state_WITH_trot(parameters)
+        bra = ket.transpose().conj()
+
+        energy = bra.dot(self.Qubit_Ham_matrix.dot(ket))
+        return energy.toarray()[0][0].real
+
+    def find_energy_withOUT_trot(self, parameters):
+        if self.Qubit_Ham_matrix is None:
+            self._get_qubit_hamiltonian_matrix()
+
+        self._Get_Basis_state_in_occ_num_basis(self.occupied_orbitals_index_list)
+
+        ket = self.Calc_ansatz_state_withOUT_trot(parameters)
+        bra = ket.transpose().conj()
+
+        energy = bra.dot(self.Qubit_Ham_matrix.dot(ket))
+        return energy.toarray()[0][0].real
+
+if __name__ == '__main__':
+    orb_ind = [0, 1]
+    YY = Qubit_Hamiltonian_MATRIX(Second_Quant_CC_JW_OP_list, Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits,
+                                  Qubit_Hamiltonian, orb_ind)
+    params = [7.21692414e-05, 5.35729301e-03, 3.25177337e+00] #[1,2,3]
+    YY.find_energy_withOUT_trot(params)
+    YY.find_energy_WITH_trot(params)
+
+if __name__ == '__main__':
+    # Test on LiH
+    from quchem.Hamiltonian_Generator_Functions import *
+
+    ### Variable Parameters
+    Molecule = 'LiH'
+    geometry = None
+    ####
+
+    ### Get Hamiltonian
+    Hamilt = Hamiltonian(Molecule,
+                         run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
+                         basis='sto-3g',
+                         multiplicity=1,
+                         geometry=geometry)  # normally None!
+
+    Hamilt.Get_Molecular_Hamiltonian(Get_H_matrix=False)
+    SQ_CC_ops, THETA_params = Hamilt.Get_ia_and_ijab_terms(Coupled_cluser_param=False)
+
+    HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops, Hamilt.molecule.n_qubits)
+    Qubit_Hamiltonian = HF_transformations.Get_Qubit_Hamiltonian_JW()  # qubit
+
+    UCCSD = UCCSD_Trotter(SQ_CC_ops, THETA_params)
+
+    Second_Quant_CC_JW_OP_list = UCCSD.SingleTrotterStep()
+
+    orbital_index_list = [0, 1, 2]
+    YY = Qubit_Hamiltonian_MATRIX(Second_Quant_CC_JW_OP_list, Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits,
+                                  Qubit_Hamiltonian, orbital_index_list)
+    YY.find_energy_withOUT_trot(THETA_params)
+    YY.find_energy_WITH_trot(THETA_params)
+
+    # from quchem.Scipy_Optimizer import *
+    # GG = Optimizer(YY.find_energy_WITH_trot, THETA_params, 'Nelder-Mead', store_values=True, display_iter_steps=True,
+    #                tol=1e-9,
+    #                display_convergence_message=True)
+    # GG.get_env(100)
+

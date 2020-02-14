@@ -27,8 +27,6 @@ def Get_state_as_str(n_qubits, qubit_state_int):
 
 # state = |000> + |001> + |010> + |011> + |100> + |101 > + |110 > + |111>
 
-
-
 class My_U_Gate(cirq.SingleQubitGate):
     """
     Description
@@ -141,7 +139,6 @@ gives :
 #     print(cirq.Circuit(state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))
 #     print(
 #         cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
-
 
 def Get_state_prep_dict(num_qubits, Coefficient_list=None):
 
