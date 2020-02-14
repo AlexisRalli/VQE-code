@@ -58,7 +58,8 @@ class Tensor_Flow_Optimizer:
             output of objective function to be minimized, as a TensorFlow variable.
 
         """
-        sess = tf.Session()
+        # sess = tf.Session()
+        sess = tf.compat.v1.Session()
         init = tf.compat.v1.global_variables_initializer()
         sess.run(init)
         Input_vector = [sess.run(i) for i in Input_TENSOR_vector]
@@ -120,10 +121,11 @@ class Tensor_Flow_Optimizer:
             self.obj_fun_input_vals=[]
 
         # tf.compat.v1.train.GradientDescentOptimizer
+        # tf.train.GradientDescentOptimizer
         if self.method == 'Adam':
-            optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate, beta1=self.beta1, beta2=self.beta2)
+            optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate, beta1=self.beta1, beta2=self.beta2)
         elif self.method == 'GradientDescent':
-            optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.learning_rate)
+            optimizer = tf.compat.v1.train.GradientDescentOptimizer(learning_rate=self.learning_rate)
         else:
             raise ValueError('Optimizer Not defined')
 
@@ -135,9 +137,8 @@ class Tensor_Flow_Optimizer:
 
         train_step = optimizer.apply_gradients(zip(place_holder_list, variables))
 
-
-        with tf.Session() as session:
-
+        with tf.compat.v1.Session() as session:
+        # with tf.Session() as session:
             if self.args == ():
                 output = self.funct(self.X0)
             else:
