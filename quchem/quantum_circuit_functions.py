@@ -208,7 +208,10 @@ class PauliWord_exponential_rotation(cirq.Gate):
 
     e.g.: ('X0 I1 Y2 X3', 0.125j) and theta= pi
         gives :
-                3: ───Rz(-0.125π)───
+                3: ───Rz(-0.250π)───
+
+        NOTE have pi*0.125 * 2 = 0.250
+        NEED times 2 for definition of: R_z(theta) = e^(Z*theta/2)
 
     Args:
         PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
@@ -235,9 +238,9 @@ class PauliWord_exponential_rotation(cirq.Gate):
         control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list])
 
         if cofactor.imag<0:
-            yield cirq.rz(self.theta* np.abs(cofactor.imag)).on(qubits[control_qubit])
+            yield cirq.rz(2*self.theta* np.abs(cofactor.imag)).on(qubits[control_qubit])
         else:
-            yield cirq.rz(self.theta* np.abs(cofactor.imag) *-1).on(qubits[control_qubit])
+            yield cirq.rz(2*self.theta* np.abs(cofactor.imag) *-1).on(qubits[control_qubit])
 
 
 
@@ -392,7 +395,7 @@ class full_exponentiated_PauliWord_circuit(cirq.Gate):
                                  │                         │
                 2: ───Rx(0.5π)───X───@─────────────────@───X───Rx(-0.5π)───
                                      │                 │
-                3: ───H──────────────X───Rz(-0.125π)───X───────H───────────
+                3: ───H──────────────X───Rz(-0.250π)───X───────H───────────
 
     Args:
         PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
