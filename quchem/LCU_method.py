@@ -121,14 +121,14 @@ gives :
 
     def _circuit_diagram_info_(self, args):
 
-        max_qubit = max(Tuple[0] for Tuple in alpha_j)
+        max_qubit = max(Tuple[0] for Tuple in self.circuit_param_dict)
         string_list = []
         for i in range(max_qubit):
             string_list.append('state prep circuit')
         return string_list
 
     def num_qubits(self):
-        max_qubit = max(Tuple[0]+1 for Tuple in alpha_j) # +1 due to python indexing
+        max_qubit = max(Tuple[0]+1 for Tuple in self.circuit_param_dict) # +1 due to python indexing
         return max_qubit
 
 # if __name__ == '__main__':
@@ -168,7 +168,7 @@ def Get_state_prep_dict(num_qubits, Coefficient_list=None):
 
 if __name__ == '__main__':
     num_qub = 3
-    # Coefficient_list = np.random.rand(2 ** num_qub)
+    # Coefficient_list = np.random.rand(2 ** num_qub) # [np.sqrt(1/(2**num_qub)) for _ in range(2**num_qub)]
     Coefficient_list = [np.sqrt(0.3), np.sqrt(0.1), np.sqrt(0.1), np.sqrt(0.1), np.sqrt(0.1), np.sqrt(0.1),
                         np.sqrt(0.1), np.sqrt(0.1)]  # [1/2,1/2,1/2,1/2]  #[0.9, 0.3, 0.3, 0.1]
 
