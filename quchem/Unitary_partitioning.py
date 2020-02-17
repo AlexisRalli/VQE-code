@@ -1114,9 +1114,6 @@ if __name__ == '__main__':
 
 
 
-
-
-
 # X = csr_matrix(np.array([[0, 1],
 #                          [1, 0]])
 #                 )
@@ -1450,10 +1447,6 @@ if __name__ == '__main__':
     #                tol=1e-9,
     #                display_convergence_message=True)
     # GG.get_env(100)
-
-
-
-
 
 
 
