@@ -1,6 +1,7 @@
 import numpy as np
 import cirq
 import random
+import scipy
 
 
 
@@ -299,7 +300,7 @@ class Ansatz_MATRIX():
         for classical_op in self.Second_Quant_CC_JW_OP_list:
             # matrix operator of coupled cluster operations
             UCCSD_ops_matrix_list.append(get_sparse_operator(classical_op, n_qubits=self.n_qubits))
-        self.UCCSD_ops_matrix_list =  UCCSD_ops_matrix_list
+        self.UCCSD_ops_matrix_list = UCCSD_ops_matrix_list
 
     def Calc_ansatz_state_WITH_trot(self, parameters):
 
