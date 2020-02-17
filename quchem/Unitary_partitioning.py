@@ -1,4 +1,10 @@
 import numpy as np
+import scipy
+from functools import reduce
+from tqdm import tqdm
+from scipy.sparse import csr_matrix
+from scipy.sparse import kron
+from scipy.linalg import expm
 
 if __name__ == '__main__':
     anti_commuting_sets = {
@@ -48,7 +54,6 @@ def Get_beta_j_cofactors(anti_commuting_set):
         normalised_terms.append((PauliWord, new_constant))
 
     return {'PauliWords': normalised_terms, 'gamma_l': np.sqrt(factor)}
-
 
 if __name__ == '__main__':
     vv = Get_beta_j_cofactors(anti_commuting_sets[7])
@@ -252,9 +257,7 @@ if __name__ == '__main__':
     print(ALL_X_SK_TERMS.X_sk_Ops)
 
 
-
 import cirq
-
 class Change_of_Basis_initial_X_sk(cirq.Gate):
     """
     Class to generate cirq circuit as gate in order to perform: e^(-i theta_sk/2 * X_sk) ... eq (12) arXiv: 1908.08067
@@ -325,8 +328,6 @@ if __name__ == '__main__':
     print(
         cirq.Circuit(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
 
-
-
 class Engtangle_initial_X_sk(cirq.Gate):
     """
     Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
@@ -387,7 +388,6 @@ class Engtangle_initial_X_sk(cirq.Gate):
         PauliWord = self.X_sk[0].split(' ')
         return len(PauliWord)
 
-
 if __name__ == '__main__':
     #X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
     X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
@@ -399,7 +399,6 @@ if __name__ == '__main__':
     print(cirq.Circuit((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits())))))
     print(
         cirq.Circuit(cirq.decompose_once((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits()))))))
-
 
 class My_R_sk_Gate(cirq.SingleQubitGate):
 
@@ -478,14 +477,12 @@ class My_R_sk_Gate(cirq.SingleQubitGate):
         else:
             return 'R_sk = {} rad'.format(self.theta_sk_over_2 * self.correction_factor)
 
-
 if __name__ == '__main__':
     X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
     theta_sk = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['theta_sk']
     R_S = My_R_sk_Gate(theta_sk, dagger=True, correction_factor=X_SK_Test[1])
     w = R_S.on(cirq.LineQubit(1))
     print(cirq.Circuit(w))
-
 
 class R_sk_DAGGER(cirq.Gate):
     """
@@ -557,8 +554,6 @@ if __name__ == '__main__':
     print(
         cirq.Circuit(cirq.decompose_once((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits()))))))
 
-
-
 class Engtangle_final_X_sk(cirq.Gate):
 
     """
@@ -617,7 +612,6 @@ class Engtangle_final_X_sk(cirq.Gate):
     def num_qubits(self):
         PauliWord = self.X_sk[0].split(' ')
         return len(PauliWord)
-
 
 if __name__ == '__main__':
     X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
@@ -779,10 +773,7 @@ if __name__ == '__main__':
         cirq.Circuit(
             cirq.decompose_once((R_sk_full(*cirq.LineQubit.range(R_sk_full.num_qubits()))))))
 
-
-
 # TODO build R_S operator!
-
 
 def Get_R_S_operators(X_sk_and_theta_sk, dagger=True):
     """
@@ -1124,40 +1115,124 @@ if __name__ == '__main__':
 
 
 
-from scipy.sparse import bsr_matrix
-from functools import reduce
-from tqdm import tqdm
-from scipy.sparse import csr_matrix
-from scipy.sparse import kron
-from scipy.linalg import expm
-
-X = bsr_matrix(np.array([[0, 1],
-                         [1, 0]])
-                )
-
-Y = bsr_matrix(np.array([[0, -1j],
-                         [1j, 0]])
-               )
-
-Z = bsr_matrix(np.array([[1, 0],
-                        [0, -1]])
-               )
-I = bsr_matrix(np.array([[1, 0],
-                         [0, 1]])
-               )
 
 
-
-OperatorsKeys = {
-    'X': X,
-    'Y': Y,
-    'Z': Z,
-    'I': I,
-}
+# X = csr_matrix(np.array([[0, 1],
+#                          [1, 0]])
+#                 )
+#
+# Y = csr_matrix(np.array([[0, -1j],
+#                          [1j, 0]])
+#                )
+#
+# Z = csr_matrix(np.array([[1, 0],
+#                         [0, -1]])
+#                )
+# I = csr_matrix(np.array([[1, 0],
+#                          [0, 1]])
+#                )
+# OperatorsKeys = {
+#     'X': X,
+#     'Y': Y,
+#     'Z': Z,
+#     'I': I,
+# }
 
 
 
 
+
+
+# class UnitaryPartition_Matrices(X_sk_terms):
+#     """
+#     Class that takes in dictionary of anti_commuting_sets of PauliStrings, full ansatz Q circuit and dictionary of
+#     Pauli_S indices (index of which term to take as PauliS in anti_commuting_sets dict).
+#
+#     Args:
+#         anti_commuting_sets (dict):
+#         S_dict (): Dictionary with keys corresponding to anti_commuting_sets (dict) with values
+#                     associated with which term to take as the Pauli_S term. If S_dict=None then takes 0th index
+#                     of all anti_commuting sets.
+#         full_anstaz_circuit (): cirq Ansatz Q circuit.
+#
+#     Attributes:
+#         X_sk_Ops ():
+#         normalised_anti_commuting_sets ():
+#         circuits_and_constants ():
+#
+#     """
+#
+#
+#     def __init__(self, anti_commuting_sets,  S_dict=None):
+#         self.anti_commuting_sets = anti_commuting_sets
+#         super().__init__(anti_commuting_sets, S_dict=S_dict)
+#         self.Get_all_X_sk_operators()
+#
+#         X = csr_matrix(np.array([[0, 1], [1, 0]]))
+#
+#         Y = csr_matrix(np.array([[0, -1j], [1j, 0]])
+#                        )
+#         Z = csr_matrix(np.array([[1, 0], [0, -1]])
+#                        )
+#         I = csr_matrix(np.array([[1, 0],
+#                                  [0, 1]]))
+#         OperatorsKeys = {
+#             'X': X,
+#             'Y': Y,
+#             'Z': Z,
+#             'I': I,
+# }
+#
+#     def Get_UP_Matrices(self):
+#
+#         output_dict={}
+#         for key in self.anti_commuting_sets:
+#             if key not in self.X_sk_Ops:
+#                 PauliWord_str = self.anti_commuting_sets[key][0][0]
+#                 constant = self.anti_commuting_sets[key][0][1]
+#
+#                 Pauli_matrices = [OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
+#                 tensored_PauliWord = reduce(kron, Pauli_matrices)
+#
+#                 output_dict[key] = {'matrix': tensored_PauliWord, 'gamma_l': constant}
+#
+#             else:
+#
+#                 R_S_DAGGER_operators = []
+#                 R_S_operators = []
+#
+#                 for DICT in self.X_sk_Ops[key]['X_sk_theta_sk']:
+#                     X_SK = DICT['X_sk']
+#                     theta_SK = DICT['theta_sk']
+#
+#                     # R_S = My_R_sk_Gate(theta_SK, dagger=False, correction_factor=X_SK[1])
+#                     # R_S_matrix = R_S._unitary_()
+#                     XS_Pauli_matrices = [OperatorsKeys[pauli[0]].todense() for pauli in X_SK[0].split(' ')]
+#                     tensored_XS = reduce(kron, XS_Pauli_matrices)
+#                     R_S_matrix = expm(theta_SK*X_SK[1]*tensored_XS)
+#                     R_S_operators.append(R_S_matrix)
+#
+#                     # R_S_DAGGER =  My_R_sk_Gate(theta_SK, dagger=True, correction_factor=X_SK[1])
+#                     # R_S_DAGGER_matrix = R_S_DAGGER._unitary_()
+#                     R_S_DAGGER_matrix = R_S_matrix.transpose().conj()
+#                     R_S_DAGGER_operators.append(R_S_DAGGER_matrix)
+#
+#                 R_S_DAGGER_matrix_FULL = reduce(np.matmul, [mat.todense() for mat in R_S_DAGGER_operators])
+#                 R_S_matrix_FULL = reduce(np.matmul, [mat.todense() for mat in R_S_operators])
+#
+#
+#                 Pauliword_S_str = self.X_sk_Ops[key]['PauliWord_S'][0]
+#                 Pauli_matrices = [OperatorsKeys[pauli[0]] for pauli in Pauliword_S_str.split(' ')]
+#                 tensored_PauliWord_S = reduce(kron, Pauli_matrices)
+#
+#
+#                 FULL_matrix = reduce(np.matmul, [R_S_DAGGER_matrix_FULL, tensored_PauliWord_S.todense(), R_S_matrix_FULL])
+#
+#                 constant_PS = self.X_sk_Ops[key]['PauliWord_S'][1]
+#                 gamma_l = constant_PS * self.X_sk_Ops[key]['gamma_l']
+#
+#                 output_dict[key] = {'matrix': FULL_matrix, 'gamma_l': gamma_l}
+#         return output_dict
 
 
 class UnitaryPartition_Matrices(X_sk_terms):
@@ -1179,21 +1254,31 @@ class UnitaryPartition_Matrices(X_sk_terms):
 
     """
 
-
-    def __init__(self, anti_commuting_sets,  S_dict=None):
+    def __init__(self, anti_commuting_sets, S_dict=None):
         self.anti_commuting_sets = anti_commuting_sets
         super().__init__(anti_commuting_sets, S_dict=S_dict)
         self.Get_all_X_sk_operators()
 
-    def Get_UP_Matrices(self):
 
-        output_dict={}
+        X = csr_matrix(np.array([[0, 1],[1, 0]]))
+        Y = csr_matrix(np.array([[0, -1j],[1j, 0]]))
+        Z = csr_matrix(np.array([[1, 0],[0, -1]]))
+        I = csr_matrix(np.array([[1, 0],[0, 1]]))
+        self.OperatorsKeys = {
+            'X': X,
+            'Y': Y,
+            'Z': Z,
+            'I': I,}
+
+    def Get_UP_Matrices_as_dict(self):
+
+        output_dict = {}
         for key in self.anti_commuting_sets:
             if key not in self.X_sk_Ops:
                 PauliWord_str = self.anti_commuting_sets[key][0][0]
                 constant = self.anti_commuting_sets[key][0][1]
 
-                Pauli_matrices = [OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
+                Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
                 tensored_PauliWord = reduce(kron, Pauli_matrices)
 
                 output_dict[key] = {'matrix': tensored_PauliWord, 'gamma_l': constant}
@@ -1207,32 +1292,169 @@ class UnitaryPartition_Matrices(X_sk_terms):
                     X_SK = DICT['X_sk']
                     theta_SK = DICT['theta_sk']
 
-                    # R_S = My_R_sk_Gate(theta_SK, dagger=False, correction_factor=X_SK[1])
-                    # R_S_matrix = R_S._unitary_()
-                    XS_Pauli_matrices = [OperatorsKeys[pauli[0]].todense() for pauli in X_SK[0].split(' ')]
-                    tensored_XS = reduce(kron, XS_Pauli_matrices)
-                    R_S_matrix = expm(theta_SK*X_SK[1]*tensored_XS)
-                    R_S_operators.append(R_S_matrix)
+                    PauliWord_str = X_SK[0]
+                    constant = X_SK[1]
 
-                    # R_S_DAGGER =  My_R_sk_Gate(theta_SK, dagger=True, correction_factor=X_SK[1])
-                    # R_S_DAGGER_matrix = R_S_DAGGER._unitary_()
-                    R_S_DAGGER_matrix = R_S_matrix.transpose().conj()
+                    Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
+                    tensored_PauliWord = reduce(kron, Pauli_matrices)
+
+                    R_S_DAGGER_matrix = scipy.sparse.linalg.expm(-1j * theta_SK/2 *tensored_PauliWord*constant)
+                    R_S_matrix =  R_S_DAGGER_matrix.transpose().conj()
+
+                    R_S_operators.append(R_S_matrix)
                     R_S_DAGGER_operators.append(R_S_DAGGER_matrix)
 
-                R_S_DAGGER_matrix_FULL = reduce(np.matmul, [mat.todense() for mat in R_S_DAGGER_operators])
-                R_S_matrix_FULL = reduce(np.matmul, [mat.todense() for mat in R_S_operators])
-
+                R_S_DAGGER_matrix_FULL = reduce(scipy.sparse.csc_matrix.multiply, R_S_DAGGER_operators)
+                R_S_matrix_FULL = reduce(scipy.sparse.csc_matrix.multiply,  R_S_operators)
 
                 Pauliword_S_str = self.X_sk_Ops[key]['PauliWord_S'][0]
-                Pauli_matrices = [OperatorsKeys[pauli[0]] for pauli in Pauliword_S_str.split(' ')]
+                Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in Pauliword_S_str.split(' ')]
                 tensored_PauliWord_S = reduce(kron, Pauli_matrices)
 
 
-                FULL_matrix = reduce(np.matmul, [R_S_DAGGER_matrix_FULL, tensored_PauliWord_S.todense(), R_S_matrix_FULL])
+                FULL_matrix = reduce(scipy.sparse.csc_matrix.multiply,
+                                     [R_S_matrix_FULL, tensored_PauliWord_S, R_S_DAGGER_matrix_FULL])
 
                 constant_PS = self.X_sk_Ops[key]['PauliWord_S'][1]
                 gamma_l = constant_PS * self.X_sk_Ops[key]['gamma_l']
 
                 output_dict[key] = {'matrix': FULL_matrix, 'gamma_l': gamma_l}
+        return output_dict
+
+    def Get_UP_MATRIX(self, num_qubits):
+
+        FULL_MATRIX = csr_matrix(np.zeros([2**num_qubits, 2**num_qubits]))
+
+        for key in self.anti_commuting_sets:
+            if key not in self.X_sk_Ops:
+                PauliWord_str = self.anti_commuting_sets[key][0][0]
+                constant = self.anti_commuting_sets[key][0][1]
+
+                Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
+                tensored_PauliWord = reduce(kron, Pauli_matrices)
+
+                FULL_MATRIX += tensored_PauliWord * constant
+
+            else:
+
+                R_S_DAGGER_operators = []
+                R_S_operators = []
+
+                for DICT in self.X_sk_Ops[key]['X_sk_theta_sk']:
+                    X_SK = DICT['X_sk']
+                    theta_SK = DICT['theta_sk']
+
+                    PauliWord_str = X_SK[0]
+                    constant = X_SK[1]
+
+                    Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
+                    tensored_PauliWord = reduce(kron, Pauli_matrices)
+
+                    R_S_DAGGER_matrix = scipy.sparse.linalg.expm(-1j * theta_SK/2 *tensored_PauliWord*constant)
+                    R_S_matrix =  R_S_DAGGER_matrix.transpose().conj()
+
+                    R_S_operators.append(R_S_matrix)
+                    R_S_DAGGER_operators.append(R_S_DAGGER_matrix)
+
+                R_S_DAGGER_matrix_FULL = reduce(scipy.sparse.csc_matrix.multiply, R_S_DAGGER_operators)
+                R_S_matrix_FULL = reduce(scipy.sparse.csc_matrix.multiply,  R_S_operators)
+
+                Pauliword_S_str = self.X_sk_Ops[key]['PauliWord_S'][0]
+                Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in Pauliword_S_str.split(' ')]
+                tensored_PauliWord_S = reduce(kron, Pauli_matrices)
+
+
+                FULL_matrix = reduce(scipy.sparse.csc_matrix.multiply,
+                                     [R_S_matrix_FULL, tensored_PauliWord_S, R_S_DAGGER_matrix_FULL])
+
+                constant_PS = self.X_sk_Ops[key]['PauliWord_S'][1]
+                gamma_l = constant_PS * self.X_sk_Ops[key]['gamma_l']
+
+                FULL_MATRIX += FULL_matrix * gamma_l
+
+        return FULL_MATRIX
+
+
+if __name__ == '__main__':
+    # Test on LiH
+    from quchem.Hamiltonian_Generator_Functions import *
+    from quchem.Ansatz_Generator_Functions import *
+
+    ### Variable Parameters
+    Molecule = 'H2'
+    geometry = None
+    ####
+
+    ### Get Hamiltonian
+    Hamilt = Hamiltonian(Molecule,
+                         run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
+                         basis='sto-3g',
+                         multiplicity=1,
+                         geometry=geometry)  # normally None!
+
+    Hamilt.Get_Molecular_Hamiltonian(Get_H_matrix=False)
+    SQ_CC_ops, THETA_params = Hamilt.Get_ia_and_ijab_terms(Coupled_cluser_param=False)
+
+    # GET Qubit molecular Hamiltonian
+    HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops, Hamilt.molecule.n_qubits)
+    Qubit_Hamiltonian = HF_transformations.Get_Qubit_Hamiltonian_JW()  # qubit
+
+    # Get Coupled cluster terms
+    UCCSD = UCCSD_Trotter(SQ_CC_ops, THETA_params)
+    Second_Quant_CC_JW_OP_list = UCCSD.SingleTrotterStep()
+
+    # Build Matrices
+    orbital_index_list = [0, 1]
+    XX = Ansatz_MATRIX(Second_Quant_CC_JW_OP_list, Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits,)
+    XX._Get_Basis_state_in_occ_num_basis(orbital_index_list)
+
+    state_with_T = XX.Calc_ansatz_state_WITH_trot(THETA_params)
+    # state_without_T = XX.Calc_ansatz_state_withOUT_trot(THETA_params)
+
+    from openfermion.transforms import get_sparse_operator
+    QUBIT_HAMILTONIAN_MATRIX = get_sparse_operator(Qubit_Hamiltonian)
+
+    Energy = state_with_T.transpose().conj().dot(QUBIT_HAMILTONIAN_MATRIX.dot(state_with_T)).todense()
+
+    ##### Get anti_commuting_sets
+    from quchem.Graph import *
+    QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(Qubit_Hamiltonian)
+    List_PauliWords, HamiltonainCofactors = zip(*QubitHam_PauliStr)
+
+    attribute_dictionary = {'Cofactors': HamiltonainCofactors}
+    List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_PauliWords,
+                                                                           attribute_dictionary=attribute_dictionary)
+
+    G = Hamiltonian_Graph(List_PauliWords, attribute_dictionary=attribute_dictionary)
+    anti_commuting_sets = G.Get_Pauli_grouping('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
+    anti_commuting_sets = Get_PauliWord_constant_tuples(anti_commuting_sets, dict_str_label='Cofactors')
+    #####
+
+    w = UnitaryPartition_Matrices(anti_commuting_sets,
+                                  S_dict=None)
+    test2 = w.Get_UP_Matrices_as_dict()
+
+    Energy = []
+    for key in test2:
+        Matrix = test2[key]['matrix'] * test2[key]['gamma_l']
+        Energy.append(state_with_T.transpose().conj().dot(Matrix.dot(state_with_T)).todense())
+    print(sum(Energy))
+
+    test3 = w.Get_UP_MATRIX(Hamilt.molecule.n_qubits)
+    print(state_with_T.transpose().conj().dot(test3.dot(state_with_T)).todense())
+
+
+
+    # from quchem.Scipy_Optimizer import *
+    # GG = Optimizer(YY.find_energy_WITH_trot, THETA_params, 'Nelder-Mead', store_values=True, display_iter_steps=True,
+    #                tol=1e-9,
+    #                display_convergence_message=True)
+    # GG.get_env(100)
+
+
+
+
+
+
 
 
