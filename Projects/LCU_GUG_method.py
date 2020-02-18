@@ -182,7 +182,6 @@ tt, correction_list = Get_R_linear_comb(test_set, 0, Hamilt.molecule.n_qubits)
 # test_set = anti_commuting_set_stripped[6]
 # tt = Get_R_linear_comb(test_set, 0, Hamilt.molecule.n_qubits)
 
-
 def Get_ancilla_amplitudes(anti_commuting_set):
     """
     Takes in an anti_commuting set and returns l1 norm, number of ancilla qubits and amplitudes required
@@ -249,5 +248,4 @@ qubits_to_measure = (cirq.LineQubit(q_No) for q_No in range(Hamilt.molecule.n_qu
 result = simulator.simulate(circuit, qubit_order=qubits_to_measure)
 print(np.around(result.final_state, 3))
 print('expected state amplitudes:', G_ancilla_amplitudes)
-
 
