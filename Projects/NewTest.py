@@ -59,7 +59,7 @@ List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_Paul
 
 G = Hamiltonian_Graph(List_PauliWords, attribute_dictionary=attribute_dictionary)
 anti_commuting_sets = G.Get_Pauli_grouping('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
-
+anti_commuting_sets = Get_PauliWord_constant_tuples(anti_commuting_sets, dict_str_label='Cofactors')
 
 ### Simulating Q Circuit
 

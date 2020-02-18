@@ -163,7 +163,12 @@ def Get_state_prep_dict(num_qubits, Coefficient_list=None):
                     upper_sum.append(Coefficient_list[k] ** 2)
                 elif state[:qubit_j + 1] == lower_term:
                     lower_sum.append(Coefficient_list[k] ** 2)
-            alpha_j[(qubit_j, term)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+
+            try:
+                alpha_j[(qubit_j, term)] = np.arctan(np.sqrt(sum(upper_sum) / sum(lower_sum)))
+            except:
+                alpha_j[(qubit_j, term)] = 0
+
     return alpha_j
 
 if __name__ == '__main__':
@@ -204,3 +209,7 @@ if __name__ == '__main__':
     # simulator = cirq.Simulator()
     # results = simulator.run(circuit, repetitions=1000)
     # print(results.histogram(key='Z'))                         ## re-use ###
+
+
+
+
