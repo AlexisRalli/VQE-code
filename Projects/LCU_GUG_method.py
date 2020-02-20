@@ -131,8 +131,6 @@ def Get_R_linear_comb(anti_commuting_set, S_index, no_qubits):
 
             factor = P_term[1]*const
 
-            # if factor.real <0:
-            #     sign_correction=factor.real
             if np.iscomplex(factor) and factor.imag!=0:
                 if factor.imag<0:
                     LCU_correction_dict[i+1] = -1j
@@ -141,7 +139,7 @@ def Get_R_linear_comb(anti_commuting_set, S_index, no_qubits):
                     LCU_correction_dict[i+1] = 1j
                     LCU_terms[i+1] = (P_term[0], factor.imag)
 
-             elif factor.real <0:
+            elif factor.real <0:
                  LCU_correction_dict[i + 1] = -1
                  LCU_terms[i + 1] = (P_term[0], np.abs(factor.real))
             else:
@@ -187,7 +185,7 @@ tt, correction_list = Get_R_linear_comb(test_set, 0, Hamilt.molecule.n_qubits)
 # test_set = anti_commuting_set_stripped[6]
 # tt = Get_R_linear_comb(test_set, 0, Hamilt.molecule.n_qubits)
 
-def Get_ancilla_amplitudes(anti_commuting_set):
+def Get_ancilla_amplitudes(LCU_terms):
     """
     Takes in an anti_commuting set and returns l1 norm, number of ancilla qubits and amplitudes required
     on ancilla bits.
@@ -199,7 +197,7 @@ def Get_ancilla_amplitudes(anti_commuting_set):
     need all a_{j}>=0 (complex and negative sign can be absorbed by U_{j}
 
     Args:
-        anti_commuting_set (list):
+        LCU_terms (dict): dictionary with values as tuples (PauliWord, constant)
     Returns:
         l1 norm (float), number of ancilla qubits (int) and list of ancilla amplitudes
 
@@ -220,10 +218,10 @@ def Get_ancilla_amplitudes(anti_commuting_set):
     """
 
     # NOTE each coefficient must be positive... sign should be absorbed by operator!
-    l1_norm = sum([np.abs(j) for _, j in anti_commuting_set])
-    number_ancilla_qubits = int(np.ceil(np.log2(len(anti_commuting_set))))  # note round up with np.ceil
+    l1_norm = sum([LCU_terms[key][1] for key in LCU_terms])
+    number_ancilla_qubits = int(np.ceil(np.log2(len(LCU_terms))))  # note round up with np.ceil
 
-    l1_normalised_amp = [np.abs(amp) / l1_norm for _, amp in anti_commuting_set]
+    l1_normalised_amp = [LCU_terms[key][1]/l1_norm for key in LCU_terms]
     G_ancilla_amplitudes = [np.sqrt(amp) for amp in l1_normalised_amp]
 
     if len(G_ancilla_amplitudes) < 2 ** number_ancilla_qubits:
@@ -441,8 +439,12 @@ class LCU_R_gate(cirq.Gate):
 
     def _decompose_(self, qubits):
 
+        state_index=0
         for control_state in self.LCU_term_dict:
-            control_str = Get_state_as_str(self.No_control_qubits, control_state)
+            control_str = Get_state_as_str(self.No_control_qubits, state_index)
+            # using state index rather than control_state value
+            # due to how LCU_term is built! (aka missing keys cause problems!)
+
             control_values = [int(bit) for bit in control_str]
 
             correction_val = self.LCU_correction_dict[control_state]
@@ -452,6 +454,7 @@ class LCU_R_gate(cirq.Gate):
             qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits+self.No_control_qubits) \
                          + cirq.LineQubit.range(self.No_system_qubits) # note control qubits first!
 
+            state_index+=1
             yield mod_p_word_gate.controlled(num_controls=self.No_control_qubits, control_values=control_values).on(*qubit_list) # *qubit_list
 
     def _circuit_diagram_info_(self, args):
@@ -496,44 +499,50 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
 
     """
 
-    l1_norm_val, number_ancilla_qubits, G_ancilla_amplitudes = Get_ancilla_amplitudes(anti_commuting_set)
-    alpha_j = Get_state_prep_dict(number_ancilla_qubits, Coefficient_list=G_ancilla_amplitudes)
-    state_circ = State_Prep_Circuit(alpha_j)
-    ancilla_line_qubits = cirq.LineQubit.range(No_system_qubits, No_system_qubits + number_ancilla_qubits)
+    if len(anti_commuting_set)<2:
+        # cannot perform LCU on set with only 1 term in it!
+        return None
+    else:
+        LCU_terms, LCU_correction_list = Get_R_linear_comb(anti_commuting_set, S_index, No_system_qubits)
 
-    G_prep_circuit = (cirq.Circuit(cirq.decompose_once((state_circ(*ancilla_line_qubits)))))
+        l1_norm_val, number_ancilla_qubits, G_ancilla_amplitudes = Get_ancilla_amplitudes(LCU_terms)
 
-    # G_prep_circuit.append(cirq.measure(*ancilla_line_qubits)) # add measurement gates to ancilla line
+        alpha_j = Get_state_prep_dict(number_ancilla_qubits, Coefficient_list=G_ancilla_amplitudes)
+        state_circ = State_Prep_Circuit(alpha_j)
+        ancilla_line_qubits = cirq.LineQubit.range(No_system_qubits, No_system_qubits + number_ancilla_qubits)
 
-    LCU_terms, LCU_correction_list = Get_R_linear_comb(test_set, S_index, Hamilt.molecule.n_qubits)
+        G_prep_circuit = (cirq.Circuit(cirq.decompose_once((state_circ(*ancilla_line_qubits)))))
 
-    R_dagger_gate_obj =  LCU_R_gate(LCU_terms, LCU_correction_list, True, number_ancilla_qubits,No_system_qubits)
-    R_dagger_gate = cirq.Circuit(
-        cirq.decompose_once((R_dagger_gate_obj(*cirq.LineQubit.range(R_dagger_gate_obj.num_qubits())))))
-
-    Pauli_S = anti_commuting_set[S_index]
-
-    Pauli_S_circ_obj = Perform_PauliWord(Pauli_S)
-    Pauli_S_circ = cirq.Circuit(
-        cirq.decompose_once((Pauli_S_circ_obj(
-            *cirq.LineQubit.range(Pauli_S_circ_obj.num_qubits())))))
-
-    R_gate_obj= LCU_R_gate(LCU_terms, LCU_correction_list, False, number_ancilla_qubits, No_system_qubits)
-    R_gate = cirq.Circuit(
-        cirq.decompose_once((R_gate_obj(*cirq.LineQubit.range(R_gate_obj.num_qubits())))))
+        # G_prep_circuit.append(cirq.measure(*ancilla_line_qubits)) # add measurement gates to ancilla line
 
 
-    full_circuit = cirq.Circuit(
-       [
-           G_prep_circuit.all_operations(),
-           *R_gate.all_operations(),
-           Pauli_S_circ.all_operations(),
-           R_dagger_gate.all_operations()
-       ]
-    )
-    return full_circuit
+        R_dagger_gate_obj =  LCU_R_gate(LCU_terms, LCU_correction_list, True, number_ancilla_qubits, No_system_qubits)
+        R_dagger_gate = cirq.Circuit(
+            cirq.decompose_once((R_dagger_gate_obj(*cirq.LineQubit.range(R_dagger_gate_obj.num_qubits())))))
+
+        Pauli_S = anti_commuting_set[S_index]
+
+        Pauli_S_circ_obj = Perform_PauliWord(Pauli_S)
+        Pauli_S_circ = cirq.Circuit(
+            cirq.decompose_once((Pauli_S_circ_obj(
+                *cirq.LineQubit.range(Pauli_S_circ_obj.num_qubits())))))
+
+        R_gate_obj= LCU_R_gate(LCU_terms, LCU_correction_list, False, number_ancilla_qubits, No_system_qubits)
+        R_gate = cirq.Circuit(
+            cirq.decompose_once((R_gate_obj(*cirq.LineQubit.range(R_gate_obj.num_qubits())))))
+
+
+        full_circuit = cirq.Circuit(
+           [
+               G_prep_circuit.all_operations(),
+               *R_gate.all_operations(),
+               Pauli_S_circ.all_operations(),
+               R_dagger_gate.all_operations()
+           ]
+        )
+        return full_circuit
 if __name__ == '__main__':
-    test_set = anti_commuting_set_stripped[6]
+    test_set = anti_commuting_set_stripped[58]
     S_index=0
     circuit = Complete_LCU_circuit(test_set, Hamilt.molecule.n_qubits, S_index)
     print(circuit)
