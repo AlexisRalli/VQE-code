@@ -53,7 +53,6 @@ class Hamiltonian():
         self.delete_output = delete_output
         self.num_theta_parameters = None
 
-
     def Run_Psi4(self):
 
         if self.geometry is None:
@@ -86,7 +85,6 @@ class Hamiltonian():
 
         if self.geometry is None:
             raise ValueError('Unable to find molecule in the PubChem database.')
-
 
     def Get_CCSD_Amplitudes(self):
         """
@@ -154,7 +152,7 @@ class Hamiltonian():
             raise ValueError('Calculated FCI energy from Moleular Hamiltonian Operator not equivalent to PSI4 calculation')
         return FCI_Energy
 
-    def  Get_Basis_state_in_occ_num_basis(self, occupied_orbitals_index_list=None):
+    def Get_Basis_state_in_occ_num_basis(self, occupied_orbitals_index_list=None):
         """
 
         Method to obtain basis state under JW transform of state defined in occupation number basis.
@@ -369,6 +367,7 @@ class Hamiltonian():
         self.num_theta_parameters = len(theta_parameters)
         return Sec_Quant_CC_ops, theta_parameters
 
+
 class Hamiltonian_Transforms():
     """
 
@@ -411,7 +410,6 @@ class Hamiltonian_Transforms():
                             0.09060523101737843 [0^ 1^ 3 2] + ... etc ... etc
 
         """
-
 
         from openfermion.transforms import get_fermion_operator
         FermionicHamiltonian = get_fermion_operator(self.MolecularHamiltonian)
@@ -572,6 +570,55 @@ class Hamiltonian_Transforms():
                 PauliWord_str_list.append((PauliWord, factor))
 
         return PauliWord_str_list
+
+    def Get_Qubit_Hamiltonian_BK(self):
+        """
+        Returns the second quantised Qubit Molecular Hamiltonian of the Molecular Hamiltonian using the
+        BRAVYI KITAEV transformation. First gets the fermionic Hamiltonian and than performs BK.
+
+        e.g. H = h0 I + h1 Z0 + h2 Z1 +h3 Z2 + h4 Z3 + h5 Z0Z1 ... etc etc
+        note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
+
+
+        returns:
+            QubitHamiltonian (openfermion.ops._qubit_operator.QubitOperator): Qubit Operator
+
+        e.g. for H2:
+                (-0.09706626861762581+0j) [] +
+                (0.045302615508689394+0j) [X0 Z1 X2] +
+                (0.045302615508689394+0j) [X0 Z1 X2 Z3] +
+                (0.045302615508689394+0j) [Y0 Z1 Y2] +
+                (0.045302615508689394+0j) [Y0 Z1 Y2 Z3] +
+                (0.17141282639402383+0j) [Z0] ... etc etc
+
+        """
+        from openfermion.transforms import bravyi_kitaev
+
+        FermionicHamiltonian = self.Get_Fermionic_Hamiltonian()
+        QubitHamiltonian = bravyi_kitaev(FermionicHamiltonian)
+        return QubitHamiltonian
+
+    def Get_sparse_Qubit_Hamiltonian_matrix(self, QubitOperator):
+        """
+        Get sparse matrix of qubit Hamiltonian
+
+        Args:
+            QubitOperator (openfermion.ops._qubit_operator.QubitOperator): Qubit operator
+
+        Returns:
+            16x16 sparse matrix
+
+        e.g.
+        input:
+            (-0.09706626861762581+0j) [] +
+            (-0.045302615508689394+0j) [X0 X1 Y2 Y3] +
+            (0.045302615508689394+0j) [X0 Y1 Y2 X3] +
+            (0.045302615508689394+0j) [Y0 X1 X2 Y3] +
+            (-0.045302615508689394+0j) [Y0 Y1 X2 X3] +
+            (0.17141282639402383+0j) [Z0]
+        """
+        from openfermion import qubit_operator_sparse
+        return qubit_operator_sparse(QubitOperator)
 
 class CalcEnergy():
     """
@@ -763,4 +810,135 @@ if __name__ == '__main__':
 #     print(E_pure, E_trot)
 
 
+# Code works for 4 qubit case
+# note with 3 qubit case it doesn't work AS
 
+def Convert_basis_state_to_occ_num_basis(state):
+    """
+
+    Method to obtain occ num basis state from basis state dense vector (ket)
+
+     basis state under JW transform of state defined in occupation number basis.
+    e.g. for H2 under the Jordan Wigner transfrom has |HF> = |0011> in occ no. basis
+    occupied_orbitals_index_list = [0,1] <- as first orbitals occupied
+
+    These outputs (|HF> and <HF|) can be used with MolecularHamiltonianMatrix!.
+
+    Args:
+        state (numpy.ndarray): dense numpy array of basis state
+
+    returns:
+        reference_ket ():
+
+    e.g.
+    np.array([ [0],
+               [0],
+               [1],
+               [0],
+               [0],
+               [0],
+               [0],
+               [0]
+               ])
+    output =
+
+    """
+
+    def InvertKron(state):
+        """
+        AxB = kron(A,B)
+
+        returns A and B
+        """
+
+        length = int(state.shape[0])
+        # split_length = int(np.sqrt(length))
+        split_length = int(np.log2(length))
+
+        if split_length % 2 == 0:
+
+            position_1 = np.where(state == 1)[0]
+
+            A_index_pos = int(np.trunc(position_1 / split_length))  # round down!
+
+            A = np.zeros([int(split_length)])
+            A[A_index_pos] = 1
+            A = A.reshape([split_length, 1])
+
+            B_start = split_length * A_index_pos
+            B_end = split_length * A_index_pos + split_length
+            B = state[B_start:B_end, :]
+
+            if not np.array_equal(state, np.kron(A, B)):
+                raise ValueError('Decomposition failed')
+            return A, B
+
+        else:
+
+            position_1 = int(np.where(state == 1)[0])
+            if position_1 > length / 2:
+                single_q = np.array([[0], [1]])
+                state = state[0::int(length / 2), :]
+            else:
+                single_q = np.array([[1], [0]])
+                state = state[int(length / 2)::, :]
+
+            print(state)
+            length = state.shape[0]
+            split_length = int(np.log2(length))
+            position_1 = np.where(state == 1)[0]
+
+            A_index_pos = int(np.trunc(position_1 / split_length))  # round down!
+
+            A = np.zeros([int(split_length)])
+            A[A_index_pos] = 1
+            A = A.reshape([split_length, 1])
+
+            B_start = split_length * A_index_pos
+            B_end = split_length * A_index_pos + split_length
+            B = state[B_start:B_end, :]
+
+            if not np.array_equal(state, np.kron(A, B)):
+                raise ValueError('Decomposition failed')
+            return A, B, single_q
+
+    def Find_Terms(state):
+        state_list = []
+        state_list.append(state)
+
+        num_qubits = int(np.log2(state.shape[0]))
+
+        for s in state_list:
+            try:
+                a, b = InvertKron(s)
+                state_list.append(a)
+                state_list.append(b)
+            except:
+                break
+        output = state_list[::-1][0:num_qubits][::-1]
+        if len(output) != num_qubits:
+            raise ValueError('output incorrect size')
+        return output
+
+    def Get_state_vec(output_term):
+        state_str = []
+
+        for vec in output_term:
+            if np.array_equal(vec, one):
+                state_str.append('1')
+            else:
+                state_str.append('0')
+        return state_str
+
+    single_qubit_terms = Find_Terms(state)
+    state_str = Get_state_vec(single_qubit_terms)
+    return state_str
+
+from numpy import kron
+from functools import reduce
+zero = np.array([[1],[0]])
+one = np.array([[0],[1]])
+
+STATE = [zero,one,zero,zero]
+STATE_vec = reduce(kron, STATE)
+print(Convert_basis_state_to_occ_num_basis(STATE_vec))
