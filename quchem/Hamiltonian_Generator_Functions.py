@@ -810,9 +810,6 @@ if __name__ == '__main__':
 #     print(E_pure, E_trot)
 
 
-# Code works for 4 qubit case
-# note with 3 qubit case it doesn't work AS
-
 def Convert_basis_state_to_occ_num_basis(state):
     """
 
@@ -859,17 +856,20 @@ def Convert_basis_state_to_occ_num_basis(state):
             single_q = '1'
             state = state[int(length / 2)::, :]
         state_list.append(single_q)
+
+    ### test:
+    # from numpy import kron
+    # from functools import reduce
+    # zero = np.array([[1], [0]])
+    # one = np.array([[0], [1]])
+    # STATE = [zero, one, zero, zero]
+    # STATE_vec = reduce(kron, STATE)
+    # print(Convert_basis_state_to_occ_num_basis(STATE_vec))
     return state_list
 
 
 
-from numpy import kron
-from functools import reduce
-zero = np.array([[1],[0]])
-one = np.array([[0],[1]])
-STATE = [zero,one,zero,zero]
-STATE_vec = reduce(kron, STATE)
-print(Convert_basis_state_to_occ_num_basis(STATE_vec))
+
 
 
 
