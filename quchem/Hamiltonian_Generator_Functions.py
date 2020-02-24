@@ -186,6 +186,62 @@ class Hamiltonian():
         # To be used as follows:
         # hamiltonian_ket = self.MolecularHamiltonianMatrix.dot(reference_ket)
 
+    def Convert_basis_state_to_occ_num_basis(self, state):
+        """
+
+        For a state defined by a basis state vector... get state in occupation number basis. Note doesn't work for
+        entangled states!
+
+
+
+        Args:
+            state (numpy.ndarray): dense numpy array of basis state
+
+        returns:
+            state_list (list): List of qubit values in order
+
+        e.g.
+        np.arrayarray([[0],
+                   [0],
+                   [0],
+                   [1],
+                   [0],
+                   [0],
+                   [0],
+                   [0]])
+
+        output = ['0', '1', '1']
+
+        """
+        Number_Qubits = int(np.log2(int(state.shape[0])))
+
+        state_list = []
+
+        for _ in range(Number_Qubits):
+            length = int(state.shape[0])
+
+            position_1 = np.where(state == 1)[0]
+
+            if position_1 < length / 2:
+                # single_q = np.array([[1], [0]])
+                single_q = '0'
+                state = state[0:int(length / 2), :]
+            else:
+                # single_q = np.array([[0], [1]])
+                single_q = '1'
+                state = state[int(length / 2)::, :]
+            state_list.append(single_q)
+
+        ### test:
+        # from numpy import kron
+        # from functools import reduce
+        # zero = np.array([[1], [0]])
+        # one = np.array([[0], [1]])
+        # STATE = [zero, one, zero, zero]
+        # STATE_vec = reduce(kron, STATE)
+        # print(Convert_basis_state_to_occ_num_basis(STATE_vec))
+        return state_list
+
     def Get_ia_and_ijab_terms(self, Coupled_cluser_param=False, filter_small_terms = False): #TODO could add MP2 param option to initialise theta with MP2 amplitudes (rather than coupled cluster only option)
         """
 
@@ -445,6 +501,33 @@ class Hamiltonian_Transforms():
         QubitHamiltonian = jordan_wigner(FermionicHamiltonian)
         return QubitHamiltonian
 
+    def Get_Qubit_Hamiltonian_BK(self):
+        """
+        Returns the second quantised Qubit Molecular Hamiltonian of the Molecular Hamiltonian using the
+        BRAVYI KITAEV transformation. First gets the fermionic Hamiltonian and than performs BK.
+
+        e.g. H = h0 I + h1 Z0 + h2 Z1 +h3 Z2 + h4 Z3 + h5 Z0Z1 ... etc etc
+        note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
+
+
+        returns:
+            QubitHamiltonian (openfermion.ops._qubit_operator.QubitOperator): Qubit Operator
+
+        e.g. for H2:
+                (-0.09706626861762581+0j) [] +
+                (0.045302615508689394+0j) [X0 Z1 X2] +
+                (0.045302615508689394+0j) [X0 Z1 X2 Z3] +
+                (0.045302615508689394+0j) [Y0 Z1 Y2] +
+                (0.045302615508689394+0j) [Y0 Z1 Y2 Z3] +
+                (0.17141282639402383+0j) [Z0] ... etc etc
+
+        """
+        from openfermion.transforms import bravyi_kitaev
+
+        FermionicHamiltonian = self.Get_Fermionic_Hamiltonian()
+        QubitHamiltonian = bravyi_kitaev(FermionicHamiltonian)
+        return QubitHamiltonian
+
     def Get_Jordan_Wigner_CC_Matrices(self):
         """
         From list of FermionOperators (openfermion.ops._fermion_operator.FermionOperator) corresponding to
@@ -493,6 +576,46 @@ class Hamiltonian_Transforms():
             # matrix operator of coupled cluster operations
             JW_CC_ops.append(get_sparse_operator(classical_op, n_qubits=self.n_qubits))
         return JW_CC_ops
+
+    def Get_BK_CC_Matrices(self):
+        """
+        From list of FermionOperators (openfermion.ops._fermion_operator.FermionOperator) corresponding to
+        UCCSD excitations... remember: UCCSD = ∑_pq (h_pq a†_p a_q) + ∑_pqrs (h_pqrs a†_p a†_q a_r a_s)
+
+                    [
+                       -(a†0 a2) + (a†2 a0),
+                       -(a†1 a3) + (a†3 a1),
+                       -(a†0 a†1 a2 a3) + a†3 a†2 a1 a0)
+                    ]
+
+        calculates corresponding sparse matrices for each term under the BK transform
+        and returns them in a list. AKA returns list of matrices corresponding to each UCCSD excitation operator
+
+        e.g. H = h0 I + h1 Z0 + h2 Z1 +h3 Z2 + h4 Z3 + h5 Z0Z1 ... etc etc
+        note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
+
+        e.g. output
+        [
+            <16x16 sparse matrix of type '<class 'numpy.complex128'>',
+            <16x16 sparse matrix of type '<class 'numpy.complex128'>',
+            <16x16 sparse matrix of type '<class 'numpy.complex128'>'
+        ]
+
+
+        returns:
+            BK_CC_ops (list): List of Sparse matrices corresponding to each UCCSD excitation operator
+
+
+        """
+
+        from openfermion.transforms._bravyi_kitaev import _bravyi_kitaev_fermion_operator
+        from openfermion.transforms import get_sparse_operator
+
+        BK_CC_ops = []
+        for classical_op in self.Sec_Quant_CC_ops:
+            BK_Op = _bravyi_kitaev_fermion_operator(classical_op, self.n_qubits)
+            BK_CC_ops.append(get_sparse_operator(BK_Op, n_qubits=self.n_qubits))
+        return BK_CC_ops
 
     def Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(self, QubitMolecularHamiltonian):
         """
@@ -570,33 +693,6 @@ class Hamiltonian_Transforms():
                 PauliWord_str_list.append((PauliWord, factor))
 
         return PauliWord_str_list
-
-    def Get_Qubit_Hamiltonian_BK(self):
-        """
-        Returns the second quantised Qubit Molecular Hamiltonian of the Molecular Hamiltonian using the
-        BRAVYI KITAEV transformation. First gets the fermionic Hamiltonian and than performs BK.
-
-        e.g. H = h0 I + h1 Z0 + h2 Z1 +h3 Z2 + h4 Z3 + h5 Z0Z1 ... etc etc
-        note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
-
-
-        returns:
-            QubitHamiltonian (openfermion.ops._qubit_operator.QubitOperator): Qubit Operator
-
-        e.g. for H2:
-                (-0.09706626861762581+0j) [] +
-                (0.045302615508689394+0j) [X0 Z1 X2] +
-                (0.045302615508689394+0j) [X0 Z1 X2 Z3] +
-                (0.045302615508689394+0j) [Y0 Z1 Y2] +
-                (0.045302615508689394+0j) [Y0 Z1 Y2 Z3] +
-                (0.17141282639402383+0j) [Z0] ... etc etc
-
-        """
-        from openfermion.transforms import bravyi_kitaev
-
-        FermionicHamiltonian = self.Get_Fermionic_Hamiltonian()
-        QubitHamiltonian = bravyi_kitaev(FermionicHamiltonian)
-        return QubitHamiltonian
 
     def Get_sparse_Qubit_Hamiltonian_matrix(self, QubitOperator):
         """
@@ -810,62 +906,7 @@ if __name__ == '__main__':
 #     print(E_pure, E_trot)
 
 
-def Convert_basis_state_to_occ_num_basis(state):
-    """
 
-    For a state defined by a basis state vector... get state in occupation number basis. Note doesn't work for
-    entangled states!
-
-
-
-    Args:
-        state (numpy.ndarray): dense numpy array of basis state
-
-    returns:
-        state_list (list): List of qubit values in order
-
-    e.g.
-    np.arrayarray([[0],
-               [0],
-               [0],
-               [1],
-               [0],
-               [0],
-               [0],
-               [0]])
-
-    output = ['0', '1', '1']
-
-    """
-
-    Number_Qubits = int(np.log2(int(state.shape[0])))
-
-    state_list = []
-
-    for _ in range(Number_Qubits):
-        length = int(state.shape[0])
-
-        position_1 = np.where(state == 1)[0]
-
-        if position_1 < length / 2:
-            # single_q = np.array([[1], [0]])
-            single_q = '0'
-            state = state[0:int(length / 2), :]
-        else:
-            # single_q = np.array([[0], [1]])
-            single_q = '1'
-            state = state[int(length / 2)::, :]
-        state_list.append(single_q)
-
-    ### test:
-    # from numpy import kron
-    # from functools import reduce
-    # zero = np.array([[1], [0]])
-    # one = np.array([[0], [1]])
-    # STATE = [zero, one, zero, zero]
-    # STATE_vec = reduce(kron, STATE)
-    # print(Convert_basis_state_to_occ_num_basis(STATE_vec))
-    return state_list
 
 
 
