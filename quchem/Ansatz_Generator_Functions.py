@@ -5,16 +5,14 @@ import scipy
 
 
 
-class UCCSD_Trotter():
+class UCCSD_Trotter_JW():
     """
 
-    The UCCSD_Trotter object calculates trotterisation of UCCSD anatzse
+    The UCCSD_Trotter object calculates trotterisation of UCCSD anatzse under JW transform
 
     Args:
         Second_Quant_CC_Ops_list (list): List of Fermionic Operators (openfermion.ops._fermion_operator.FermionOperator)
         Theta_param_list (list): List of Angles corresponding to UCCSD excitation amplitudes
-
-
     Attributes:
         #TODO
 
@@ -68,19 +66,80 @@ class UCCSD_Trotter():
         # note for Theta_param_list, with 2nd order Trot will need to double angle params!
         pass
 
-def Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_JW_OP_list):
+class UCCSD_Trotter_BK():
+    """
+
+    The UCCSD_Trotter object calculates trotterisation of UCCSD anatzse under BK transform
+
+    Args:
+        Second_Quant_CC_Ops_list (list): List of Fermionic Operators (openfermion.ops._fermion_operator.FermionOperator)
+        Theta_param_list (list): List of Angles corresponding to UCCSD excitation amplitudes
+    Attributes:
+        #TODO
+
+    """
+    def __init__(self, Second_Quant_CC_Ops_list, Theta_param_list):
+        self.Second_Quant_CC_Ops_list = Second_Quant_CC_Ops_list # FermionOperator
+        self.Theta_param_list = Theta_param_list
+
+    def SingleTrotterStep(self):
+
+        """
+        Performs single trotter step approximation of UCCSD anstaz.
+            U = exp [ t02 (a†2a0−a†0a2) + t13(a†3a1−a†1a3) +t0123 (a†3a†2a1a0−a†0a†1a2a3) ]
+            becomes
+            U=exp [t02(a†2a0−a†0a2)] × exp [t13(a†3a1−a†1a3)] × exp [t0123(a†3a†2a1a0−a†0a†1a2a3)]
+
+        using the JORDAN WIGNER TRANSFORM
+
+        Takes list of UCCSD fermionic excitation operators:
+
+                    [
+                       -(a†0 a2) + (a†2 a0),
+                       -(a†1 a3) + (a†3 a1),
+                       -(a†0 a†1 a2 a3) + a†3 a†2 a1 a0)
+                    ]
+        and returns JW transform of each term and appends it to a list yielding a list of QubitOperators
+        performing UCCSD.
+
+        [
+            -0.5j [X0 Z1 Y2] + 0.5j [Y0 Z1 X2],
+            -0.5j [X1 Z2 Y3] + 0.5j [Y1 Z2 X3],
+            0.125j [X0 X1 X2 Y3] + 0.125j [X0 X1 Y2 X3] + -0.125j [X0 Y1 X2 X3] + 0.125j [X0 Y1 Y2 Y3] +
+            -0.125j [Y0 X1 X2 X3] + 0.125j [Y0 X1 Y2 Y3] + -0.125j [Y0 Y1 X2 Y3] + -0.125j [Y0 Y1 Y2 X3]
+        ]
+
+        returns:
+            Second_Quant_CC_JW_OP_list (list): List of QubitOperators (openfermion.ops._qubit_operator.QubitOperator)
+                                               under JW transform. Each performs a UCCSD excitation.
+
+        """
+
+        Second_Quant_CC_JW_OP_list = []
+        from openfermion.transforms import bravyi_kitaev
+        for OP in self.Second_Quant_CC_Ops_list: # each OP = (T_i − T_i^†) i indicates if single, double, triple ... etc
+            BK_OP = bravyi_kitaev(OP)
+            Second_Quant_CC_JW_OP_list.append(BK_OP)
+        return Second_Quant_CC_JW_OP_list
+
+    def DoubleTrotterStep(self):
+        #TODO
+        # note for Theta_param_list, with 2nd order Trot will need to double angle params!
+        pass
+
+def Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_OP_list):
     """
      From a list of QubitOperators (openfermion.ops._qubit_operator.QubitOperator) generate corresponding
      list of PauliStrings with cofactor!
 
     Args:
-        Second_Quant_CC_JW_OP_list (list): list of QubitOperators (openfermion.ops._qubit_operator.QubitOperator)
+        Second_Quant_CC_OP_list (list): list of QubitOperators (openfermion.ops._qubit_operator.QubitOperator)
 
     Returns:
-        PauliWord_str_Second_Quant_CC_JW_OP_list (list): List of tuples (PauliWord_str, cofactor)
+        PauliWord_str_Second_Quant_CC_OP_list (list): List of tuples (PauliWord_str, cofactor)
 
     e.g.
-    Second_Quant_CC_JW_OP_list =
+    Second_Quant_CC_OP_list =
     [
         -0.5j[X0 Z1 Y2] + 0.5j[Y0 Z1 X2],
         -0.5j[X1 Z2 Y3] +0.5j[Y1 Z2 X3],
@@ -98,11 +157,11 @@ def Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_JW_OP_list):
     """
 
 
-    PauliWord_str_Second_Quant_CC_JW_OP_list = []
-    max_No_terms = max([len(list(QubitOP.terms.keys())[0]) for QubitOP in Second_Quant_CC_JW_OP_list])
+    PauliWord_str_Second_Quant_CC_OP_list = []
+    max_No_terms = max([len(list(QubitOP.terms.keys())[0]) for QubitOP in Second_Quant_CC_OP_list])
     all_indices = np.arange(0, max_No_terms, 1)
 
-    for QubitOP in Second_Quant_CC_JW_OP_list:
+    for QubitOP in Second_Quant_CC_OP_list:
         T_Tdagg_Op_list = []
 
         for tupleOfTuples, factor in QubitOP.terms.items():
@@ -122,10 +181,10 @@ def Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_JW_OP_list):
             seperator = ' '
             PauliWord = seperator.join(qubit_OP_list)
             T_Tdagg_Op_list.append((PauliWord, factor))
-        PauliWord_str_Second_Quant_CC_JW_OP_list.append(T_Tdagg_Op_list[::-1]) # reverse order (as need to do righthand side first!)
-    return PauliWord_str_Second_Quant_CC_JW_OP_list
+        PauliWord_str_Second_Quant_CC_OP_list.append(T_Tdagg_Op_list[::-1]) # reverse order (as need to do righthand side first!)
+    return PauliWord_str_Second_Quant_CC_OP_list
 
-def HF_state_generator(n_electrons, n_qubits):
+class HF_state_generator():
     """
      Generate ground state HF state (singlet) in occupation number basis (canonical orbitals)
 
@@ -133,20 +192,132 @@ def HF_state_generator(n_electrons, n_qubits):
         n_electrons (int): Number of electrons
         n_qubits (int): Number of qubits
 
-    Returns:
-        np.array: HF singlet ground state in occupation number basis
-
-    .. code-block:: python
-       :emphasize-lines: 2
-
-       from quchem.Ansatz_Generator_Functions import *
-       state = HF_state_generator(2, 4)
-       print(state)
-       >> [0. 0. 1. 1.]
     """
-    occupied = np.ones(n_electrons)
-    unoccupied = np.zeros(n_qubits-n_electrons)
-    return np.array([*unoccupied,*occupied])
+
+    def __init__(self, n_electrons, n_orbitals):
+        self.n_electrons =n_electrons
+        self.n_orbitals = n_orbitals
+
+    def Convert_basis_state_to_occ_num_basis(self, state):
+        """
+
+        For a state defined by a basis state vector... get state in occupation number basis. Note doesn't work for
+        entangled states!
+
+
+
+        Args:
+            state (numpy.ndarray): dense numpy array of basis state
+
+        returns:
+            state_list (list): List of qubit values in order
+
+        e.g.
+        np.arrayarray([[0],
+                   [0],
+                   [0],
+                   [1],
+                   [0],
+                   [0],
+                   [0],
+                   [0]])
+
+        output = ['0', '1', '1']
+
+        """
+        Number_Qubits = int(np.log2(int(state.shape[0])))
+
+        state_list = []
+
+        for _ in range(Number_Qubits):
+            length = int(state.shape[0])
+
+            position_1 = np.where(state == 1)[0]
+
+            if position_1 < length / 2:
+                # single_q = np.array([[1], [0]])
+                single_q = '0'
+                state = state[0:int(length / 2), :]
+            else:
+                # single_q = np.array([[0], [1]])
+                single_q = '1'
+                state = state[int(length / 2)::, :]
+            state_list.append(single_q)
+        return state_list
+
+    def Get_JW_HF_state_in_occ_basis(self):
+        # Note output order == np.array([*unoccupied,*occupied])
+        from openfermion.utils._sparse_tools import jw_hartree_fock_state
+        HF_state_vec = jw_hartree_fock_state(self.n_electrons, self.n_orbitals)
+        HF_state_vec = HF_state_vec.reshape([2**self.n_orbitals,1])
+        return self.Convert_basis_state_to_occ_num_basis(HF_state_vec)[::-1] # note change of order!
+
+    def Beta_BK_matrix_transform(self):
+        """
+        Gives sparse Beta_BK_matrix matrix that transforms occupation number basis vectors of length n into the
+        Bravyi-Kitaev basis.
+
+        Based on  βn matrix in https://arxiv.org/pdf/1208.5986.pdf.
+
+
+        Args:
+            N_orbitals (int): Number of orbitals/qubits
+
+        Returns:
+            Beta_x (scipy.sparse.csr.csr_matrix): Sparse matrix
+
+        """
+        from scipy.sparse import csr_matrix, kron
+
+        I = csr_matrix(np.eye(2))
+
+        Beta_x = csr_matrix([1]).reshape([1, 1])
+
+        for x in range(self.n_orbitals):
+            Beta_x = kron(I, Beta_x)
+
+            Beta_x = Beta_x.tolil()
+            Beta_x[0, :] = np.ones([1, Beta_x.shape[0]])
+            Beta_x = Beta_x.tocsr()
+        return Beta_x
+
+    def Get_BK_HF_state(self):
+        """
+        Gives sparse basis state of Hartree Fock ground state in Bravyi-Kitaev basis.
+
+        Based on  βn matrix in https://arxiv.org/pdf/1208.5986.pdf.
+
+        """
+
+        mat_transform = self.Beta_BK_matrix_transform()
+
+        from openfermion.utils._sparse_tools import jw_hartree_fock_state
+        HF_state_JW_basis = jw_hartree_fock_state(self.n_electrons, self.n_orbitals)
+        HF_state_JW_basis = HF_state_JW_basis[::-1].reshape([2**self.n_orbitals,1]) # TODO <- check REVERSE
+
+        from scipy.sparse import csr_matrix
+        HF_state_BK_basis = csr_matrix.dot(mat_transform, HF_state_JW_basis)
+
+        return HF_state_BK_basis
+
+    def Get_BK_HF_state_in_occ_basis(self):
+        # TODO not sure if this is correct
+        # Get entangled state as HF state!
+
+        HF_state_BK_basis = self.Get_BK_HF_state()
+
+        norm = 1/np.sqrt(int(sum(HF_state_BK_basis)))
+
+        one_indices = np.where(HF_state_BK_basis==1)
+        state_occ_list = []
+        for i in one_indices[0]:
+            state_vec = np.zeros([2 ** 4, 1])
+            state_vec[i, 0] = 1
+            state_occ_list.append(self.Convert_basis_state_to_occ_num_basis(state_vec)[::-1]) # note change of order!
+
+        return state_occ_list, norm
+
+
 
 from quchem.quantum_circuit_functions import *
 class Ansatz_Circuit():
@@ -233,7 +404,7 @@ if __name__ == '__main__':
     print(Qubit_Hamiltonian)
     ####### FINISHED   #### REQUIRED TO USE ANSATZSE CLASS ######
 
-    UCCSD = UCCSD_Trotter(SQ_CC_ops, THETA_params)
+    UCCSD = UCCSD_Trotter_JW(SQ_CC_ops, THETA_params)
 
     Second_Quant_CC_JW_OP_list = UCCSD.SingleTrotterStep()
 
@@ -430,7 +601,7 @@ if __name__ == '__main__':
     HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops, Hamilt.molecule.n_qubits)
     Qubit_Hamiltonian = HF_transformations.Get_Qubit_Hamiltonian_JW()  # qubit
 
-    UCCSD = UCCSD_Trotter(SQ_CC_ops, THETA_params)
+    UCCSD = UCCSD_Trotter_JW(SQ_CC_ops, THETA_params)
 
     Second_Quant_CC_JW_OP_list = UCCSD.SingleTrotterStep()
 
@@ -447,4 +618,33 @@ if __name__ == '__main__':
     # GG.get_env(100)
 
 
+
+def Beta_BK_matrix(N_orbitals):
+    """
+    Gives sparse Beta_BK_matrix matrix that transforms occupation number basis vectors of length n into the
+    Bravyi-Kitaev basis.
+
+    Based on  βn matrix in https://arxiv.org/pdf/1208.5986.pdf.
+
+
+    Args:
+        N_orbitals (int): Number of orbitals/qubits
+
+    Returns:
+        Beta_x (scipy.sparse.csr.csr_matrix): Sparse matrix
+
+    """
+    from scipy.sparse import csr_matrix, kron
+
+    I = csr_matrix(np.eye(2))
+
+    Beta_x = csr_matrix([1]).reshape([1, 1])
+
+    for x in range(N_orbitals):
+        Beta_x = kron(I,Beta_x)
+
+        Beta_x = Beta_x.tolil()
+        Beta_x[0, :] = np.ones([1, Beta_x.shape[0]])
+        Beta_x = Beta_x.tocsr()
+    return Beta_x
 
