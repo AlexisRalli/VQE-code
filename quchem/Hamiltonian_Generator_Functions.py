@@ -816,129 +816,65 @@ if __name__ == '__main__':
 def Convert_basis_state_to_occ_num_basis(state):
     """
 
-    Method to obtain occ num basis state from basis state dense vector (ket)
+    For a state defined by a basis state vector... get state in occupation number basis. Note doesn't work for
+    entangled states!
 
-     basis state under JW transform of state defined in occupation number basis.
-    e.g. for H2 under the Jordan Wigner transfrom has |HF> = |0011> in occ no. basis
-    occupied_orbitals_index_list = [0,1] <- as first orbitals occupied
 
-    These outputs (|HF> and <HF|) can be used with MolecularHamiltonianMatrix!.
 
     Args:
         state (numpy.ndarray): dense numpy array of basis state
 
     returns:
-        reference_ket ():
+        state_list (list): List of qubit values in order
 
     e.g.
-    np.array([ [0],
+    np.arrayarray([[0],
+               [0],
                [0],
                [1],
                [0],
                [0],
                [0],
-               [0],
-               [0]
-               ])
-    output =
+               [0]])
+
+    output = ['0', '1', '1']
 
     """
 
-    def InvertKron(state):
-        """
-        AxB = kron(A,B)
+    Number_Qubits = int(np.log2(int(state.shape[0])))
 
-        returns A and B
-        """
+    state_list = []
 
+    for _ in range(Number_Qubits):
         length = int(state.shape[0])
-        # split_length = int(np.sqrt(length))
-        split_length = int(np.log2(length))
 
-        if split_length % 2 == 0:
+        position_1 = np.where(state == 1)[0]
 
-            position_1 = np.where(state == 1)[0]
-
-            A_index_pos = int(np.trunc(position_1 / split_length))  # round down!
-
-            A = np.zeros([int(split_length)])
-            A[A_index_pos] = 1
-            A = A.reshape([split_length, 1])
-
-            B_start = split_length * A_index_pos
-            B_end = split_length * A_index_pos + split_length
-            B = state[B_start:B_end, :]
-
-            if not np.array_equal(state, np.kron(A, B)):
-                raise ValueError('Decomposition failed')
-            return A, B
-
+        if position_1 < length / 2:
+            # single_q = np.array([[1], [0]])
+            single_q = '0'
+            state = state[0:int(length / 2), :]
         else:
+            # single_q = np.array([[0], [1]])
+            single_q = '1'
+            state = state[int(length / 2)::, :]
+        state_list.append(single_q)
+    return state_list
 
-            position_1 = int(np.where(state == 1)[0])
-            if position_1 > length / 2:
-                single_q = np.array([[0], [1]])
-                state = state[0::int(length / 2), :]
-            else:
-                single_q = np.array([[1], [0]])
-                state = state[int(length / 2)::, :]
 
-            print(state)
-            length = state.shape[0]
-            split_length = int(np.log2(length))
-            position_1 = np.where(state == 1)[0]
-
-            A_index_pos = int(np.trunc(position_1 / split_length))  # round down!
-
-            A = np.zeros([int(split_length)])
-            A[A_index_pos] = 1
-            A = A.reshape([split_length, 1])
-
-            B_start = split_length * A_index_pos
-            B_end = split_length * A_index_pos + split_length
-            B = state[B_start:B_end, :]
-
-            if not np.array_equal(state, np.kron(A, B)):
-                raise ValueError('Decomposition failed')
-            return A, B, single_q
-
-    def Find_Terms(state):
-        state_list = []
-        state_list.append(state)
-
-        num_qubits = int(np.log2(state.shape[0]))
-
-        for s in state_list:
-            try:
-                a, b = InvertKron(s)
-                state_list.append(a)
-                state_list.append(b)
-            except:
-                break
-        output = state_list[::-1][0:num_qubits][::-1]
-        if len(output) != num_qubits:
-            raise ValueError('output incorrect size')
-        return output
-
-    def Get_state_vec(output_term):
-        state_str = []
-
-        for vec in output_term:
-            if np.array_equal(vec, one):
-                state_str.append('1')
-            else:
-                state_str.append('0')
-        return state_str
-
-    single_qubit_terms = Find_Terms(state)
-    state_str = Get_state_vec(single_qubit_terms)
-    return state_str
 
 from numpy import kron
 from functools import reduce
 zero = np.array([[1],[0]])
 one = np.array([[0],[1]])
-
 STATE = [zero,one,zero,zero]
 STATE_vec = reduce(kron, STATE)
 print(Convert_basis_state_to_occ_num_basis(STATE_vec))
+
+
+
+
+
+
+
+
