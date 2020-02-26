@@ -91,7 +91,7 @@ if __name__ == '__main__':
     histogram_string = Get_Histogram_key(P_Word[0])
     counter = Simulate_Quantum_Circuit(full_circuit, 10000, histogram_string)
 
-def Return_as_binary(counter_result, PauliWord):
+def Return_as_binary(counter_result: object, PauliWord: object) -> object:
     """
      Function to convert counter_result into counter with keys as quantum states (binary)
 

@@ -236,11 +236,11 @@ class HF_state_generator():
 
             if position_1 < length / 2:
                 # single_q = np.array([[1], [0]])
-                single_q = '0'
+                single_q = 0
                 state = state[0:int(length / 2), :]
             else:
                 # single_q = np.array([[0], [1]])
-                single_q = '1'
+                single_q = 1
                 state = state[int(length / 2)::, :]
             state_list.append(single_q)
         return state_list
@@ -343,7 +343,8 @@ class Ansatz_Circuit():
 
     def Get_HF_Quantum_Circuit(self):
         HF_state = HF_state_generator(self.n_electrons, self.n_qubits)
-        HF_state_prep = State_Prep(HF_state)
+        HF_state_list = HF_state.Get_JW_HF_state_in_occ_basis()
+        HF_state_prep = State_Prep(HF_state_list)
         HF_state_prep_circuit = cirq.Circuit(cirq.decompose_once(
             (HF_state_prep(*cirq.LineQubit.range(HF_state_prep.num_qubits())))))
         self.HF_QCirc = list(HF_state_prep_circuit.all_operations())
