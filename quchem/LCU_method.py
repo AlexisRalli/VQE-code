@@ -1051,3 +1051,16 @@ class ALCU_Simulation_Quantum_Circuit_Dict():
         self.Energy = sum(Energy_list)
 
         return self.Energy
+
+
+# note this fixes problem!!!!!
+# need to add this to code!!!!
+state_circ = State_Prep_Circuit(alpha_j)
+circuit = (cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
+
+full_circ = cirq.Circuit(circuit,list(circuit.all_operations())[::-1]) # reverses!
+# simulate
+simulator = cirq.Simulator()
+qubits_to_measure = (cirq.LineQubit(q_No) for q_No in range(num_qub))
+result = simulator.simulate(full_circ, qubit_order=qubits_to_measure)
+print(np.around(result.final_state, 3))
