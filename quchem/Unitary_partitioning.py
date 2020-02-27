@@ -202,8 +202,6 @@ def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): #
 
             beta_S = beta_K*np.sin(theta_sk) + beta_S*np.cos(theta_sk)
 
-
-
         return {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], beta_S), 'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}
 
 

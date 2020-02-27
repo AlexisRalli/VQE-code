@@ -267,13 +267,14 @@ class HF_state_generator():
             Beta_x (scipy.sparse.csr.csr_matrix): Sparse matrix
 
         """
+
         from scipy.sparse import csr_matrix, kron
 
         I = csr_matrix(np.eye(2))
 
         Beta_x = csr_matrix([1]).reshape([1, 1])
 
-        for x in range(self.n_orbitals):
+        for x in range(self.n_electrons):
             Beta_x = kron(I, Beta_x)
 
             Beta_x = Beta_x.tolil()
@@ -281,41 +282,37 @@ class HF_state_generator():
             Beta_x = Beta_x.tocsr()
         return Beta_x
 
-    def Get_BK_HF_state(self):
-        """
-        Gives sparse basis state of Hartree Fock ground state in Bravyi-Kitaev basis.
-
-        Based on  βn matrix in https://arxiv.org/pdf/1208.5986.pdf.
-
-        """
+    def Get_BK_HF_state_in_occ_basis(self):
 
         mat_transform = self.Beta_BK_matrix_transform()
 
-        from openfermion.utils._sparse_tools import jw_hartree_fock_state
-        HF_state_JW_basis = jw_hartree_fock_state(self.n_electrons, self.n_orbitals)
-        HF_state_JW_basis = HF_state_JW_basis[::-1].reshape([2**self.n_orbitals,1]) # TODO <- check REVERSE
+        Hartree_Fock_JW_occ_basis_state = self.Get_JW_HF_state_in_occ_basis()
+        Hartree_Fock_JW_occ_basis_state = np.array(Hartree_Fock_JW_occ_basis_state).reshape([len(Hartree_Fock_JW_occ_basis_state),1])
 
-        from scipy.sparse import csr_matrix
-        HF_state_BK_basis = csr_matrix.dot(mat_transform, HF_state_JW_basis)
+        HF_state_BK_basis = mat_transform.dot(Hartree_Fock_JW_occ_basis_state) % 2
 
         return HF_state_BK_basis
 
-    def Get_BK_HF_state_in_occ_basis(self):
-        # TODO not sure if this is correct
-        # Get entangled state as HF state!
+    def Get_BK_HF_vector(self):
+        zero = np.array([[1], [0]])
+        one = np.array([[0], [1]])
 
-        HF_state_BK_basis = self.Get_BK_HF_state()
+        BK_HF_occ_Basis = self.Get_BK_HF_state_in_occ_basis().reshape([len(self.Get_BK_HF_state_in_occ_basis())])
 
-        norm = 1/np.sqrt(int(sum(HF_state_BK_basis)))
+        from numpy import kron
+        from functools import reduce
+        STATE=[]
+        for bit in BK_HF_occ_Basis[::-1]: # note reverse order!!
+            if int(bit)==0:
+                STATE.append(zero)
+            elif int(bit)==1:
+                STATE.append(one)
+            else:
+                raise ValueError('invalid state bit is not zero or one but: {}'.format(bit))
+        STATE_vec = reduce(kron, STATE)
+        return STATE_vec
 
-        one_indices = np.where(HF_state_BK_basis==1)
-        state_occ_list = []
-        for i in one_indices[0]:
-            state_vec = np.zeros([2 ** 4, 1])
-            state_vec[i, 0] = 1
-            state_occ_list.append(self.Convert_basis_state_to_occ_num_basis(state_vec)[::-1]) # note change of order!
 
-        return state_occ_list, norm
 
 
 

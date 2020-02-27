@@ -71,21 +71,21 @@ if __name__ == '__main__':
     import numpy as np
     from quchem.quantum_circuit_functions import *
     HF_circ = State_Prep([0,0,1,1])
-    HF_circuit = cirq.Circuit.from_ops(cirq.decompose_once((HF_circ(*cirq.LineQubit.range(HF_circ.num_qubits())))))
+    HF_circuit = cirq.Circuit(cirq.decompose_once((HF_circ(*cirq.LineQubit.range(HF_circ.num_qubits())))))
     P_Word_exponentiated = ('Z0 X1 I2 Y3',  0.5j)
     theta = np.pi
     entangle_circ = full_exponentiated_PauliWord_circuit(P_Word_exponentiated, theta)
-    entangle_circuit = cirq.Circuit.from_ops(cirq.decompose_once((entangle_circ(*cirq.LineQubit.range(entangle_circ.num_qubits())))))
+    entangle_circuit = cirq.Circuit(cirq.decompose_once((entangle_circ(*cirq.LineQubit.range(entangle_circ.num_qubits())))))
 
     P_Word = ('Z0 X1 I2 Y3', (0.8918294488900189+0j))
     Pauilword_perform_measure = Perform_PauliWord_and_Measure(P_Word)
-    q_circuit_Pperform_measure =cirq.Circuit.from_ops(
+    q_circuit_Perform_measure =cirq.Circuit(
             cirq.decompose_once((Pauilword_perform_measure(*cirq.LineQubit.range(Pauilword_perform_measure.num_qubits())))))
-    full_circuit = cirq.Circuit.from_ops(
+    full_circuit = cirq.Circuit(
        [
            HF_circuit.all_operations(),
            entangle_circuit.all_operations(),
-           q_circuit_Pperform_measure.all_operations()
+           q_circuit_Perform_measure.all_operations()
        ]
     )
     histogram_string = Get_Histogram_key(P_Word[0])
