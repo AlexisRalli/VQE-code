@@ -36,6 +36,8 @@ anti_commuting_sets = G.Get_Pauli_grouping('AC', Graph_colouring_strategy='large
 anti_commuting_set_stripped = Get_PauliWord_constant_tuples(anti_commuting_sets, dict_str_label='Cofactors')
 print(anti_commuting_set_stripped)
 
+
+
 #### LCU_GUG method
 
 # test_set = anti_commuting_set_stripped[58]

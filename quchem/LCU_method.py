@@ -311,6 +311,91 @@ def convert(beta_k_Pk, Ps):
 
     return (new_PauliWord, new_constant_SIGN * beta_k_Pk[1])
 
+from quchem.Unitary_partitioning import *
+ALL_X_SK_TERMS = X_sk_terms(anti_commuting_set_stripped, S_dict=None)
+ALL_X_SK_TERMS.Get_all_X_sk_operators()
+print(ALL_X_SK_TERMS.X_sk_Ops)
+
+
+def Get_H_n(anti_commuting_set, S_index, no_qubits):
+    """
+    Note
+        X = i ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
+
+        R = exp(-i THETA/2 X) = cos(a/2)I - i sin(a/2)X
+
+        R = cos(THETA/2)I + i sin(THETA/2) * ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
+        ^^^ - this is just a linear combiniation of Pauli terms! Can implement using LCU
+
+        THETA = arc cos(B_{s}) <-- coefficient of P_s
+
+    Args:
+        anti_commuting_set (list):
+        S_index (int):
+        no_qubits (int):
+    Returns:
+        LCU_terms (dict): dict of tuples (PauliWord, positive constant (no complex or neg))
+        LCU_correction_dict (dict): correction to make constant positive and real
+
+     """
+    # TODO need to absorb complex phase into operator!!!!!!!
+    PauliWord_S = anti_commuting_set.pop([S_index])
+
+    # note that PauliWord_S not in this!
+    normalised_anticommuting_set_DICT = Get_beta_j_cofactors(anti_commuting_set)
+
+    for i in range(len(normalised_anticommuting_set_DICT)):
+        if i != S_index:
+            P_term = convert(anti_commuting_set[i], PauliWord_S)
+
+            if np.iscomplex(factor) and factor.imag != 0:
+                if factor.imag < 0:
+                    LCU_correction_dict[i + 1] = -1j
+                    LCU_terms[i + 1] = (P_term[0], np.abs(factor.imag))
+                else:
+                    LCU_correction_dict[i + 1] = 1j
+                    LCU_terms[i + 1] = (P_term[0], factor.imag)
+
+            elif factor.real < 0:
+                LCU_correction_dict[i + 1] = -1
+                LCU_terms[i + 1] = (P_term[0], np.abs(factor.real))
+            else:
+                LCU_correction_dict[i + 1] = 1
+                LCU_terms[i + 1] = (P_term[0], factor.real)
+        return LCU_terms, LCU_correction_dict
+
+
+    seperator = ' '
+    I_term = seperator.join(['I{}'.format(i) for i in range(no_qubits)])
+
+    THETA = np.arccos(anti_commuting_set[S_index][1])
+
+    const = np.sin(THETA / 2)
+
+    LCU_terms = {0: (I_term, np.cos(THETA / 2))}
+    LCU_correction_dict = {0: 1}
+    for i in range(len(anti_commuting_set)):
+        if i != S_index:
+            P_term = convert(anti_commuting_set[i], Pauli_S)
+
+            factor = P_term[1] * const
+
+            if np.iscomplex(factor) and factor.imag != 0:
+                if factor.imag < 0:
+                    LCU_correction_dict[i + 1] = -1j
+                    LCU_terms[i + 1] = (P_term[0], np.abs(factor.imag))
+                else:
+                    LCU_correction_dict[i + 1] = 1j
+                    LCU_terms[i + 1] = (P_term[0], factor.imag)
+
+            elif factor.real < 0:
+                LCU_correction_dict[i + 1] = -1
+                LCU_terms[i + 1] = (P_term[0], np.abs(factor.real))
+            else:
+                LCU_correction_dict[i + 1] = 1
+                LCU_terms[i + 1] = (P_term[0], factor.real)
+    return LCU_terms, LCU_correction_dict
+
 
 def Get_R_linear_comb(anti_commuting_set, S_index, no_qubits):
     """
@@ -844,6 +929,8 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
 
         G_prep_circuit = (cirq.Circuit(cirq.decompose_once((state_circ(*ancilla_line_qubits)))))
 
+        G_prep_circuit_UNDO = cirq.Circuit(list(G_prep_circuit.all_operations())[::-1]) # reverses!
+
         # G_prep_circuit.append(cirq.measure(*ancilla_line_qubits)) # add measurement gates to ancilla line
 
         R_dagger_gate_obj = LCU_R_gate(LCU_terms, LCU_correction_list, True, number_ancilla_qubits, No_system_qubits)
@@ -872,6 +959,7 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
                 *R_gate.all_operations(),
                 Pauli_S_circ.all_operations(),
                 R_dagger_gate.all_operations(),
+                G_prep_circuit_UNDO.all_operations(),
                 measure_circ.all_operations()
             ]
         )
@@ -1053,14 +1141,29 @@ class ALCU_Simulation_Quantum_Circuit_Dict():
         return self.Energy
 
 
-# note this fixes problem!!!!!
-# need to add this to code!!!!
-state_circ = State_Prep_Circuit(alpha_j)
-circuit = (cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
+# # note this fixes problem!!!!!
+# # need to add this to code!!!!
+# state_circ = State_Prep_Circuit(alpha_j)
+# circuit = (cirq.Circuit(cirq.decompose_once((state_circ(*cirq.LineQubit.range(state_circ.num_qubits()))))))
+#
+# full_circ = cirq.Circuit(circuit,list(circuit.all_operations())[::-1]) # reverses!
+# # simulate
+# simulator = cirq.Simulator()
+# qubits_to_measure = (cirq.LineQubit(q_No) for q_No in range(num_qub))
+# result = simulator.simulate(full_circ, qubit_order=qubits_to_measure)
+# print(np.around(result.final_state, 3))
 
-full_circ = cirq.Circuit(circuit,list(circuit.all_operations())[::-1]) # reverses!
-# simulate
-simulator = cirq.Simulator()
-qubits_to_measure = (cirq.LineQubit(q_No) for q_No in range(num_qub))
-result = simulator.simulate(full_circ, qubit_order=qubits_to_measure)
-print(np.around(result.final_state, 3))
+
+import time
+def time_funct(func):
+    def wrapper(*args, **kwargs):
+        t_start = time.time()
+        result = func(*args, **kwargs)
+        t_end = time.time()
+
+        total_t = t_end-t_start
+
+        print("run time: {}".format(total_t))
+
+        return result#,total_t
+    return wrapper
