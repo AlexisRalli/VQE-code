@@ -29,7 +29,7 @@ setup(
         'cirq>=0.4.0',
         'openfermion>=0.9.0',
         'openfermionpsi4>=0.4',
-        'networkx>=2.3'
+        'networkx>=2.3',
         'openfermionpsi4>=0.4',
     ],
     extras_require={

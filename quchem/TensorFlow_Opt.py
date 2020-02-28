@@ -64,10 +64,7 @@ class Tensor_Flow_Optimizer:
         sess.run(init)
         Input_vector = [sess.run(i) for i in Input_TENSOR_vector]
 
-        if self.args==():
-            output = self.funct(Input_vector)
-        else:
-            output = self.funct(Input_vector, *self.args)
+        output = self.funct(Input_vector, *self.args)
         return tf.Variable(output, dtype=tf.float64)
 
     def Get_Gradient_PLACEHOLDERS(self):
@@ -139,10 +136,7 @@ class Tensor_Flow_Optimizer:
 
         with tf.compat.v1.Session() as session:
         # with tf.Session() as session:
-            if self.args == ():
-                output = self.funct(self.X0)
-            else:
-                output = self.funct(self.X0, *self.args)
+            output = self.funct(self.X0, *self.args)
 
             if self.display_iter_steps is True:
                 print("starting input:", self.X0, "obj funct out:", output)
