@@ -204,8 +204,6 @@ class HF_state_generator():
         For a state defined by a basis state vector... get state in occupation number basis. Note doesn't work for
         entangled states!
 
-
-
         Args:
             state (numpy.ndarray): dense numpy array of basis state
 
@@ -274,24 +272,24 @@ class HF_state_generator():
 
         Beta_x = csr_matrix([1]).reshape([1, 1])
 
-        for x in range(self.n_electrons):
+        for x in range(int(np.ceil(np.log2(self.n_orbitals)))):
             Beta_x = kron(I, Beta_x)
 
             Beta_x = Beta_x.tolil()
             Beta_x[0, :] = np.ones([1, Beta_x.shape[0]])
             Beta_x = Beta_x.tocsr()
-        return Beta_x
+        return Beta_x[Beta_x.shape[1]-self.n_orbitals:, Beta_x.shape[1]-self.n_orbitals:]
 
     def Get_BK_HF_state_in_occ_basis(self):
 
         mat_transform = self.Beta_BK_matrix_transform()
 
-        Hartree_Fock_JW_occ_basis_state = self.Get_JW_HF_state_in_occ_basis()
-        Hartree_Fock_JW_occ_basis_state = np.array(Hartree_Fock_JW_occ_basis_state).reshape([len(Hartree_Fock_JW_occ_basis_state),1])
+        Hartree_Fock_JW_occ_basis_state = self.Get_JW_HF_state_in_occ_basis() # note occupation: | f_{n-1) ... f_{1} f_{0} >
 
+        Hartree_Fock_JW_occ_basis_state = np.array(Hartree_Fock_JW_occ_basis_state).reshape([len(Hartree_Fock_JW_occ_basis_state),1])
         HF_state_BK_basis = mat_transform.dot(Hartree_Fock_JW_occ_basis_state) % 2
 
-        return HF_state_BK_basis
+        return HF_state_BK_basis # note occupation: | b_{n-1) ... b_{1} b_{0} >
 
     def Get_BK_HF_vector(self):
         zero = np.array([[1], [0]])
@@ -302,7 +300,7 @@ class HF_state_generator():
         from numpy import kron
         from functools import reduce
         STATE=[]
-        for bit in BK_HF_occ_Basis[::-1]: # note reverse order!!
+        for bit in BK_HF_occ_Basis[::-1]: # note reverse order!! (if not would have | f_{n-1) ... f_{1} f_{0} > )
             if int(bit)==0:
                 STATE.append(zero)
             elif int(bit)==1:
