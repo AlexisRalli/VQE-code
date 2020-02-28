@@ -1,10 +1,7 @@
-import numpy as np
-import scipy
 from functools import reduce
-from tqdm import tqdm
 from scipy.sparse import csr_matrix
 from scipy.sparse import kron
-from scipy.linalg import expm
+import numpy as np
 
 if __name__ == '__main__':
     anti_commuting_sets = {
@@ -1395,8 +1392,8 @@ if __name__ == '__main__':
     Qubit_Hamiltonian = HF_transformations.Get_Qubit_Hamiltonian_JW()  # qubit
 
     # Get Coupled cluster terms
-    UCCSD = UCCSD_Trotter(SQ_CC_ops, THETA_params)
-    Second_Quant_CC_JW_OP_list = UCCSD.SingleTrotterStep()
+    UCCSD_JW = UCCSD_Trotter_JW(SQ_CC_ops, THETA_params)
+    Second_Quant_CC_JW_OP_list = UCCSD_JW.SingleTrotterStep()
 
     # Build Matrices
     orbital_index_list = [0, 1]

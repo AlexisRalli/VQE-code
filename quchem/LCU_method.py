@@ -311,184 +311,82 @@ def convert(beta_k_Pk, Ps):
 
     return (new_PauliWord, new_constant_SIGN * beta_k_Pk[1])
 
-from quchem.Unitary_partitioning import *
-ALL_X_SK_TERMS = X_sk_terms(anti_commuting_set_stripped, S_dict=None)
-ALL_X_SK_TERMS.Get_all_X_sk_operators()
-print(ALL_X_SK_TERMS.X_sk_Ops)
 
-
-def Get_H_n(anti_commuting_set, S_index, no_qubits):
-    """
-    Note
-        X = i ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
-
-        R = exp(-i THETA/2 X) = cos(a/2)I - i sin(a/2)X
-
-        R = cos(THETA/2)I + i sin(THETA/2) * ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
-        ^^^ - this is just a linear combiniation of Pauli terms! Can implement using LCU
-
-        THETA = arc cos(B_{s}) <-- coefficient of P_s
-
-    Args:
-        anti_commuting_set (list):
-        S_index (int):
-        no_qubits (int):
-    Returns:
-        LCU_terms (dict): dict of tuples (PauliWord, positive constant (no complex or neg))
-        LCU_correction_dict (dict): correction to make constant positive and real
-
-     """
-    # TODO need to absorb complex phase into operator!!!!!!!
-    PauliWord_S = anti_commuting_set.pop([S_index])
-
-    # note that PauliWord_S not in this!
-    normalised_anticommuting_set_DICT = Get_beta_j_cofactors(anti_commuting_set)
-
-    for i in range(len(normalised_anticommuting_set_DICT)):
-        if i != S_index:
-            P_term = convert(anti_commuting_set[i], PauliWord_S)
-
-            if np.iscomplex(factor) and factor.imag != 0:
-                if factor.imag < 0:
-                    LCU_correction_dict[i + 1] = -1j
-                    LCU_terms[i + 1] = (P_term[0], np.abs(factor.imag))
-                else:
-                    LCU_correction_dict[i + 1] = 1j
-                    LCU_terms[i + 1] = (P_term[0], factor.imag)
-
-            elif factor.real < 0:
-                LCU_correction_dict[i + 1] = -1
-                LCU_terms[i + 1] = (P_term[0], np.abs(factor.real))
-            else:
-                LCU_correction_dict[i + 1] = 1
-                LCU_terms[i + 1] = (P_term[0], factor.real)
-        return LCU_terms, LCU_correction_dict
-
-
-    seperator = ' '
-    I_term = seperator.join(['I{}'.format(i) for i in range(no_qubits)])
-
-    THETA = np.arccos(anti_commuting_set[S_index][1])
-
-    const = np.sin(THETA / 2)
-
-    LCU_terms = {0: (I_term, np.cos(THETA / 2))}
-    LCU_correction_dict = {0: 1}
-    for i in range(len(anti_commuting_set)):
-        if i != S_index:
-            P_term = convert(anti_commuting_set[i], Pauli_S)
-
-            factor = P_term[1] * const
-
-            if np.iscomplex(factor) and factor.imag != 0:
-                if factor.imag < 0:
-                    LCU_correction_dict[i + 1] = -1j
-                    LCU_terms[i + 1] = (P_term[0], np.abs(factor.imag))
-                else:
-                    LCU_correction_dict[i + 1] = 1j
-                    LCU_terms[i + 1] = (P_term[0], factor.imag)
-
-            elif factor.real < 0:
-                LCU_correction_dict[i + 1] = -1
-                LCU_terms[i + 1] = (P_term[0], np.abs(factor.real))
-            else:
-                LCU_correction_dict[i + 1] = 1
-                LCU_terms[i + 1] = (P_term[0], factor.real)
-    return LCU_terms, LCU_correction_dict
-
-
+from quchem.Unitary_partitioning import Get_beta_j_cofactors
 def Get_R_linear_comb(anti_commuting_set, S_index, no_qubits):
     """
     Note
         X = i ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
 
-        R = exp(-i THETA/2 X) = cos(a/2)I - i sin(a/2)X
+        R = exp(-i ALPHA/2 X) = cos(ALPHA/2)I - i sin(ALPHA/2)X
 
-        R = cos(THETA/2)I + i sin(THETA/2) * ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
+        R = cos(ALPHA/2)I + i sin(ALPHA/2) * ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
         ^^^ - this is just a linear combiniation of Pauli terms! Can implement using LCU
 
-        THETA = arc cos(B_{s}) <-- coefficient of P_s
+        H_{n} = sin(ϕ_{n-1}) * H_{n-1} +  cos(ϕ_{n-1}) * P_{s})
+        ^^^^ therefore cos(ϕ_{n-1}) = B_{s} .... SO ... ϕ_{n-1} = arc cos (B_{s})
+
+        AS:
+        R† H R = sin(ϕ_{n-1} - ALPHA) * H_{n-1} + cos(ϕ_{n-1} - APLHA) * P_{s}
+        set
+        ALPHA = ϕ_{n-1}
 
     Args:
         anti_commuting_set (list):
         S_index (int):
         no_qubits (int):
     Returns:
-        LCU_terms (dict): dict of tuples (PauliWord, positive constant (no complex or neg))
-        LCU_correction_dict (dict): correction to make constant positive and real
-
+        LCU_dict (dict): A dictionary containing the linear combination of terms required to perform R ('R_LCU')
+                         the correction factors to make all real and positive ('LCU_correction')
+                         the angle to perform R gate ('alpha')
+                         the PauliS term ('P_s')
      """
-    # TODO need to absorb complex phase into operator!!!!!!!
-    Pauli_S = anti_commuting_set[S_index][0]
+
+    normalised_anticommuting_set_DICT = Get_beta_j_cofactors(anti_commuting_set)
+
+    Pauli_S = normalised_anticommuting_set_DICT['PauliWords'][S_index][0]
 
     seperator = ' '
     I_term = seperator.join(['I{}'.format(i) for i in range(no_qubits)])
 
-    THETA = np.arccos(anti_commuting_set[S_index][1])
+    phi_n_1 = np.arccos(normalised_anticommuting_set_DICT['PauliWords'][S_index][1])
 
-    const = np.sin(THETA / 2)
+    const = np.sin(phi_n_1 / 2)
 
-    LCU_terms = {0: (I_term, np.cos(THETA / 2))}
-    LCU_correction_dict = {0: 1}
-    for i in range(len(anti_commuting_set)):
+    LCU_dict = {}
+    LCU_dict['R_LCU'] = {0: (I_term, np.cos(phi_n_1 / 2))}
+    LCU_dict['LCU_correction'] = {0: 1}
+
+    # loop gets each X operator term
+    for i in range(len(normalised_anticommuting_set_DICT['PauliWords'])):
         if i != S_index:
-            P_term = convert(anti_commuting_set[i], Pauli_S)
+            P_term = convert(normalised_anticommuting_set_DICT['PauliWords'][i], Pauli_S)
 
             factor = P_term[1] * const
 
             if np.iscomplex(factor) and factor.imag != 0:
                 if factor.imag < 0:
-                    LCU_correction_dict[i + 1] = -1j
-                    LCU_terms[i + 1] = (P_term[0], np.abs(factor.imag))
+                    LCU_dict['LCU_correction'].update({i + 1 : -1j})
+                    LCU_dict['R_LCU'].update({i + 1 : (P_term[0], np.abs(factor.imag))})
                 else:
-                    LCU_correction_dict[i + 1] = 1j
-                    LCU_terms[i + 1] = (P_term[0], factor.imag)
+                    LCU_dict['LCU_correction'].update({i + 1 : 1j})
+                    LCU_dict['R_LCU'].update({i + 1 : (P_term[0], factor.imag)})
 
             elif factor.real < 0:
-                LCU_correction_dict[i + 1] = -1
-                LCU_terms[i + 1] = (P_term[0], np.abs(factor.real))
+                LCU_dict['LCU_correction'].update({i + 1 : -1})
+                LCU_dict['R_LCU'].update({i + 1 : (P_term[0], np.abs(factor.real))})
             else:
-                LCU_correction_dict[i + 1] = 1
-                LCU_terms[i + 1] = (P_term[0], factor.real)
-    return LCU_terms, LCU_correction_dict
+                LCU_dict['LCU_correction'].update({i + 1 : 1})
+                LCU_dict['R_LCU'].update({i + 1 : (P_term[0], factor.real)})
 
+    LCU_dict['gamma_l'] = normalised_anticommuting_set_DICT['gamma_l']
 
-# def Get_R_linear_comb(anti_commuting_set, S_index, no_qubits):
-#     """
-#         Note
-#             X = i ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
-#
-#             R = exp(-i THETA/2 X) = cos(a/2)I - i sin(a/2)X
-#
-#             R = cos(THETA/2)I + i sin(THETA/2) * ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
-#             ^^^ - this is just a linear combiniation of Pauli terms! Can implement using LCU
-#
-#             THETA = arc cos(B_{s}) <-- coefficient of P_s
-#      """
-#     # TODO need to absorb complex phase into operator!!!!!!!
-#     Pauli_S = anti_commuting_set[S_index][0]
-#
-#     seperator = ' '
-#     I_term = seperator.join(['I{}'.format(i) for i in range(no_qubits)])
-#
-#     THETA = np.arccos(anti_commuting_set[S_index][1])
-#
-#     const=np.sin(THETA/2)
-#
-#     terms=[ (I_term, np.cos(THETA/2)) ]
-#
-#     for i in range(len(anti_commuting_set)):
-#         if i!=S_index:
-#             P_term = convert(anti_commuting_set[i], Pauli_S)
-#
-#             factor = P_term[1]*const
-#             terms.append((P_term[0], factor)) # TODO want to only have positive real part!
-#     return terms
-#
-# test_set = anti_commuting_set_stripped[6]
-# tt = Get_R_linear_comb(test_set, 0, Hamilt.molecule.n_qubits)
+    LCU_dict['alpha'] = phi_n_1
+    LCU_dict['P_s'] = Pauli_S
 
-def Get_ancilla_amplitudes(LCU_terms):
+    return LCU_dict
+
+def Get_ancilla_amplitudes(LCU_dict):
     """
     Takes in an anti_commuting set and returns l1 norm, number of ancilla qubits and amplitudes required
     on ancilla bits.
@@ -500,9 +398,11 @@ def Get_ancilla_amplitudes(LCU_terms):
     need all a_{j}>=0 (complex and negative sign can be absorbed by U_{j}
 
     Args:
-        LCU_terms (dict): dictionary with values as tuples (PauliWord, constant)
+        LCU_dict (dict): A dictionary containing R_LCU_terms (key = 'R_LCU') -- > from Get_R_linear_comb funciton
     Returns:
-        l1 norm (float), number of ancilla qubits (int) and list of ancilla amplitudes
+        l1 norm (float): L1 norm
+        number_ancilla_qubits (int): number of ancilla qubits
+        G_ancilla_amplitudes (list): List of ancilla amplitudes
 
     state = |000> + |001> + |010> + |011> + |100> + |101 > + |110 > + |111>
     state  = |0> +   |1> +   |2> +   |3> +   |4> +   |5 > +   |6 > +   |7>
@@ -521,10 +421,10 @@ def Get_ancilla_amplitudes(LCU_terms):
     """
 
     # NOTE each coefficient must be positive... sign should be absorbed by operator!
-    l1_norm = sum([LCU_terms[key][1] for key in LCU_terms])
-    number_ancilla_qubits = int(np.ceil(np.log2(len(LCU_terms))))  # note round up with np.ceil
+    l1_norm = sum([LCU_dict['R_LCU'][key][1] for key in LCU_dict['R_LCU']])
+    number_ancilla_qubits = int(np.ceil(np.log2(len(LCU_dict['R_LCU']))))  # note round up with np.ceil
 
-    l1_normalised_amp = [LCU_terms[key][1] / l1_norm for key in LCU_terms]
+    l1_normalised_amp = [LCU_dict['R_LCU'][key][1] / l1_norm for key in LCU_dict['R_LCU']]
     G_ancilla_amplitudes = [np.sqrt(amp) for amp in l1_normalised_amp]
 
     if len(G_ancilla_amplitudes) < 2 ** number_ancilla_qubits:
@@ -535,8 +435,8 @@ def Get_ancilla_amplitudes(LCU_terms):
 
 if __name__ == '__main__':
     test_set = anti_commuting_set_stripped[6]
-    tt, correction_list = Get_R_linear_comb(test_set, 0, Hamilt.molecule.n_qubits)
-    l1_norm_val, number_ancilla_qubits, G_ancilla_amplitudes = Get_ancilla_amplitudes(tt)
+    LCU_Dict = Get_R_linear_comb(test_set, 0, Hamilt.molecule.n_qubits)
+    l1_norm_val, number_ancilla_qubits, G_ancilla_amplitudes = Get_ancilla_amplitudes(LCU_Dict)
 
 ## Build state:
 
@@ -738,10 +638,9 @@ class LCU_R_gate(cirq.Gate):
 
     """
 
-    def __init__(self, LCU_term_dict, LCU_correction_dict, dagger, No_control_qubits, No_system_qubits):
+    def __init__(self, LCU_dict, dagger, No_control_qubits, No_system_qubits):
 
-        self.LCU_term_dict = LCU_term_dict
-        self.LCU_correction_dict = LCU_correction_dict
+        self.LCU_dict = LCU_dict
         self.dagger = dagger
         self.No_control_qubits = No_control_qubits
         self.No_system_qubits = No_system_qubits
@@ -749,15 +648,15 @@ class LCU_R_gate(cirq.Gate):
     def _decompose_(self, qubits):
 
         state_index = 0
-        for control_state in self.LCU_term_dict:
+        for control_state in self.LCU_dict['R_LCU']:
             control_str = Get_state_as_str(self.No_control_qubits, state_index)
             # using state index rather than control_state value
             # due to how LCU_term is built! (aka missing keys cause problems!)
 
             control_values = [int(bit) for bit in control_str]
 
-            correction_val = self.LCU_correction_dict[control_state]
-            mod_P = self.LCU_term_dict[control_state]
+            correction_val = self.LCU_dict['LCU_correction'][control_state]
+            mod_P = self.LCU_dict['R_LCU'][control_state]
             mod_p_word_gate = Perform_Modified_PauliWord(mod_P, correction_val, self.dagger)
 
             qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits) \
@@ -788,7 +687,7 @@ class LCU_R_gate(cirq.Gate):
 
 if __name__ == '__main__':
     dag = False
-    GATE = LCU_R_gate(tt, correction_list, dag, number_ancilla_qubits, Hamilt.molecule.n_qubits)
+    GATE = LCU_R_gate(LCU_Dict, dag, number_ancilla_qubits, Hamilt.molecule.n_qubits)
 
     print(cirq.Circuit((GATE(*cirq.LineQubit.range(GATE.num_qubits())))))
     print(
@@ -919,9 +818,9 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
         # cannot perform LCU on set with only 1 term in it!
         return None
     else:
-        LCU_terms, LCU_correction_list = Get_R_linear_comb(anti_commuting_set, S_index, No_system_qubits)
+        LCU_DICT = Get_R_linear_comb(anti_commuting_set, S_index, No_system_qubits)
 
-        l1_norm_val, number_ancilla_qubits, G_ancilla_amplitudes = Get_ancilla_amplitudes(LCU_terms)
+        l1_norm_val, number_ancilla_qubits, G_ancilla_amplitudes = Get_ancilla_amplitudes(LCU_DICT)
 
         alpha_j = Get_state_prep_dict(number_ancilla_qubits, Coefficient_list=G_ancilla_amplitudes)
         state_circ = State_Prep_Circuit(alpha_j)
@@ -933,7 +832,7 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
 
         # G_prep_circuit.append(cirq.measure(*ancilla_line_qubits)) # add measurement gates to ancilla line
 
-        R_dagger_gate_obj = LCU_R_gate(LCU_terms, LCU_correction_list, True, number_ancilla_qubits, No_system_qubits)
+        R_dagger_gate_obj = LCU_R_gate(LCU_DICT, True, number_ancilla_qubits, No_system_qubits)
         R_dagger_gate = cirq.Circuit(
             cirq.decompose_once((R_dagger_gate_obj(*cirq.LineQubit.range(R_dagger_gate_obj.num_qubits())))))
 
@@ -944,7 +843,7 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
             cirq.decompose_once((Pauli_S_circ_obj(
                 *cirq.LineQubit.range(Pauli_S_circ_obj.num_qubits())))))
 
-        R_gate_obj = LCU_R_gate(LCU_terms, LCU_correction_list, False, number_ancilla_qubits, No_system_qubits)
+        R_gate_obj = LCU_R_gate(LCU_DICT, False, number_ancilla_qubits, No_system_qubits)
         R_gate = cirq.Circuit(
             cirq.decompose_once((R_gate_obj(*cirq.LineQubit.range(R_gate_obj.num_qubits())))))
 
@@ -963,13 +862,13 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
                 measure_circ.all_operations()
             ]
         )
-        return full_circuit
+        return full_circuit, LCU_DICT['gamma_l']
 
 
 if __name__ == '__main__':
     test_set = anti_commuting_set_stripped[58]
     S_index = 0
-    circuit = Complete_LCU_circuit(test_set, Hamilt.molecule.n_qubits, S_index)
+    circuit, gg = Complete_LCU_circuit(test_set, Hamilt.molecule.n_qubits, S_index)
     print(circuit)
 
 
@@ -1035,7 +934,7 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
             temp_d['PauliWord'] = PauliString_and_Constant[0][0]
             temp_d['LCU'] = False
         else:
-            ALCU_circuit = Complete_LCU_circuit(PauliString_and_Constant, n_system, S_index)
+            ALCU_circuit, gamma_l = Complete_LCU_circuit(PauliString_and_Constant, n_system, S_index)
 
             full_circuit = cirq.Circuit(
                 [
@@ -1044,7 +943,7 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
                 ]
             )
             temp_d['circuit'] = full_circuit
-            temp_d['gamma_l'] = PauliString_and_Constant[S_index][1]
+            temp_d['gamma_l'] = gamma_l
             temp_d['PauliWord'] = PauliString_and_Constant[S_index][0] + ' ' +ancilla_str
             temp_d['LCU'] = True
 
@@ -1141,6 +1040,96 @@ class ALCU_Simulation_Quantum_Circuit_Dict():
         return self.Energy
 
 
+
+from quchem.Simulating_Quantum_Circuit import *
+class ALCU_Simulation_Quantum_Circuit_Dict():
+    def __init__(self, circuits_factor_PauliWord_dict, num_shots, n_ancilla):
+        self.circuits_factor_PauliWord_dict = circuits_factor_PauliWord_dict
+        self.num_shots = num_shots
+        self.n_ancilla = n_ancilla
+
+        self.hist_key_dict = None
+        self.counter_results_raw_dict = None
+        self.Identity_result_dict = {}
+        self.binary_results_dict = None
+        self.expect_results_dict = None
+
+    def Get_Histkey_dict(self):
+        hist_key_dict={}
+        for key in self.circuits_factor_PauliWord_dict:
+            hist_key_dict[key]= Get_Histogram_key(self.circuits_factor_PauliWord_dict[key]['PauliWord'])
+        self.hist_key_dict = hist_key_dict
+
+    def Get_binary_results_dict(self):
+        if self.hist_key_dict is None:
+            self.Get_Histkey_dict()
+
+        binary_results_dict = {}
+        for key in self.circuits_factor_PauliWord_dict:
+
+            if self.hist_key_dict[key] != '':
+                #checks for non identity ciruict
+                if self.circuits_factor_PauliWord_dict[key]['LCU'] is False:
+                    counter_result = Simulate_Quantum_Circuit(self.circuits_factor_PauliWord_dict[key]['circuit'],
+                                                                self.num_shots, self.hist_key_dict[key])
+                    binary_results_dict[key] = Return_as_binary(counter_result, self.circuits_factor_PauliWord_dict[key]['PauliWord'])
+                else:
+                    simulator = cirq.Simulator()
+                    LCU_result_dict = {}
+                    ancilla_key = ''.join(['0' for _ in range(self.n_ancilla)])
+                    n_success_shots=0
+                    while n_success_shots != self.num_shots:
+                        raw_result = simulator.run(self.circuits_factor_PauliWord_dict[key]['circuit']) #, repetitions=num_shots)
+                        hist_result = raw_result.histogram(key=self.hist_key_dict[key])
+                        binary_res = Return_as_binary(hist_result, self.circuits_factor_PauliWord_dict[key]['PauliWord'])
+                        for state in binary_res:
+                            if state[:(-1-self.n_ancilla):-1] == ancilla_key:
+                                if state not in LCU_result_dict.keys():
+                                    LCU_result_dict[state] = 0
+                                LCU_result_dict[state] = LCU_result_dict[state] + binary_res[state]
+                                n_success_shots += 1
+                    binary_results_dict[key] = LCU_result_dict
+            else:
+                self.Identity_result_dict[key]= (self.circuits_factor_PauliWord_dict[key]['PauliWord'], self.circuits_factor_PauliWord_dict[key]['gamma_l'])
+
+        self.binary_results_dict = binary_results_dict
+
+    def Get_expectation_value_via_parity(self):
+        if self.binary_results_dict is None:
+            self.Get_binary_results_dict()
+
+        expect_results_dict = {}
+        for key in self.circuits_factor_PauliWord_dict:
+
+            if key in self.Identity_result_dict.keys():
+                expect_results_dict[key] = 1
+
+            elif self.circuits_factor_PauliWord_dict[key]['LCU']:
+                # remove ancilla results with slice!
+                ancilla_removed = {state[0:-1*self.n_ancilla]: counts for state, counts in self.binary_results_dict[key].items()}
+                expect_results_dict[key] = expectation_value_by_parity(ancilla_removed)
+            else:
+                expect_results_dict[key] = expectation_value_by_parity(self.binary_results_dict[key])
+
+        self.expect_results_dict = expect_results_dict
+
+    def Calc_energy_via_parity(self):
+        if self.expect_results_dict is None:
+            self.Get_expectation_value_via_parity()
+
+        Energy_list =[]
+        for key in self.circuits_factor_PauliWord_dict:
+            exp_val = self.expect_results_dict[key]
+            factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
+            Energy_list.append((exp_val*factor))
+
+        self.Energy_list = Energy_list
+        self.Energy = sum(Energy_list)
+
+        return self.Energy
+
+
+
 # # note this fixes problem!!!!!
 # # need to add this to code!!!!
 # state_circ = State_Prep_Circuit(alpha_j)
@@ -1167,3 +1156,88 @@ def time_funct(func):
 
         return result#,total_t
     return wrapper
+
+
+from quchem.Simulating_Quantum_Circuit import *
+class ALCU_Simulation_Quantum_Circuit_Dict_SHOTS():
+    def __init__(self, circuits_factor_PauliWord_dict, num_shots, n_ancilla):
+        self.circuits_factor_PauliWord_dict = circuits_factor_PauliWord_dict
+        self.num_shots = num_shots
+        self.n_ancilla = n_ancilla
+
+        self.hist_key_dict = None
+        self.counter_results_raw_dict = None
+        self.Identity_result_dict = {}
+        self.binary_results_dict = None
+        self.expect_results_dict = None
+
+    def Get_Histkey_dict(self):
+        hist_key_dict={}
+        for key in self.circuits_factor_PauliWord_dict:
+            hist_key_dict[key]= Get_Histogram_key(self.circuits_factor_PauliWord_dict[key]['PauliWord'])
+        self.hist_key_dict = hist_key_dict
+
+    def Get_binary_results_dict(self):
+        if self.hist_key_dict is None:
+            self.Get_Histkey_dict()
+
+        binary_results_dict = {}
+        for key in self.circuits_factor_PauliWord_dict:
+
+            if self.hist_key_dict[key] != '':
+                #checks for non identity ciruict
+                if self.circuits_factor_PauliWord_dict[key]['LCU'] is False:
+                    counter_result = Simulate_Quantum_Circuit(self.circuits_factor_PauliWord_dict[key]['circuit'],
+                                                                self.num_shots, self.hist_key_dict[key])
+                    binary_results_dict[key] = Return_as_binary(counter_result, self.circuits_factor_PauliWord_dict[key]['PauliWord'])
+                else:
+                    simulator = cirq.Simulator()
+                    LCU_result_dict = {}
+                    ancilla_key = ''.join(['0' for _ in range(self.n_ancilla)])
+                    raw_result = simulator.run(self.circuits_factor_PauliWord_dict[key]['circuit'], repetitions=num_shots*10) #TODO look here
+                    hist_result = raw_result.histogram(key=self.hist_key_dict[key])
+                    binary_res = Return_as_binary(hist_result, self.circuits_factor_PauliWord_dict[key]['PauliWord'])
+                    for state in binary_res:
+                        if state[:(-1-self.n_ancilla):-1] == ancilla_key:
+                            if state not in LCU_result_dict.keys():
+                                LCU_result_dict[state] = 0
+                            LCU_result_dict[state] = LCU_result_dict[state] + binary_res[state]
+                    binary_results_dict[key] = LCU_result_dict
+            else:
+                self.Identity_result_dict[key]= (self.circuits_factor_PauliWord_dict[key]['PauliWord'], self.circuits_factor_PauliWord_dict[key]['gamma_l'])
+
+        self.binary_results_dict = binary_results_dict
+
+    def Get_expectation_value_via_parity(self):
+        if self.binary_results_dict is None:
+            self.Get_binary_results_dict()
+
+        expect_results_dict = {}
+        for key in self.circuits_factor_PauliWord_dict:
+
+            if key in self.Identity_result_dict.keys():
+                expect_results_dict[key] = 1
+
+            elif self.circuits_factor_PauliWord_dict[key]['LCU']:
+                # remove ancilla results with slice!
+                ancilla_removed = {state[0:-1*self.n_ancilla]: counts for state, counts in self.binary_results_dict[key].items()}
+                expect_results_dict[key] = expectation_value_by_parity(ancilla_removed)
+            else:
+                expect_results_dict[key] = expectation_value_by_parity(self.binary_results_dict[key])
+
+        self.expect_results_dict = expect_results_dict
+
+    def Calc_energy_via_parity(self):
+        if self.expect_results_dict is None:
+            self.Get_expectation_value_via_parity()
+
+        Energy_list =[]
+        for key in self.circuits_factor_PauliWord_dict:
+            exp_val = self.expect_results_dict[key]
+            factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
+            Energy_list.append((exp_val*factor))
+
+        self.Energy_list = Energy_list
+        self.Energy = sum(Energy_list)
+
+        return self.Energy

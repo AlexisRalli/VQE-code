@@ -312,10 +312,6 @@ class HF_state_generator():
         STATE_vec = reduce(kron, STATE)
         return STATE_vec
 
-
-
-
-
 from quchem.quantum_circuit_functions import *
 class Ansatz_Circuit():
     """
@@ -614,8 +610,6 @@ if __name__ == '__main__':
     #                tol=1e-9,
     #                display_convergence_message=True)
     # GG.get_env(100)
-
-
 
 def Beta_BK_matrix(N_orbitals):
     """
