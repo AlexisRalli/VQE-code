@@ -52,6 +52,7 @@ class Hamiltonian():
         self.delete_input = delete_input
         self.delete_output = delete_output
         self.num_theta_parameters = None
+        self.MolecularHamiltonianMatrix = None
 
     def Run_Psi4(self):
 
@@ -144,6 +145,10 @@ class Hamiltonian():
             self.MolecularHamiltonianMatrix = get_sparse_operator(self.MolecularHamiltonian)
 
     def Get_FCI_from_MolecularHamialtonian(self):
+
+        if self.MolecularHamiltonianMatrix is None:
+            self.Get_Molecular_Hamiltonian(Get_H_matrix=True)
+
         from scipy.sparse.linalg import eigs
         eig_values, eig_vectors = eigs(self.MolecularHamiltonianMatrix)
         FCI_Energy = min(eig_values)
@@ -232,14 +237,6 @@ class Hamiltonian():
                 state = state[int(length / 2)::, :]
             state_list.append(single_q)
 
-        ### test:
-        # from numpy import kron
-        # from functools import reduce
-        # zero = np.array([[1], [0]])
-        # one = np.array([[0], [1]])
-        # STATE = [zero, one, zero, zero]
-        # STATE_vec = reduce(kron, STATE)
-        # print(Convert_basis_state_to_occ_num_basis(STATE_vec))
         return state_list
 
     def Get_ia_and_ijab_terms(self, Coupled_cluser_param=False, filter_small_terms = False): #TODO could add MP2 param option to initialise theta with MP2 amplitudes (rather than coupled cluster only option)
