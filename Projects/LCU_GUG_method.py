@@ -60,13 +60,46 @@ HF_UCCSD_ansatz = Ansatz_Circuit(PauliWord_list, Hamilt.molecule.n_electrons, Ha
 
 ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
 
+# ### Join Circuits
+# S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1, 10: 1}
+# w=ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4, 1)
+# ####
+#
+# # simulate
+# tt = ALCU_Simulation_Quantum_Circuit_Dict(w, 100, 1)
+# tt.Get_expectation_value_via_parity()
+# tt.Calc_energy_via_parity()
+# tt.Energy
+#
+#
+#
+#
+#
+# S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1, 10: 1}
+# def Calc_E_UP(THETA_params):
+#     ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
+#     w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4, 1)
+#     tt = ALCU_Simulation_Quantum_Circuit_Dict_SHOTS(w, 1000, 1)
+#     tt.Get_expectation_value_via_parity()
+#     tt.Calc_energy_via_parity()
+#     return tt.Energy.real
+# from quchem.Scipy_Optimizer import *
+# THETA_params = [1, 2, 3]
+# GG = Optimizer(Calc_E_UP, THETA_params, 'Nelder-Mead', store_values=True, display_iter_steps=True,
+#                tol=1e-5,
+#                display_convergence_message=True)
+# GG.get_env(50)
+# GG.plot_convergence()
+# plt.show()
+
+
 ### Join Circuits
-S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1, 10: 1}
-w=ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4, 1)
+S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
+w, l1_norm =ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4, 1)
 ####
 
 # simulate
-tt = ALCU_Simulation_Quantum_Circuit_Dict(w, 100, 1)
+tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 1000, 1, l1_norm)
 tt.Get_expectation_value_via_parity()
 tt.Calc_energy_via_parity()
 tt.Energy
@@ -75,16 +108,17 @@ tt.Energy
 
 
 
-S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1, 10: 1}
+S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
 def Calc_E_UP(THETA_params):
     ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
-    w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4, 1)
-    tt = ALCU_Simulation_Quantum_Circuit_Dict_SHOTS(w, 1000, 1)
+    w, l1_norm = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4, 1)
+    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 1000, 1, l1_norm)
     tt.Get_expectation_value_via_parity()
     tt.Calc_energy_via_parity()
     return tt.Energy.real
 from quchem.Scipy_Optimizer import *
 THETA_params = [1, 2, 3]
+# THETA_params = [0.23333333, 3.13333333, 3.05]
 GG = Optimizer(Calc_E_UP, THETA_params, 'Nelder-Mead', store_values=True, display_iter_steps=True,
                tol=1e-5,
                display_convergence_message=True)
