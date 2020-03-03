@@ -94,9 +94,12 @@ ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
 
 
 ### Join Circuits
+LCU_Dict = Get_R_linear_combination(anti_commuting_set_stripped[9], 0, Hamilt.molecule.n_qubits)
+number_ancilla_qubits = int(np.ceil(np.log2(len(LCU_Dict['R_LCU']))))
+
 S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
 w, l1_norm =ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits,
-                      1)
+                      number_ancilla_qubits)
 ####
 
 # simulate
