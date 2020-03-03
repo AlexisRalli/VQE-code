@@ -559,7 +559,8 @@ def Get_ancilla_amplitudes(LCU_dict):
 
 if __name__ == '__main__':
     test_set = anti_commuting_set_stripped[7]
-
+    S_index=0
+    LCU = Get_R_linear_combination(test_set, S_index, Hamilt.molecule.n_qubits)
 
 ## Build state:
 
@@ -1516,6 +1517,8 @@ def notes():
 
 
 
+
+
 if __name__ == '__main__':
     ####
     # TODO checking with linear algebra!!! THIS SHOULD MAKE METHOD CLEAR :)
@@ -1619,3 +1622,111 @@ if __name__ == '__main__':
     np.where(ll==False)
     print(R_matrix.todense()[1,14])
     print(R_MATRIX.todense()[1,14])
+
+
+
+
+####
+from scipy.sparse import csr_matrix, kron
+from functools import reduce
+
+zero = csr_matrix(np.array([[1],[0]]))
+one = csr_matrix(np.array([[0],[1]]))
+
+Q_states={
+    '0': zero,
+    '1': one
+}
+
+PauliDICT = {
+    'I': I,
+    'X': X,
+    'Z': Z,
+    'Y': Y
+}
+
+def Arb_state_Gen_Matrix(state_amplitudes, n_ancilla):
+    MATRIX = csr_matrix(np.zeros([2 ** n_ancilla, 2 ** n_ancilla]))
+
+    state_amp = csr_matrix(np.array(state_amplitudes).reshape([len(state_amplitudes),1]))
+
+    MATRIX = scipy.sparse.hstack((state_amp, MATRIX[:,1:]))
+    return MATRIX
+
+if __name__ == '__main__':
+    zero_all_ancilla = [Q_states['0'] for _ in range(2)]
+    zero_ancilla_state = reduce(kron, zero_all_ancilla)
+
+    z = Arb_state_Gen_Matrix([0.25, 0.25, 0.25, 0.25], 2)
+    print(z.dot(zero_ancilla_state).todense())
+
+def Get_ancilla_prep_and_system_I(state_amplitudes, n_ancilla, n_system):
+    ancilla_matrix = Arb_state_Gen_Matrix(state_amplitudes, n_ancilla)
+
+    N_system = csr_matrix(np.eye(2 ** n_system))
+
+    return kron(N_system, ancilla_matrix)
+
+def Get_R_LCU_matrix(Pauli_SET, n_ancilla):
+    # # U = ∑_{i} P_{i} ⊗ |i>  <i|
+    # #           system.....ancilla
+    R_LCU_matrices=[]
+    for i in range(len(Pauli_SET)):
+        ancilla_state_str = Get_state_as_str(n_ancilla, i)
+        ancilla_state = [Q_states[bit] for bit in ancilla_state_str]
+        ancilla_matrix = reduce(kron, ancilla_state)
+
+        ancilla_part = ancilla_matrix.dot(ancilla_matrix.transpose().conj()) # |i>  <i|
+
+        P_term = Pauli_SET[i]
+        system_P = [PauliDICT[Pauli[0]] for Pauli in P_term.split(' ')]
+        system_matrix = reduce(kron, system_P)  #  P_{i} ⊗ |i>  <i|
+
+        R_LCU_matrices.append(kron(system_matrix, ancilla_part))
+
+    return R_LCU_matrices
+
+if __name__ == '__main__':
+    # ['I0 I1 I2 Z3', 'X0 Y1 Y2 X3']
+    R_LCU_Mat_list = Get_R_LCU_matrix(['I0 Z1', 'X0 Y1'], 2)
+
+test_set = anti_commuting_set_stripped[7]
+S_index=0
+LCU_DICT = Get_R_linear_combination(test_set, S_index, Hamilt.molecule.n_qubits)
+l1_norm_val, number_ancilla_qubits, G_ancilla_amplitudes = Get_ancilla_amplitudes(LCU_DICT)
+
+
+state_prep = Arb_state_Gen_Matrix(G_ancilla_amplitudes, number_ancilla_qubits)
+I_system = csr_matrix(np.eye(2 ** Hamilt.molecule.n_qubits))
+state_prep_system_and_ancilla = kron(I_system, state_prep)
+
+
+R_LCU_matrix_list = Get_R_LCU_matrix([tup[0] for tup in test_set], number_ancilla_qubits)
+
+Ps_string = [PauliDICT[sig[0]] for sig in LCU_DICT['P_s'].split(' ')]
+P_s_MATRIX = reduce(kron, Ps_string) * np.cos(phi_n_1 - LCU_DICT['alpha'])
+# need to tensor this with idenity on ancilla line!!! ^^^^
+I_ancilla = csr_matrix(np.eye(2 ** number_ancilla_qubits))
+P_s_MATRIX_and_ancilla = kron(P_s_MATRIX, I_ancilla)
+
+
+
+HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops, Hamilt.molecule.n_qubits)
+UCC_JW_excitation_matrix_list = HF_transformations.Get_Jordan_Wigner_CC_Matrices()
+
+THETA_parameters=[1,2,3]
+from scipy.sparse.linalg import expm
+UCC_matrices_and_ANCILLA=[]
+I_ancilla = csr_matrix(np.eye(2 ** number_ancilla_qubits))
+for k in reversed(range(0, len(THETA_parameters))):
+    SYSTEM_AND_ANCILLA = kron(UCC_JW_excitation_matrix_list[k], I_ancilla)
+    UCC_matrices_and_ANCILLA.append(expm((THETA_parameters[k] * SYSTEM_AND_ANCILLA))) #TODO may need to do theta/2 ect...
+
+
+all_Zero = [Q_states['0'] for _ in range(number_ancilla_qubits + Hamilt.molecule.n_qubits)]
+state = reduce(kron, all_Zero)
+
+OP_list = [state_prep_system_and_ancilla, *UCC_matrices_and_ANCILLA,  *R_LCU_matrix_list, P_s_MATRIX_and_ancilla, *R_LCU_matrix_list[::-1]]
+
+for OP in OP_list:
+    state = OP.dot(state)
