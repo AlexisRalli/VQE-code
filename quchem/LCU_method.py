@@ -1617,7 +1617,8 @@ def notes():
 
 
 ### get H_n matrix
-test_set = anti_commuting_set_stripped[9].copy()
+set_index = 9
+test_set = anti_commuting_set_stripped[set_index].copy()
 S_index=0
 P_S = test_set.pop(S_index)
 H_n_1 = Get_beta_j_cofactors(test_set) ## NOTE THIS DOESN'T CONTAIN P_S!!!
@@ -1653,7 +1654,7 @@ PauliDICT={
     'Y': Y
 }
 
-n_qubits = 4
+n_qubits = Hamilt.molecule.n_qubits
 H_n_MATRIX=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
 for term in H_n:
     PauliWord = term[0]
@@ -1664,7 +1665,7 @@ for term in H_n:
 
 
 # Get R_matrix
-qq = Get_R_linear_combination(anti_commuting_set_stripped[9], 0, 4)
+qq = Get_R_linear_combination(anti_commuting_set_stripped[set_index], 0, Hamilt.molecule.n_qubits)
 R_matrix=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
 for key in qq['R_LCU']:
     PauliWord = qq['R_LCU'][key][0]
@@ -1676,9 +1677,8 @@ for key in qq['R_LCU']:
 
 
 # Alternate method (CHECK FOR EQUIVALENCE)
-X_SET = Get_X_SET(anti_commuting_set_stripped[9], S_index)
+X_SET = Get_X_SET(anti_commuting_set_stripped[set_index], S_index)
 from scipy.sparse.linalg import expm
-n_qubits = 4
 X_matrix=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
 for term in X_SET['terms']:
     PauliWord = term[0]
@@ -1702,8 +1702,8 @@ second = first.dot(R_matrix.transpose().conj())
 # reduce(np.matmul, [R_matrix.todense(), H_n_MATRIX.todense(), R_matrix.transpose().conj().todense()])
 
 ### PS
-P_s = [PauliDICT[sig[0]] for sig in qq['P_s'].split(' ')]
-P_s_MATRIX = reduce(kron, P_strings)
+Ps_string = [PauliDICT[sig[0]] for sig in qq['P_s'].split(' ')]
+P_s_MATRIX = reduce(kron, Ps_string) * np.cos(phi_n_1- qq['alpha'])
 
 print(np.allclose(second.todense(), P_s_MATRIX.todense()))
 
