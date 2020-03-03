@@ -2,7 +2,7 @@ from quchem.LCU_method import *
 from quchem.Hamiltonian_Generator_Functions import *
 
 ### Parameters
-Molecule = 'H2'#LiH'
+Molecule = 'LiH'#LiH'
 geometry = None
 num_shots = 10000
 
@@ -95,11 +95,12 @@ ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
 
 ### Join Circuits
 S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
-w, l1_norm =ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4, 1)
+w, l1_norm =ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits,
+                      1)
 ####
 
 # simulate
-tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 1000, 1, l1_norm)
+tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 100, 1, l1_norm)
 tt.Get_expectation_value_via_parity()
 tt.Calc_energy_via_parity()
 tt.Energy
@@ -112,12 +113,17 @@ S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
 def Calc_E_UP(THETA_params):
     ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
     w, l1_norm = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4, 1)
-    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 1000, 1, l1_norm)
+    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 500, 1, l1_norm)
     tt.Get_expectation_value_via_parity()
     tt.Calc_energy_via_parity()
     return tt.Energy.real
 from quchem.Scipy_Optimizer import *
-THETA_params = [1, 2, 3]
+
+import random
+THETA_params = [random.uniform(0,2*np.pi) for _ in range(len(THETA_params))]
+
+
+# THETA_params = [1, 2, 3]
 # THETA_params = [0.23333333, 3.13333333, 3.05]
 GG = Optimizer(Calc_E_UP, THETA_params, 'Nelder-Mead', store_values=True, display_iter_steps=True,
                tol=1e-5,
