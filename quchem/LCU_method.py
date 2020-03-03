@@ -382,120 +382,21 @@ def Get_R_linear_comb(anti_commuting_set, S_index, no_qubits):
                 LCU_dict['LCU_correction'].update({i + 1 : 1})
                 LCU_dict['R_LCU'].update({i + 1 : (P_term[0], factor.real)})
 
-    LCU_dict['gamma_l'] = normalised_anticommuting_set_DICT['gamma_l']
+    # LCU_dict['gamma_l'] = normalised_anticommuting_set_DICT['gamma_l']
     LCU_dict['alpha'] = phi_n_1
     LCU_dict['P_s'] = Pauli_S[0]
+
+    if Pauli_S[1]<0:
+        LCU_dict['gamma_l'] = normalised_anticommuting_set_DICT['gamma_l'] *-1
+    else:
+        LCU_dict['gamma_l'] = normalised_anticommuting_set_DICT['gamma_l'] * -1
+
 
     return LCU_dict
 
 
 
 from quchem.Unitary_partitioning import Get_beta_j_cofactors
-# def Get_X_SET(anti_commuting_set, S_index, no_qubits):
-#     """
-#     X = i ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
-#
-#     Args:
-#         anti_commuting_set (list):
-#         S_index (int):
-#         no_qubits (int):
-#     Returns:
-#         LCU_dict (dict): A dictionary containing the linear combination of terms required to perform R ('R_LCU')
-#                          the correction factors to make all real and positive ('LCU_correction')
-#                          the angle to perform R gate ('alpha')
-#                          the PauliS term ('P_s')
-#      """
-#
-#     normalised_anticommuting_set_DICT = Get_beta_j_cofactors(anti_commuting_set)
-#
-#     Pauli_S = normalised_anticommuting_set_DICT['PauliWords'][S_index]
-#
-#     X_set = {}
-#     X_set['gamma_l'] = normalised_anticommuting_set_DICT['gamma_l']
-#     X_set['terms'] = []
-#     for i in range(len(normalised_anticommuting_set_DICT['PauliWords'])):
-#         if i != S_index:
-#             P_term = convert(normalised_anticommuting_set_DICT['PauliWords'][i], Pauli_S[0])
-#             X_set['terms'].append((P_term[0], P_term[1]*1j))
-#
-#     X_set['P_s'] = Pauli_S
-#
-#     if not np.isclose(sum([i[1]**2 for i in X_set['terms']] + X_set['P_s'][1]**2),1):
-#         raise ValueError('Normalisation is wrong')
-#     return X_set
-# def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
-#     """
-#     Note
-#         X = i ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
-#
-#         R = exp(-i ALPHA/2 X) = cos(ALPHA/2)I - i sin(ALPHA/2)X
-#
-#         R = cos(ALPHA/2)I + i sin(ALPHA/2) * ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
-#         ^^^ - this is just a linear combiniation of Pauli terms! Can implement using LCU
-#
-#         H_{n} = sin(ϕ_{n-1}) * H_{n-1} +  cos(ϕ_{n-1}) * P_{s})
-#         ^^^^ therefore cos(ϕ_{n-1}) = B_{s} .... SO ... ϕ_{n-1} = arc cos (B_{s})
-#
-#         AS:
-#         R† H R = sin(ϕ_{n-1} - ALPHA) * H_{n-1} + cos(ϕ_{n-1} - APLHA) * P_{s}
-#         set
-#         ALPHA = ϕ_{n-1}
-#
-#     Args:
-#         anti_commuting_set (list):
-#         S_index (int):
-#         no_qubits (int):
-#     Returns:
-#         LCU_dict (dict): A dictionary containing the linear combination of terms required to perform R ('R_LCU')
-#                          the correction factors to make all real and positive ('LCU_correction')
-#                          the angle to perform R gate ('alpha')
-#                          the PauliS term ('P_s')
-#      """
-#
-#     X_set = Get_X_SET(anti_commuting_set, S_index, no_qubits)
-#
-#     seperator = ' '
-#     I_term = seperator.join(['I{}'.format(i) for i in range(no_qubits)])
-#
-#     phi_n_1 = np.arccos(X_set['P_s'][1])
-#
-#     const = np.sin(phi_n_1 / 2) * -1j
-#
-#     LCU_dict = {}
-#     LCU_dict['R_LCU'] = {0: (I_term, np.cos(phi_n_1 / 2))}
-#     LCU_dict['LCU_correction'] = {0: 1}
-#
-#     # loop gets each X operator term
-#     for i in range(len(X_set['terms'])):
-#         P_term = X_set['terms'][i]
-#         factor = P_term[1] * const
-#
-#         if np.iscomplex(factor) and factor.imag != 0:
-#             if factor.imag < 0:
-#                 LCU_dict['LCU_correction'].update({i + 1: -1j})
-#                 LCU_dict['R_LCU'].update({i + 1: (P_term[0], np.abs(factor.imag))})
-#             else:
-#                 LCU_dict['LCU_correction'].update({i + 1: 1j})
-#                 LCU_dict['R_LCU'].update({i + 1: (P_term[0], factor.imag)})
-#
-#         elif factor.real < 0:
-#             LCU_dict['LCU_correction'].update({i + 1: -1})
-#             LCU_dict['R_LCU'].update({i + 1: (P_term[0], np.abs(factor.real))})
-#         else:
-#             LCU_dict['LCU_correction'].update({i + 1: 1})
-#             LCU_dict['R_LCU'].update({i + 1: (P_term[0], factor.real)})
-#
-#     # LCU_dict['gamma_l'] = X_set['gamma_l']
-#     LCU_dict['alpha'] = phi_n_1
-#     LCU_dict['P_s'] = X_set['P_s'][0]
-#     LCU_dict['l1_norm'] = sum([LCU_dict['R_LCU'][key][1] for key in LCU_dict['R_LCU']])
-#
-#     if X_set['P_s'][1]<0:
-#         LCU_dict['gamma_l'] = X_set['gamma_l'] * -1
-#     else:
-#         LCU_dict['gamma_l'] = X_set['gamma_l']
-#
-#     return LCU_dict
 def Get_X_SET(anti_commuting_set, S_index):
     """
     X = i ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
@@ -594,25 +495,20 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
             LCU_dict['R_LCU'].update({i + 1: (P_term[0], factor.real)})
 
     if not np.isclose(sum([LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']]), 1):
-        raise ValueError('normalisation is WRONG')
+        raise ValueError('normalisation is WRONG: {}'.format(sum([LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']])))
 
     LCU_dict['gamma_l'] = X_set['gamma_l']
     LCU_dict['alpha'] = phi_n_1
     LCU_dict['P_s'] = X_set['P_s'][0]
     LCU_dict['l1_norm'] = sum([LCU_dict['R_LCU'][key][1] for key in LCU_dict['R_LCU']])
 
-    LCU_dict['gamma_l'] = X_set['gamma_l']
-    # if X_set['P_s'][1]<0:
-    #     LCU_dict['gamma_l'] = X_set['gamma_l'] * -1
-    # else:
-    #     LCU_dict['gamma_l'] = X_set['gamma_l']
+    # LCU_dict['gamma_l'] = X_set['gamma_l']
+    if X_set['P_s'][1]<0:
+        LCU_dict['gamma_l'] = X_set['gamma_l'] * -1
+    else:
+        LCU_dict['gamma_l'] = X_set['gamma_l']
 
     return LCU_dict
-
-
-
-
-
 
 def Get_ancilla_amplitudes(LCU_dict):
     """
@@ -649,7 +545,7 @@ def Get_ancilla_amplitudes(LCU_dict):
     """
 
     # NOTE each coefficient must be positive... sign should be absorbed by operator!
-    l1_norm = sum([LCU_dict['R_LCU'][key][1] for key in LCU_dict['R_LCU']])
+    l1_norm = LCU_dict['l1_norm']
     number_ancilla_qubits = int(np.ceil(np.log2(len(LCU_dict['R_LCU']))))  # note round up with np.ceil
 
     l1_normalised_amp = [LCU_dict['R_LCU'][key][1] / l1_norm for key in LCU_dict['R_LCU']]
@@ -663,8 +559,7 @@ def Get_ancilla_amplitudes(LCU_dict):
 
 if __name__ == '__main__':
     test_set = anti_commuting_set_stripped[7]
-    LCU_Dict = Get_R_linear_combination(test_set, 0, Hamilt.molecule.n_qubits)
-    l1_norm_val, number_ancilla_qubits, G_ancilla_amplitudes = Get_ancilla_amplitudes(LCU_Dict)
+
 
 ## Build state:
 
@@ -1091,7 +986,13 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
                 measure_circ.all_operations()
             ]
         )
-        return full_circuit, LCU_DICT['gamma_l'], LCU_DICT['l1_norm']
+
+        # if Pauli_S[1]<0:
+        #     gamma_l = LCU_DICT['gamma_l'] *-1
+        # else:
+        #     gamma_l = LCU_DICT['gamma_l']
+
+        return full_circuit,LCU_DICT['gamma_l'], LCU_DICT['l1_norm'] #full_circuit, gamma_l, LCU_DICT['l1_norm']
 
 
 if __name__ == '__main__':
@@ -1383,7 +1284,7 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
 
     def SimulateQC_RAW(self, Quantum_Circuit):
         simulator = cirq.Simulator()
-        raw_result = simulator.run(Quantum_Circuit, repetitions=self.num_shots)
+        raw_result = simulator.run(Quantum_Circuit, repetitions=self.num_shots*100)
         return raw_result
 
     def Get_binary_results_dict(self):
@@ -1437,10 +1338,13 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
             if key in self.Identity_result_dict.keys():
                 expect_results_dict[key] = 1
 
-            elif self.circuits_factor_PauliWord_dict[key]['LCU']:
-                # remove ancilla results with slice!
-                ancilla_removed = {state[0:-1*self.n_ancilla]: counts for state, counts in self.binary_results_dict[key].items()}
-                expect_results_dict[key] = expectation_value_by_parity(ancilla_removed)
+
+            # elif self.circuits_factor_PauliWord_dict[key]['LCU']:
+            #     # remove ancilla results with slice!
+            #     # ancilla_removed = {state[0:-1*self.n_ancilla]: counts for state, counts in self.binary_results_dict[key].items()}
+            #     expect_results_dict[key] = expectation_value_by_parity(ancilla_removed)
+            # else:
+            #     expect_results_dict[key] = expectation_value_by_parity(self.binary_results_dict[key])
             else:
                 expect_results_dict[key] = expectation_value_by_parity(self.binary_results_dict[key])
 
@@ -1452,9 +1356,14 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
 
         Energy_list =[]
         for key in self.circuits_factor_PauliWord_dict:
-            exp_val = self.expect_results_dict[key]
-            factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
-            Energy_list.append((exp_val*factor))
+            if self.circuits_factor_PauliWord_dict[key]['LCU'] is False:
+                exp_val = self.expect_results_dict[key]
+                factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
+                Energy_list.append((exp_val*factor))
+            else:
+                exp_val = self.expect_results_dict[key]
+                factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
+                Energy_list.append((exp_val*factor*self.l1_norm))
 
         self.Energy_list = Energy_list
         self.Energy = sum(Energy_list)
@@ -1606,216 +1515,107 @@ def notes():
     pass
 
 
-####
-# TODO checking with linear algebra!!! THIS SHOULD MAKE METHOD CLEAR :)
-# CURRENTLY WRONG THOUGH :(
+
+if __name__ == '__main__':
+    ####
+    # TODO checking with linear algebra!!! THIS SHOULD MAKE METHOD CLEAR :)
+
+    ### get H_n matrix
+    set_index = 9
+    test_set = anti_commuting_set_stripped[set_index].copy()
+    S_index=0
+    P_S = test_set.pop(S_index)
+    H_n_1 = Get_beta_j_cofactors(test_set) ## NOTE THIS DOESN'T CONTAIN P_S!!!
+
+    phi_n_1 = np.arccos(P_S[1])
+    H_n=[]
+    for Pword, const in H_n_1['PauliWords']:
+        H_n.append((Pword, (np.sin(phi_n_1) *const)))
+    H_n.append((P_S[0], np.cos(phi_n_1)))
+    print(sum([const**2 for Pword, const in H_n]))
 
 
 
 
+    from scipy.sparse import csr_matrix, kron
+    from functools import reduce
+
+    I = csr_matrix(np.eye(2))
+    X = csr_matrix(np.array([
+                            [0,1],
+                            [1,0]]))
+    Y = csr_matrix(np.array([
+                            [0,-1j],
+                            [1j,0]]))
+    Z = csr_matrix(np.array([
+                            [1,0],
+                            [0,-1]]))
+
+    PauliDICT={
+        'I': I,
+        'X': X,
+        'Z': Z,
+        'Y': Y
+    }
+
+    n_qubits = Hamilt.molecule.n_qubits
+    H_n_MATRIX=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
+    for term in H_n:
+        PauliWord = term[0]
+        const = term[1]
+        P_strings = [PauliDICT[sig[0]] for sig in PauliWord.split(' ')]
+        mat = reduce(kron, P_strings)
+        H_n_MATRIX += mat*const
+
+
+    # Get R_matrix
+    qq = Get_R_linear_combination(anti_commuting_set_stripped[set_index], S_index, Hamilt.molecule.n_qubits)
+    R_matrix=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
+    for key in qq['R_LCU']:
+        PauliWord = qq['R_LCU'][key][0]
+        const = qq['R_LCU'][key][1]
+        correction = qq['LCU_correction'][key]
+        P_strings = [PauliDICT[sig[0]] for sig in PauliWord.split(' ')]
+        mat = reduce(kron, P_strings)
+        R_matrix += mat * const * correction
+
+
+    # Alternate method (CHECK FOR EQUIVALENCE)
+    X_SET = Get_X_SET(anti_commuting_set_stripped[set_index], S_index)
+    from scipy.sparse.linalg import expm
+    X_matrix=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
+    for term in X_SET['terms']:
+        PauliWord = term[0]
+        const = term[1]
+
+        P_strings = [PauliDICT[sig[0]] for sig in PauliWord.split(' ')]
+        mat = reduce(kron, P_strings)
+        X_matrix += mat*const
+
+    R_MATRIX = expm(-1j * qq['alpha']/2 * X_matrix)
+
+    # check if the same!!
+    print(np.allclose(R_matrix.todense(), R_MATRIX.todense()))
+
+
+    ######
+    # NOW check  R * Hn * R† =  Ps
+
+    first = R_matrix.dot(H_n_MATRIX)
+    second = first.dot(R_matrix.transpose().conj())
+    # reduce(np.matmul, [R_matrix.todense(), H_n_MATRIX.todense(), R_matrix.transpose().conj().todense()])
+
+    ### PS
+    Ps_string = [PauliDICT[sig[0]] for sig in qq['P_s'].split(' ')]
+    P_s_MATRIX = reduce(kron, Ps_string) * np.cos(phi_n_1- qq['alpha'])
+
+    print(np.allclose(second.todense(), P_s_MATRIX.todense()))
+
+    ##
 
 
 
-### get H_n matrix
-set_index = 9
-test_set = anti_commuting_set_stripped[set_index].copy()
-S_index=0
-P_S = test_set.pop(S_index)
-H_n_1 = Get_beta_j_cofactors(test_set) ## NOTE THIS DOESN'T CONTAIN P_S!!!
-
-phi_n_1 = np.arccos(P_S[1])
-H_n=[]
-for Pword, const in H_n_1['PauliWords']:
-    H_n.append((Pword, (np.sin(phi_n_1) *const)))
-H_n.append((P_S[0], np.cos(phi_n_1)))
-print(sum([const**2 for Pword, const in H_n]))
-
-
-
-
-from scipy.sparse import csr_matrix, kron
-from functools import reduce
-
-I = csr_matrix(np.eye(2))
-X = csr_matrix(np.array([
-                        [0,1],
-                        [1,0]]))
-Y = csr_matrix(np.array([
-                        [0,-1j],
-                        [1j,0]]))
-Z = csr_matrix(np.array([
-                        [1,0],
-                        [0,-1]]))
-
-PauliDICT={
-    'I': I,
-    'X': X,
-    'Z': Z,
-    'Y': Y
-}
-
-n_qubits = Hamilt.molecule.n_qubits
-H_n_MATRIX=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
-for term in H_n:
-    PauliWord = term[0]
-    const = term[1]
-    P_strings = [PauliDICT[sig[0]] for sig in PauliWord.split(' ')]
-    mat = reduce(kron, P_strings)
-    H_n_MATRIX += mat*const
-
-
-# Get R_matrix
-qq = Get_R_linear_combination(anti_commuting_set_stripped[set_index], 0, Hamilt.molecule.n_qubits)
-R_matrix=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
-for key in qq['R_LCU']:
-    PauliWord = qq['R_LCU'][key][0]
-    const = qq['R_LCU'][key][1]
-    correction = qq['LCU_correction'][key]
-    P_strings = [PauliDICT[sig[0]] for sig in PauliWord.split(' ')]
-    mat = reduce(kron, P_strings)
-    R_matrix += mat * const * correction
-
-
-# Alternate method (CHECK FOR EQUIVALENCE)
-X_SET = Get_X_SET(anti_commuting_set_stripped[set_index], S_index)
-from scipy.sparse.linalg import expm
-X_matrix=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
-for term in X_SET['terms']:
-    PauliWord = term[0]
-    const = term[1]
-
-    P_strings = [PauliDICT[sig[0]] for sig in PauliWord.split(' ')]
-    mat = reduce(kron, P_strings)
-    X_matrix += mat*const
-
-R_MATRIX = expm(-1j * qq['alpha']/2 * X_matrix)
-
-# check if the same!!
-print(np.allclose(R_matrix.todense(), R_MATRIX.todense()))
-
-
-######
-# NOW check  R * Hn * R† =  Ps
-
-first = R_matrix.dot(H_n_MATRIX)
-second = first.dot(R_matrix.transpose().conj())
-# reduce(np.matmul, [R_matrix.todense(), H_n_MATRIX.todense(), R_matrix.transpose().conj().todense()])
-
-### PS
-Ps_string = [PauliDICT[sig[0]] for sig in qq['P_s'].split(' ')]
-P_s_MATRIX = reduce(kron, Ps_string) * np.cos(phi_n_1- qq['alpha'])
-
-print(np.allclose(second.todense(), P_s_MATRIX.todense()))
-
-##
-
-
-
-ll = R_matrix.todense() == R_MATRIX.todense()
-np.where(ll==False)
-print(R_matrix.todense()[1,14])
-print(R_MATRIX.todense()[1,14])
-
-
-
-
-#
-#
-#
-# # test_set = anti_commuting_set_stripped[9]
-# #
-# # S_index=0
-# # normalised_test_set = Get_beta_j_cofactors(test_set)
-# # P_S = normalised_test_set['PauliWords'].pop(S_index)
-# # phi_n_1 = np.arccos(P_S[1])
-# # H_n=[]
-# # for Pword, const in normalised_test_set['PauliWords']:
-# #     H_n.append((Pword, (np.sin(phi_n_1) *const)))
-# # H_n.append((P_S[0], np.cos(phi_n_1)))
-# #
-# # S_index=0
-# # X_set = Get_X_SET(test_set, S_index, 4)
-# # R_params = Get_R_linear_combination(test_set, 0, 4)
-#
-#
-# ### get H_n matrix
-# n_qubits = 4
-# S_index=0
-# R_params = Get_R_linear_combination(anti_commuting_set_stripped[9], S_index, n_qubits)
-#
-# H_n = R_params['R_LCU'].copy()
-# H_n.update({2: (R_params['P_s'], np.cos(R_params['alpha']))})
-#
-# from scipy.sparse import csr_matrix, kron
-# from functools import reduce
-#
-# I = csr_matrix(np.eye(2))
-# X = csr_matrix(np.array([
-#                         [0,1],
-#                         [1,0]]))
-# Y = csr_matrix(np.array([
-#                         [0,-1j],
-#                         [1j,0]]))
-# Z = csr_matrix(np.array([
-#                         [1,0],
-#                         [0,-1]]))
-#
-# PauliDICT={
-#     'I': I,
-#     'X': X,
-#     'Z': Z,
-#     'Y': Y
-# }
-#
-#
-# H_n_MATRIX=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
-# for key in H_n:
-#     PauliWord = H_n[key][0]
-#     const = H_n[key][1]
-#     P_strings = [PauliDICT[sig[0]] for sig in PauliWord.split(' ')]
-#     mat = reduce(kron, P_strings)
-#     H_n_MATRIX += mat*const
-#
-# ####
-# # Get R matrix
-#
-# # n_qubits = 4
-# # R_MATRIX=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
-# # for key in R_params['R_LCU']:
-# #     correction = R_params['LCU_correction'][key]
-# #     PauliWord = H_n[key][0]
-# #     const = H_n[key][1]
-# #
-# #     P_strings = [PauliDICT[sig[0]] for sig in PauliWord.split(' ')]
-# #     mat = reduce(kron, P_strings)
-# #     R_MATRIX += mat*const*correction
-# #
-# # P_s = [PauliDICT[sig[0]] for sig in R_params['P_s'].split(' ')]
-# # P_s_MATRIX = reduce(kron, P_strings)
-# #
-# # TEST = reduce(np.matmul, [R_MATRIX.transpose().conj(), P_s_MATRIX, R_MATRIX])
-# #
-# # first = R_MATRIX.transpose().conj().dot(P_s_MATRIX)
-# # second = first.dot(R_MATRIX)
-#
-# from scipy.sparse.linalg import expm
-# X_SET = Get_X_SET(anti_commuting_set_stripped[9], S_index)
-#
-# X_matrix=csr_matrix(np.zeros([2**n_qubits, 2**n_qubits]))
-# for term in X_set['terms']:
-#     PauliWord = term[0]
-#     const = term[1]
-#
-#     P_strings = [PauliDICT[sig[0]] for sig in PauliWord.split(' ')]
-#     mat = reduce(kron, P_strings)
-#     X_matrix += mat*const
-#
-# R_MATRIX = expm(-1j * R_params['alpha']/2 * X_matrix)
-#
-# P_s = [PauliDICT[sig[0]] for sig in X_set['P_s'][0].split(' ')]
-# P_s_MATRIX = reduce(kron, P_strings) * X_set['P_s'][1]
-#
-# # TEST = reduce(np.matmul, [R_MATRIX.transpose().conj(), P_s_MATRIX, R_MATRIX])
-#
-# first = R_MATRIX.transpose().conj().dot(P_s_MATRIX)
-# second = first.dot(R_MATRIX)
+    ll = R_matrix.todense() == R_MATRIX.todense()
+    np.where(ll==False)
+    print(R_matrix.todense()[1,14])
+    print(R_MATRIX.todense()[1,14])
