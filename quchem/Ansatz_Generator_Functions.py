@@ -310,6 +310,10 @@ class HF_state_generator():
         STATE_vec = reduce(kron, STATE)
         return STATE_vec
 
+    def Get_JW_HF_vector(self):
+        from openfermion import jw_hartree_fock_state
+        return jw_hartree_fock_state(self.n_electrons, self.n_orbitals)
+
 from quchem.quantum_circuit_functions import *
 class Ansatz_Circuit():
     """
