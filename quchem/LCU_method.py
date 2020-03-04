@@ -687,6 +687,7 @@ class LCU_R_gate(cirq.Gate):
         self.No_control_qubits = No_control_qubits
         self.No_system_qubits = No_system_qubits
 
+
     def _decompose_(self, qubits):
 
         state_index = 0
@@ -705,6 +706,7 @@ class LCU_R_gate(cirq.Gate):
                          + cirq.LineQubit.range(self.No_system_qubits)  # note control qubits first!
 
             state_index += 1
+
             yield mod_p_word_gate.controlled(num_controls=self.No_control_qubits, control_values=control_values).on(
                 *qubit_list)  # *qubit_list
 
@@ -725,6 +727,13 @@ class LCU_R_gate(cirq.Gate):
 
     def num_qubits(self):
         return self.No_control_qubits + self.No_system_qubits
+
+    def Get_l1_combination_squared(self):
+        l1_combined_terms=[]
+        for control_state in self.LCU_dict['R_LCU']:
+            l1_combined_terms.append(self.LCU_dict['l1_norm']**2)
+        from functools import reduce
+        return reduce((lambda x, y: x * y), l1_combined_terms)
 
 
 if __name__ == '__main__':
@@ -911,7 +920,7 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
         # else:
         #     gamma_l = LCU_DICT['gamma_l']
 
-        return full_circuit,LCU_DICT['gamma_l'], LCU_DICT['l1_norm'] #full_circuit, gamma_l, LCU_DICT['l1_norm']
+        return full_circuit, LCU_DICT['gamma_l'], LCU_DICT['l1_norm'] #full_circuit, LCU_DICT['gamma_l'], R_gate_obj.Get_l1_combination_squared() #
 
 
 if __name__ == '__main__':
@@ -1182,6 +1191,7 @@ class ALCU_Simulation_Quantum_Circuit_Dict():
 
 
 from quchem.Simulating_Quantum_Circuit import *
+from functools import reduce
 class ALCU_Simulation_Quantum_Circuit_DictRAW():
     def __init__(self, circuits_factor_PauliWord_dict, num_shots, n_ancilla):
         self.circuits_factor_PauliWord_dict = circuits_factor_PauliWord_dict
@@ -1282,7 +1292,9 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
             else:
                 exp_val = self.expect_results_dict[key]
                 factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
-                Energy_list.append((exp_val*factor*(self.circuits_factor_PauliWord_dict[key]['l1_norm']))) #TODO mistake HERE OR
+                Energy_list.append((exp_val * factor*self.circuits_factor_PauliWord_dict[key]['l1_norm']))
+                # Energy_list.append((exp_val*factor*reduce((lambda x, y: x * y), self.circuits_factor_PauliWord_dict[key]['l1_norm_squared_list']))) #TODO mistake HERE OR
+
 
         self.Energy_list = Energy_list
         self.Energy = sum(Energy_list)
