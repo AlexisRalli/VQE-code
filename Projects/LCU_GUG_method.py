@@ -70,7 +70,7 @@ ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
 # tt.Get_expectation_value_via_parity()
 # tt.Calc_energy_via_parity()
 # tt.Energy
-#
+#pys
 #
 #
 #
@@ -190,16 +190,16 @@ from quchem.Scipy_Optimizer import *
 
 import random
 THETA = random.uniform(0,2*np.pi)
-
-
-# THETA_params = [1, 2, 3]
-# THETA_params = [0.23333333, 3.13333333, 3.05]
-GG = Optimizer(Calc_E_UP, [THETA], 'Nelder-Mead', store_values=True, display_iter_steps=True,
-               tol=1e-5,
-               display_convergence_message=True)
-GG.get_env(50)
-GG.plot_convergence()
-plt.show()
+#
+#
+# # THETA_params = [1, 2, 3]
+# # THETA_params = [0.23333333, 3.13333333, 3.05]
+# GG = Optimizer(Calc_E_UP, [THETA], 'Nelder-Mead', store_values=True, display_iter_steps=True,
+#                tol=1e-5,
+#                display_convergence_message=True)
+# GG.get_env(50)
+# GG.plot_convergence()
+# plt.show()
 
 
 E_list=[]
