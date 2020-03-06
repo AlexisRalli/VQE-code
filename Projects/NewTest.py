@@ -37,7 +37,7 @@ print('Qubit Hamiltonian: ', QubitHam_PauliStr)
 ### Ansatz ###
 from quchem.Ansatz_Generator_Functions import *
 
-UCCSD = UCCSD_Trotter(SQ_CC_ops, THETA_params)
+UCCSD = UCCSD_Trotter_JW(SQ_CC_ops, THETA_params)
 Second_Quant_CC_JW_OP_list = UCCSD.SingleTrotterStep()
 PauliWord_list = Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_JW_OP_list)
 HF_UCCSD_ansatz = Ansatz_Circuit(PauliWord_list, Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits)
