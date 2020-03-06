@@ -705,25 +705,46 @@ class LCU_R_gate(cirq.Gate):
 
     def _decompose_(self, qubits):
 
-        state_index = 0
-        for control_state in self.LCU_dict['R_LCU']:
-            control_str = Get_state_as_str(self.No_control_qubits, state_index)
-            # using state index rather than control_state value
-            # due to how LCU_term is built! (aka missing keys cause problems!)
+        if self.dagger is False:
+            state_index = 0
+            for control_state in self.LCU_dict['R_LCU']:
+                control_str = Get_state_as_str(self.No_control_qubits, state_index)
+                # using state index rather than control_state value
+                # due to how LCU_term is built! (aka missing keys cause problems!)
 
-            control_values = [int(bit) for bit in control_str]
+                control_values = [int(bit) for bit in control_str]
 
-            correction_val = self.LCU_dict['LCU_correction'][control_state]
-            mod_P = self.LCU_dict['R_LCU'][control_state]
-            mod_p_word_gate = Perform_Modified_PauliWord(mod_P, correction_val, self.dagger)
+                correction_val = self.LCU_dict['LCU_correction'][control_state]
+                mod_P = self.LCU_dict['R_LCU'][control_state]
+                mod_p_word_gate = Perform_Modified_PauliWord(mod_P, correction_val, self.dagger)
 
-            qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits) \
-                         + cirq.LineQubit.range(self.No_system_qubits)  # note control qubits first!
+                qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits) \
+                             + cirq.LineQubit.range(self.No_system_qubits)  # note control qubits first!
 
-            state_index += 1
+                state_index += 1
 
-            yield mod_p_word_gate.controlled(num_controls=self.No_control_qubits, control_values=control_values).on(
-                *qubit_list)  # *qubit_list
+                yield mod_p_word_gate.controlled(num_controls=self.No_control_qubits, control_values=control_values).on(
+                    *qubit_list)  # *qubit_list
+        else:
+            state_index = len(self.LCU_dict['R_LCU'])-1
+            for control_state in list(self.LCU_dict['R_LCU'].keys())[::-1]:
+                control_str = Get_state_as_str(self.No_control_qubits, state_index)
+                # using state index rather than control_state value
+                # due to how LCU_term is built! (aka missing keys cause problems!)
+
+                control_values = [int(bit) for bit in control_str]
+
+                correction_val = self.LCU_dict['LCU_correction'][control_state]
+                mod_P = self.LCU_dict['R_LCU'][control_state]
+                mod_p_word_gate = Perform_Modified_PauliWord(mod_P, correction_val, self.dagger)
+
+                qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits) \
+                             + cirq.LineQubit.range(self.No_system_qubits)  # note control qubits first!
+
+                state_index -= 1
+
+                yield mod_p_word_gate.controlled(num_controls=self.No_control_qubits, control_values=control_values).on(
+                    *qubit_list)  # *qubit_list
 
     def _circuit_diagram_info_(self, args):
 
@@ -953,7 +974,7 @@ if __name__ == '__main__':
 
 
 
-def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
+def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets,QubitHam_PauliStr, S_dict,
                                                      n_system, n_ancilla):
     """
      Function that appends Ansatz Quantum Circuit to Pauli perform and measure circuit instance.
@@ -987,12 +1008,12 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
 
         if PauliString_and_Constant[0][0] == PauliWord_I_only:
             temp_d['circuit'] = None
-            temp_d['gamma_l'] = PauliString_and_Constant[0][1]
-            temp_d['PauliWord'] = PauliString_and_Constant[0][0]
+            temp_d['gamma_l'] = QubitHam_PauliStr[key][1]
+            temp_d['PauliWord'] = QubitHam_PauliStr[key][0]
             temp_d['LCU'] = False
 
         elif len(PauliString_and_Constant) == 1:
-            Q_circuit_obj = Perform_PauliWord_and_Measure(PauliString_and_Constant[0])
+            Q_circuit_obj = Perform_PauliWord_and_Measure(QubitHam_PauliStr[key])
             Q_circuit = cirq.Circuit(
                     cirq.decompose_once(
                         (Q_circuit_obj(*cirq.LineQubit.range(Q_circuit_obj.num_qubits())))))
@@ -1005,8 +1026,8 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
             )
 
             temp_d['circuit'] = full_circuit
-            temp_d['gamma_l'] = PauliString_and_Constant[0][1]
-            temp_d['PauliWord'] = PauliString_and_Constant[0][0]
+            temp_d['gamma_l'] = QubitHam_PauliStr[key][1]
+            temp_d['PauliWord'] = QubitHam_PauliStr[key][0]
             temp_d['LCU'] = False
         else:
             # ALCU_circuit, gamma_l, l1_norm = Complete_LCU_circuit(PauliString_and_Constant, n_system, S_index)

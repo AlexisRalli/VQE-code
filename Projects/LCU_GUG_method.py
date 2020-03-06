@@ -166,7 +166,7 @@ def NEW_Anastz(theta):
 ansatz_Q_cicuit = NEW_Anastz(np.pi)
 
 S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
-w =ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits,
+w =ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, QubitHam_PauliStr, S_dict, Hamilt.molecule.n_qubits,
                       number_ancilla_qubits)
 ###
 # simulate
@@ -181,7 +181,7 @@ S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
 
 def Calc_E_UP(THETA):
     ansatz_Q_cicuit = NEW_Anastz(THETA)
-    w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4, 1)
+    w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped,QubitHam_PauliStr, S_dict, 4, 1)
     tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 500, 1)
     tt.Get_expectation_value_via_parity()
     tt.Calc_energy_via_parity()
@@ -207,7 +207,7 @@ from tqdm import tqdm
 for i in tqdm(np.arange(0, 2*np.pi, 0.1), ascii=True, desc='Getting ENERGIES'):
 
     ansatz_Q_cicuit = NEW_Anastz(i)
-    w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits,
+    w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped,QubitHam_PauliStr, S_dict, Hamilt.molecule.n_qubits,
                   number_ancilla_qubits)
     ###
     # simulate
