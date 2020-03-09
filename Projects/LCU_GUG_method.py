@@ -5,12 +5,13 @@ from quchem.Hamiltonian_Generator_Functions import *
 Molecule = 'H2'#LiH'
 geometry = None
 num_shots = 10000
+basis = 'sto-3g'
 
 
 ### Get Hamiltonian
 Hamilt = Hamiltonian(Molecule,
                      run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
-                     basis='sto-3g',
+                     basis=basis,
                      multiplicity=1,
                      geometry=geometry)  # normally None!
 
@@ -20,9 +21,9 @@ SQ_CC_ops, THETA_params = Hamilt.Get_ia_and_ijab_terms(Coupled_cluser_param=True
 
 HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops, Hamilt.molecule.n_qubits)
 
-QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW()
+QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW(threshold=None) # threshold=1e-12
 #print('Qubit Hamiltonian: ', QubitHam)
-QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam)
+QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam, Hamilt.molecule.n_qubits)
 
 ### Graph Colouring
 from quchem.Graph import *
