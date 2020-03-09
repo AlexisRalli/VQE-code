@@ -144,6 +144,7 @@ class Hamiltonian():
             from openfermion.transforms import get_sparse_operator
             self.MolecularHamiltonianMatrix = get_sparse_operator(self.MolecularHamiltonian)
 
+
     def Get_FCI_from_MolecularHamialtonian(self):
 
         if self.MolecularHamiltonianMatrix is None:
@@ -450,7 +451,6 @@ class Hamiltonian_Transforms():
 
         note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
 
-
         returns:
             FermionicHamiltonian (openfermion.ops._fermion_operator.FermionOperator): Fermionic Operator
 
@@ -466,9 +466,10 @@ class Hamiltonian_Transforms():
 
         from openfermion.transforms import get_fermion_operator
         FermionicHamiltonian = get_fermion_operator(self.MolecularHamiltonian)
+
         return FermionicHamiltonian
 
-    def Get_Qubit_Hamiltonian_JW(self):
+    def Get_Qubit_Hamiltonian_JW(self, threshold=None):
 
         """
         Returns the second quantised Qubit Molecular Hamiltonian of the Molecular Hamiltonian using the
@@ -477,8 +478,9 @@ class Hamiltonian_Transforms():
         e.g. H = h0 I + h1 Z0 + h2 Z1 +h3 Z2 + h4 Z3 + h5 Z0Z1 ... etc etc
         note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
 
-
-
+        args:
+            threshold (optional, float): gives threshold of terms to ignore... e.g. the term
+                                        (0.00003+0j) [Y0 X1 X2 Y3]] would be ignored if threshold = 1e-2
         returns:
             QubitHamiltonian (openfermion.ops._qubit_operator.QubitOperator): Qubit Operator
 
@@ -492,13 +494,23 @@ class Hamiltonian_Transforms():
 
         """
 
-
         from openfermion.transforms import jordan_wigner
         FermionicHamiltonian = self.Get_Fermionic_Hamiltonian()
         QubitHamiltonian = jordan_wigner(FermionicHamiltonian)
-        return QubitHamiltonian
 
-    def Get_Qubit_Hamiltonian_BK(self):
+
+        if threshold:
+            from openfermion.ops import QubitOperator
+            reduced_QubitHamiltonian = QubitOperator()
+            for key in QubitHamiltonian.terms:
+                if np.abs(QubitHamiltonian.terms[key]) > threshold:
+                    reduced_QubitHamiltonian += QubitOperator(key, QubitHamiltonian.terms[key])
+            return reduced_QubitHamiltonian
+        else:
+            return QubitHamiltonian
+
+
+    def Get_Qubit_Hamiltonian_BK(self, threshold):
         """
         Returns the second quantised Qubit Molecular Hamiltonian of the Molecular Hamiltonian using the
         BRAVYI KITAEV transformation. First gets the fermionic Hamiltonian and than performs BK.
@@ -506,6 +518,9 @@ class Hamiltonian_Transforms():
         e.g. H = h0 I + h1 Z0 + h2 Z1 +h3 Z2 + h4 Z3 + h5 Z0Z1 ... etc etc
         note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
 
+        args:
+            threshold (optional, float): gives threshold of terms to ignore... e.g. the term
+                                        (0.00003+0j) [Y0 X1 X2 Y3]] would be ignored if threshold = 1e-2
 
         returns:
             QubitHamiltonian (openfermion.ops._qubit_operator.QubitOperator): Qubit Operator
@@ -523,7 +538,16 @@ class Hamiltonian_Transforms():
 
         FermionicHamiltonian = self.Get_Fermionic_Hamiltonian()
         QubitHamiltonian = bravyi_kitaev(FermionicHamiltonian)
-        return QubitHamiltonian
+
+        if threshold:
+            from openfermion.ops import QubitOperator
+            reduced_QubitHamiltonian = QubitOperator()
+            for key in QubitHamiltonian.terms:
+                if np.abs(QubitHamiltonian.terms[key]) > threshold:
+                    reduced_QubitHamiltonian += QubitOperator(key, QubitHamiltonian.terms[key])
+            return reduced_QubitHamiltonian
+        else:
+            return QubitHamiltonian
 
     def Get_Jordan_Wigner_CC_Matrices(self):
         """
@@ -614,7 +638,7 @@ class Hamiltonian_Transforms():
             BK_CC_ops.append(get_sparse_operator(BK_Op, n_qubits=self.n_qubits))
         return BK_CC_ops
 
-    def Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(self, QubitMolecularHamiltonian):
+    def Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(self, QubitMolecularHamiltonian, n_qubits):
         """
          From a Molecular Qubit Hamiltonian (openfermion.ops._qubit_operator.QubitOperator) generate corresponding
          list of PauliStrings with cofactor!
@@ -668,14 +692,13 @@ class Hamiltonian_Transforms():
         """
 
         PauliWord_str_list = []
-        max_No_terms = max([len(list(QubitOP.terms.keys())[0]) for QubitOP in QubitMolecularHamiltonian])
-        all_indices = np.arange(0, max_No_terms, 1)
+        all_indices = np.arange(0, n_qubits, 1)
 
         for QubitOP in QubitMolecularHamiltonian:
             for tupleOfTuples, factor in QubitOP.terms.items():
                 qubit_OP_list = [tupl[1] + str(tupl[0]) for tupl in tupleOfTuples]
 
-                if len(qubit_OP_list) < max_No_terms:
+                if len(qubit_OP_list) < n_qubits:
                     # fill missing terms with Identity
                     indices_present = [int(qubitNo_and_OP[1::]) for qubitNo_and_OP in qubit_OP_list]
                     missing_indices = [index for index in all_indices if index not in indices_present]
@@ -831,7 +854,7 @@ if __name__ == '__main__':
 
     QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW()
     print('Qubit Hamiltonian: ', QubitHam)
-    QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam)
+    QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam, Hamilt.molecule.n_qubits)
     print('Qubit Hamiltonian P_Strings: ', QubitHam_PauliStr)
 
     UCC_JW_excitation_matrix_list = HF_transformations.Get_Jordan_Wigner_CC_Matrices()

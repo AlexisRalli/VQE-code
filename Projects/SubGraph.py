@@ -4,7 +4,6 @@ from quchem.Hamiltonian_Generator_Functions import *
 Molecule = 'LiH'#LiH'
 geometry = None
 num_shots = 10000
-HF_occ_index = [0,1,2] #[0, 1,2] # for occupied_orbitals_index_list
 #######
 
 ### Get Hamiltonian
@@ -20,9 +19,9 @@ SQ_CC_ops, THETA_params = Hamilt.Get_ia_and_ijab_terms(Coupled_cluser_param=True
 
 HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops, Hamilt.molecule.n_qubits)
 
-QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW()
+QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW(threshold=None) # threshold=1e-12
 #print('Qubit Hamiltonian: ', QubitHam)
-QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam)
+QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam, Hamilt.molecule.n_qubits)
 #print('Qubit Hamiltonian: ', QubitHam_PauliStr)
 
 ## calc energy via Lin. Alg.

@@ -439,9 +439,6 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
 # λαβ∗=w
 # λ = w / a^2
 
-
-
-
 def Get_ancilla_amplitudes(LCU_dict):
     """
     Takes in an anti_commuting set and returns l1 norm, number of ancilla qubits and amplitudes required
@@ -1258,9 +1255,11 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
         self.hist_key_dict = hist_key_dict
 
 
-    def SimulateQC_RAW(self, Quantum_Circuit):
+    def SimulateQC_RAW(self, Quantum_Circuit,key):
         simulator = cirq.Simulator()
-        raw_result = simulator.run(Quantum_Circuit, repetitions=self.num_shots*100)
+        l1_multiplied = reduce((lambda x, y: x * y), self.circuits_factor_PauliWord_dict[key]['all_l1_norms'])
+        p_success = (1/l1_multiplied)**2
+        raw_result = simulator.run(Quantum_Circuit, repetitions=self.num_shots*int(np.ceil(1/p_success.real)))
         return raw_result
 
     def Get_binary_results_dict(self):
@@ -1281,7 +1280,7 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
                     correct_ancilla_state = np.zeros([self.n_ancilla])
                     n_success_shots=0
                     while n_success_shots != self.num_shots:
-                        raw_result = self.SimulateQC_RAW(self.circuits_factor_PauliWord_dict[key]['circuit'])
+                        raw_result = self.SimulateQC_RAW(self.circuits_factor_PauliWord_dict[key]['circuit'], key)
                         M_results = raw_result.measurements[self.hist_key_dict[key]]
 
                         for result in M_results:
