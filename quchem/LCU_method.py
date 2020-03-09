@@ -364,6 +364,10 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
         set
         ALPHA = ϕ_{n-1}
 
+
+        note:
+         R† (gamma_l * H) R = gamma_l * R† H R
+
     Args:
         anti_commuting_set (list):
         S_index (int):
@@ -415,7 +419,6 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
     if not np.isclose(sum([LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']]), 1):
         raise ValueError('normalisation is WRONG: {}'.format(sum([LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']])))
 
-    LCU_dict['gamma_l'] = X_set['gamma_l']
     LCU_dict['alpha'] = phi_n_1
     LCU_dict['P_s'] = X_set['P_s'][0]
     LCU_dict['l1_norm'] = sum([LCU_dict['R_LCU'][key][1] for key in LCU_dict['R_LCU']])
@@ -423,15 +426,20 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
     # LCU_dict['lambda'] = LCU_dict['l1_norm'] / sum([LCU_dict['R_LCU'][key][1]**2 + LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']]) # note do term**2 + term**2 (rather than just term**2)!
 
     # LCU_dict['gamma_l'] = X_set['gamma_l']
-    if X_set['P_s'][1]<0:
-        LCU_dict['gamma_l'] = X_set['gamma_l'] * -1
-    else:
-        LCU_dict['gamma_l'] = X_set['gamma_l']
 
+    # THIS USES gamma_l of H_n (whereas previously was using gamma_l of H_{n-1}
+    H_n = Get_beta_j_cofactors(anti_commuting_set)
+    # LCU_dict['gamma_l'] = H_n['gamma_l']
+    if X_set['P_s'][1]<0:
+        LCU_dict['gamma_l'] = (H_n['gamma_l'] * -1)
+    else:
+        LCU_dict['gamma_l'] = H_n['gamma_l']
     return LCU_dict
 
 # λαβ∗=w
 # λ = w / a^2
+
+
 
 
 def Get_ancilla_amplitudes(LCU_dict):
@@ -974,7 +982,7 @@ if __name__ == '__main__':
 
 
 
-def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets,QubitHam_PauliStr, S_dict,
+def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
                                                      n_system, n_ancilla):
     """
      Function that appends Ansatz Quantum Circuit to Pauli perform and measure circuit instance.
@@ -1008,12 +1016,12 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets,QubitHam_PauliStr, S_di
 
         if PauliString_and_Constant[0][0] == PauliWord_I_only:
             temp_d['circuit'] = None
-            temp_d['gamma_l'] = QubitHam_PauliStr[key][1]
-            temp_d['PauliWord'] = QubitHam_PauliStr[key][0]
+            temp_d['gamma_l'] = PauliString_and_Constant[0][1]
+            temp_d['PauliWord'] = PauliString_and_Constant[0][0]
             temp_d['LCU'] = False
 
         elif len(PauliString_and_Constant) == 1:
-            Q_circuit_obj = Perform_PauliWord_and_Measure(QubitHam_PauliStr[key])
+            Q_circuit_obj = Perform_PauliWord_and_Measure(PauliString_and_Constant[0])#QubitHam_PauliStr[key])
             Q_circuit = cirq.Circuit(
                     cirq.decompose_once(
                         (Q_circuit_obj(*cirq.LineQubit.range(Q_circuit_obj.num_qubits())))))
@@ -1026,8 +1034,8 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets,QubitHam_PauliStr, S_di
             )
 
             temp_d['circuit'] = full_circuit
-            temp_d['gamma_l'] = QubitHam_PauliStr[key][1]
-            temp_d['PauliWord'] = QubitHam_PauliStr[key][0]
+            temp_d['gamma_l'] = PauliString_and_Constant[0][1]
+            temp_d['PauliWord'] = PauliString_and_Constant[0][0]
             temp_d['LCU'] = False
         else:
             # ALCU_circuit, gamma_l, l1_norm = Complete_LCU_circuit(PauliString_and_Constant, n_system, S_index)
@@ -1277,7 +1285,7 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
                         M_results = raw_result.measurements[self.hist_key_dict[key]]
 
                         for result in M_results:
-                            if np.array_equal(result[:(-1-self.n_ancilla):-1], correct_ancilla_state): # Checks if all zero ancilla measured!
+                            if np.array_equal(result[:(-1-self.n_ancilla):-1][::-1], correct_ancilla_state): # Checks if all zero ancilla measured!
                                 seperator = ''
                                 state_key_binary = seperator.join(map(str, result[0:-self.n_ancilla])) #Gets rid of ancilla part!!!
                                 if state_key_binary not in LCU_result_dict.keys():
@@ -1333,9 +1341,9 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
                 factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
                 # Energy_list.append((exp_val * factor*self.circuits_factor_PauliWord_dict[key]['l1_norm']))
 
-                l1_multiplied = reduce((lambda x, y: x * y),  self.circuits_factor_PauliWord_dict[key]['all_l1_norms']) # self.circuits_factor_PauliWord_dict[key]['all_l1_norms']#
-                Energy_list.append((exp_val * factor *l1_multiplied))
-                # Energy_list.append((exp_val*factor*reduce((lambda x, y: x * y), self.circuits_factor_PauliWord_dict[key]['l1_norm_squared_list']))) #TODO mistake HERE OR
+                # l1_multiplied = reduce((lambda x, y: x * y),  self.circuits_factor_PauliWord_dict[key]['all_l1_norms']) # self.circuits_factor_PauliWord_dict[key]['all_l1_norms']#
+                # Energy_list.append((exp_val * factor *l1_multiplied)) #TODO not sure if use l1_multiplied AS have R and R_DAGGER (not sure wether dagger has an effect!)
+                Energy_list.append((exp_val * factor *1)) #TODO currently IGNORING L1_multiplied!
 
 
         self.Energy_list = Energy_list
