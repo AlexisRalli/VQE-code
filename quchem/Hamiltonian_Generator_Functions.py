@@ -78,6 +78,8 @@ class Hamiltonian():
                             run_fci=self.run_fci,
                             delete_input=False,
                             delete_output=False)
+        # note template: ~/envs/ENV_NAME/lib/python3.7/site-packages/openfermionpsi4 : _psi4_template
+        # https://github.com/quantumlib/OpenFermion-Psi4/blob/master/openfermionpsi4/_psi4_template
 
     def Get_Geometry(self):
 
@@ -143,7 +145,6 @@ class Hamiltonian():
         if Get_H_matrix is True:
             from openfermion.transforms import get_sparse_operator
             self.MolecularHamiltonianMatrix = get_sparse_operator(self.MolecularHamiltonian)
-
 
     def Get_FCI_from_MolecularHamialtonian(self):
 
@@ -420,6 +421,101 @@ class Hamiltonian():
 
         self.num_theta_parameters = len(theta_parameters)
         return Sec_Quant_CC_ops, theta_parameters
+
+    def Get_NOON(self):
+        """
+        See https://journals.aps.org/prx/pdf/10.1103/PhysRevX.8.031022 appendix C for further details
+
+        Diagonalizing the 1-RDM (in the canonical orbital basis from a CISD calculation) gives the 1-RDM
+        fermionic natural molecular orbitals (NMO) basis, which are arranged as "spin-up, spin-down, spin-up, spin-down..."
+
+        The value of each entry gives the natural orbital occupation number (NOON). Therefore orbitals with a
+        small NOON can be assumed to be UNFILLED and REMOVED from the Hamiltonian!
+
+
+        returns:
+            NOON_spins_combined (np.array): NOON with same spin-up and spin-down spatial orbitals combined
+
+         e.g. for LiH with a bond length of 1.45 A:
+         NMO_basis =
+                        array([
+                               9.99961301e-01, 9.81031486e-01,
+                               9.99961301e-01, 9.81031486e-01,
+                               1.72719307e-02, 1.72719307e-02,
+                               2.38704909e-05, 2.38704909e-05,
+                               8.55705967e-04, 8.55705967e-04,
+                               8.55705967e-04, 8.55705967e-04
+                             ])
+
+         NOON_spins_combined =
+                               array([
+                                   1.98099279e+00,
+                                   1.98099279e+00,
+                                   3.45438614e-02,
+                                   4.77409818e-05,
+                                   1.71141193e-03,
+                                   1.71141193e-03
+                               ])
+         therefore here can see that for orbitals with index 0 and 1 have NOON close to TWO, therefore can consider it
+         always doubly occupied... so can remove any terms in the hamiltonian containing: a†0 ,a0, a†1, a1.
+
+         Also have a look at indices 6,7 ... occupation is: 4.77409818e-05 ... VERY SMALL NOON... therefore can assume
+         these orbitals are never occupied. Again can remove the fermion operators from the Hamiltonian too:
+         a†6 ,a6, a†8, a7.
+
+        """
+        if self.molecule is None:
+            self.Run_Psi4()
+
+        one_RDM = self.molecule.cisd_one_rdm
+
+        # THIS is wrong:
+        # from numpy import diag
+        # NMO_basis = diag(one_RDM)
+
+        from numpy.linalg import eig
+        NMO_basis, eig_vectors = eig(one_RDM)
+
+        # adding each pair of entries
+        NOON_spins_combined = np.add.reduceat(NMO_basis, np.arange(0, len(NMO_basis), 2))
+
+        return NMO_basis, NOON_spins_combined
+
+    def Remove_NOON_terms(self, occ_threshold=0.98, unocc_threshold=1e-4, indices_to_remove_list_manual=None,
+                          Coupled_cluser_param=False, filter_small_terms=False):
+
+        if indices_to_remove_list_manual:
+            if self.molecule is None:
+                self.Run_Psi4()
+            indices_remove = set(indices_to_remove_list_manual)
+        else:
+            NMO_basis, NOON_vals = self.Get_NOON()
+            occupied_indices = np.where(NMO_basis>occ_threshold)[0]
+            unoccupied_indices = np.where(NMO_basis<unocc_threshold)[0]
+            indices_remove = set(occupied_indices)
+            indices_remove.update(set(unoccupied_indices))
+
+        Sec_Quant_CC_ops, theta_parameters = self.Get_ia_and_ijab_terms(Coupled_cluser_param=Coupled_cluser_param,
+                                                                        filter_small_terms=filter_small_terms)
+
+        reduced_Sec_Quant_CC_ops = []
+        reduced_theta_parameters=[]
+
+        for index, excitation in enumerate(Sec_Quant_CC_ops):
+            #each term made up of two parts: -1.0 [2^ 3^ 10 11] + 1.0 [11^ 10^ 3 2]
+            first_term, second_term = excitation.terms.items()
+
+            qubit_indices, creation_annihilation_flags = zip(*first_term[0])
+
+            if set(qubit_indices).isdisjoint(indices_remove):
+                reduced_Sec_Quant_CC_ops.append(excitation)
+                reduced_theta_parameters.append(theta_parameters[index])
+            else:
+                continue
+        return reduced_Sec_Quant_CC_ops, reduced_theta_parameters
+
+    def NOON_HF_state(self):
+        pass
 
 
 class Hamiltonian_Transforms():

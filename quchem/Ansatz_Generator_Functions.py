@@ -127,7 +127,7 @@ class UCCSD_Trotter_BK():
         # note for Theta_param_list, with 2nd order Trot will need to double angle params!
         pass
 
-def Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_OP_list):
+def Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_OP_list, n_qubits):
     """
      From a list of QubitOperators (openfermion.ops._qubit_operator.QubitOperator) generate corresponding
      list of PauliStrings with cofactor!
@@ -158,8 +158,7 @@ def Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_OP_list):
 
 
     PauliWord_str_Second_Quant_CC_OP_list = []
-    max_No_terms = max([len(list(QubitOP.terms.keys())[0]) for QubitOP in Second_Quant_CC_OP_list])
-    all_indices = np.arange(0, max_No_terms, 1)
+    all_indices = np.arange(0, n_qubits, 1)
 
     for QubitOP in Second_Quant_CC_OP_list:
         T_Tdagg_Op_list = []
@@ -167,7 +166,7 @@ def Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_OP_list):
         for tupleOfTuples, factor in QubitOP.terms.items():
             qubit_OP_list = [tupl[1] + str(tupl[0]) for tupl in tupleOfTuples]
 
-            if len(qubit_OP_list) < max_No_terms:
+            if len(qubit_OP_list) < n_qubits:
                 # fill missing terms with Identity
                 indices_present = [int(qubitNo_and_OP[1::]) for qubitNo_and_OP in qubit_OP_list]
                 missing_indices = [index for index in all_indices if index not in indices_present]

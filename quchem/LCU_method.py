@@ -963,13 +963,13 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
         l1_R_circuits = R_gate_obj.Get_each_l1_combination()
         l1_R_dagger_circuits = R_dagger_gate_obj.Get_each_l1_combination()
 
-        return full_circuit, LCU_DICT['gamma_l'], l1_R_circuits + l1_R_dagger_circuits #full_circuit, LCU_DICT['gamma_l'], LCU_DICT['l1_norm'] # # Get_each_l1_combination
+        return full_circuit, LCU_DICT['gamma_l'], l1_R_circuits + l1_R_dagger_circuits, number_ancilla_qubits #full_circuit, LCU_DICT['gamma_l'], LCU_DICT['l1_norm'] # # Get_each_l1_combination
 
 
 if __name__ == '__main__':
     test_set = anti_commuting_set_stripped[7]
     S_index = 0
-    circuit, gamma, l1_norm = Complete_LCU_circuit(test_set, Hamilt.molecule.n_qubits, S_index)
+    circuit, gamma, l1_norm, number_ancilla_qubits = Complete_LCU_circuit(test_set, Hamilt.molecule.n_qubits, S_index)
     print(circuit)
 
 
@@ -980,7 +980,7 @@ if __name__ == '__main__':
 
 
 def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
-                                                     n_system, n_ancilla):
+                                                     n_system):
     """
      Function that appends Ansatz Quantum Circuit to Pauli perform and measure circuit instance.
 
@@ -989,7 +989,6 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
         anti_commuting_sets (dict): dict of list of tuples containing PauliWord to perform and constant -> (PauliWord, constant)
         S_dict (dict): dict of PauliWordS indices
         n_system (int): number of system qubits
-        n_ancilla (int): number of ancilla
 
     Returns:
         dic_holder (dict): Returns a dictionary of each quantum circuit, with cofactor, PauliWord and cirq Q Circuit
@@ -1000,9 +999,6 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
     seperator = ' '
     PauliWord_I_only = seperator.join(I_Measure)
 
-    ancilla_list = ['Z{}'.format(int(i)) for i in np.arange(n_system, n_system + n_ancilla)]
-    seperator = ' '
-    ancilla_str = seperator.join(ancilla_list)
 
     dic_holder = {}
 
@@ -1036,7 +1032,7 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
             temp_d['LCU'] = False
         else:
             # ALCU_circuit, gamma_l, l1_norm = Complete_LCU_circuit(PauliString_and_Constant, n_system, S_index)
-            ALCU_circuit, gamma_l, all_l1_norms = Complete_LCU_circuit(PauliString_and_Constant, n_system, S_index)
+            ALCU_circuit, gamma_l, all_l1_norms, number_ancilla_qubits = Complete_LCU_circuit(PauliString_and_Constant, n_system, S_index)
 
             full_circuit = cirq.Circuit(
                 [
@@ -1044,12 +1040,18 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
                     ALCU_circuit
                 ]
             )
+
+            ancilla_list = ['Z{}'.format(int(i)) for i in np.arange(n_system, n_system + number_ancilla_qubits)]
+            seperator = ' '
+            ancilla_str = seperator.join(ancilla_list)
+
             temp_d['circuit'] = full_circuit
-            temp_d['PauliWord'] = PauliString_and_Constant[S_index][0] + ' ' +ancilla_str
+            temp_d['PauliWord'] = PauliString_and_Constant[S_index][0] + ' ' + ancilla_str
             temp_d['LCU'] = True
             temp_d['gamma_l'] = gamma_l #* PauliString_and_Constant[S_index][1].real #TODO check this here!!!
             # temp_d['l1_norm'] = l1_norm
             temp_d['all_l1_norms'] = all_l1_norms
+            temp_d['n_ancilla'] = number_ancilla_qubits
 
         dic_holder[key] = temp_d
 
@@ -1237,10 +1239,9 @@ class ALCU_Simulation_Quantum_Circuit_Dict():
 from quchem.Simulating_Quantum_Circuit import *
 from functools import reduce
 class ALCU_Simulation_Quantum_Circuit_DictRAW():
-    def __init__(self, circuits_factor_PauliWord_dict, num_shots, n_ancilla):
+    def __init__(self, circuits_factor_PauliWord_dict, num_shots):
         self.circuits_factor_PauliWord_dict = circuits_factor_PauliWord_dict
         self.num_shots = num_shots
-        self.n_ancilla = n_ancilla
 
         self.hist_key_dict = None
         self.counter_results_raw_dict = None
@@ -1277,16 +1278,16 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
                     binary_results_dict[key] = Return_as_binary(counter_result, self.circuits_factor_PauliWord_dict[key]['PauliWord'])
                 else:
                     LCU_result_dict = {}
-                    correct_ancilla_state = np.zeros([self.n_ancilla])
+                    correct_ancilla_state = np.zeros([self.circuits_factor_PauliWord_dict[key]['n_ancilla']])
                     n_success_shots=0
                     while n_success_shots != self.num_shots:
                         raw_result = self.SimulateQC_RAW(self.circuits_factor_PauliWord_dict[key]['circuit'], key)
                         M_results = raw_result.measurements[self.hist_key_dict[key]]
 
                         for result in M_results:
-                            if np.array_equal(result[:(-1-self.n_ancilla):-1][::-1], correct_ancilla_state): # Checks if all zero ancilla measured!
+                            if np.array_equal(result[:(-1-self.circuits_factor_PauliWord_dict[key]['n_ancilla']):-1][::-1], correct_ancilla_state): # Checks if all zero ancilla measured!
                                 seperator = ''
-                                state_key_binary = seperator.join(map(str, result[0:-self.n_ancilla])) #Gets rid of ancilla part!!!
+                                state_key_binary = seperator.join(map(str, result[0:-self.circuits_factor_PauliWord_dict[key]['n_ancilla']])) #Gets rid of ancilla part!!!
                                 if state_key_binary not in LCU_result_dict.keys():
                                     LCU_result_dict[state_key_binary] = 1
                                 else:
