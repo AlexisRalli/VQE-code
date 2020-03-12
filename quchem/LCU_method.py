@@ -384,7 +384,9 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
     seperator = ' '
     I_term = seperator.join(['I{}'.format(i) for i in range(no_qubits)])
 
-    phi_n_1 = np.arccos(X_set['P_s'][1]) # ALPHA
+    H_n = Get_beta_j_cofactors(anti_commuting_set)
+
+    phi_n_1 = np.arccos(H_n['PauliWords'][S_index][1]) # ALPHA
 
     const = np.sin(phi_n_1 / 2) * -1j
 
@@ -428,8 +430,6 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
     # LCU_dict['gamma_l'] = X_set['gamma_l']
 
     # THIS USES gamma_l of H_n (whereas previously was using gamma_l of H_{n-1}
-    H_n = Get_beta_j_cofactors(anti_commuting_set)
-    # LCU_dict['gamma_l'] = H_n['gamma_l']
     if X_set['P_s'][1]<0:
         LCU_dict['gamma_l'] = (H_n['gamma_l'] * -1)
     else:
@@ -1269,7 +1269,7 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
 
         binary_results_dict = {}
         for key in self.circuits_factor_PauliWord_dict:
-
+            print(key)
             if self.hist_key_dict[key] != '':
                 #checks for non identity ciruict
                 if self.circuits_factor_PauliWord_dict[key]['LCU'] is False:

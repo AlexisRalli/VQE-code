@@ -74,16 +74,16 @@ ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params_REDUCED)
 #     print(results.histogram(key='0,1,2,3,4,5,6,7,8,9,10,11'))  # Need key to match number of qubits!!!
 
 ### Join Circuits
-LCU_Dict = Get_R_linear_combination(anti_commuting_set_stripped[9], 0, Hamilt.molecule.n_qubits)
-number_ancilla_qubits = int(np.ceil(np.log2(len(LCU_Dict['R_LCU']))))
 
-#TODO bug noticed... number of ancilla qubits changes per LCU dict... NEED TO FIX this!
-# currently loop to find max!
-a_list=[]
-for i in range(len(anti_commuting_set_stripped)):
-    LCU_Dict = Get_R_linear_combination(anti_commuting_set_stripped[i], 0, Hamilt.molecule.n_qubits)
-    a_list.append(int(np.ceil(np.log2(len(LCU_Dict['R_LCU'])))))
-number_ancilla_qubits = max(a_list)
+# #TODO bug noticed... number of ancilla qubits changes per LCU dict... NEED TO FIX this!
+# # currently loop to find max!
+# a_list=[]
+# for i in range(len(anti_commuting_set_stripped)):
+#     if len(anti_commuting_set_stripped[i])>1:
+#         print(i)
+#         LCU_Dict = Get_R_linear_combination(anti_commuting_set_stripped[i], 0, Hamilt.molecule.n_qubits)
+#         a_list.append(int(np.ceil(np.log2(len(LCU_Dict['R_LCU'])))))
+# number_ancilla_qubits = max(a_list)
 
 S_dict = {i:0 for i in range(len(anti_commuting_set_stripped))}
 w=ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits)
