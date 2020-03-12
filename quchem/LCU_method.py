@@ -1269,7 +1269,7 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
 
         binary_results_dict = {}
         for key in self.circuits_factor_PauliWord_dict:
-            print(key)
+            #print(key)
             if self.hist_key_dict[key] != '':
                 #checks for non identity ciruict
                 if self.circuits_factor_PauliWord_dict[key]['LCU'] is False:

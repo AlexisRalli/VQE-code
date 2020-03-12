@@ -212,3 +212,4 @@ for i in tqdm(np.arange(0, 2*np.pi, 0.1), ascii=True, desc='Getting ENERGIES'):
     E_list.append(tt.Energy)
 plt.plot(E_list)
 plt.show()
+print('VQE min E = {} VS FCI E = {}'.format(min(E_list), Hamilt.molecule.fci_energy))
