@@ -241,7 +241,7 @@ if __name__ == '__main__':
 
     QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW()
     # print('Qubit Hamiltonian: ', QubitHam)
-    QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam)
+    QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam, Hamilt.molecule.n_qubits)
 
     ### Graph Colouring
     from quchem.Graph import *
@@ -421,6 +421,7 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
     if not np.isclose(sum([LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']]), 1):
         raise ValueError('normalisation is WRONG: {}'.format(sum([LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']])))
 
+    LCU_dict['H_n'] = H_n
     LCU_dict['alpha'] = phi_n_1
     LCU_dict['P_s'] = X_set['P_s'][0]
     LCU_dict['l1_norm'] = sum([LCU_dict['R_LCU'][key][1] for key in LCU_dict['R_LCU']])
@@ -436,8 +437,74 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
         LCU_dict['gamma_l'] = H_n['gamma_l']
     return LCU_dict
 
-# λαβ∗=w
-# λ = w / a^2
+
+def convert_new(beta_k_Pk, beta_j_Pj):
+    convert_term = {
+        'II': (1, 'I'),
+        'IX': (1, 'X'),
+        'IY': (1, 'Y'),
+        'IZ': (1, 'Z'),
+
+        'XI': (1, 'X'),
+        'XX': (1, 'I'),
+        'XY': (1j, 'Z'),
+        'XZ': (-1j, 'Y'),
+
+        'YI': (1, 'Y'),
+        'YX': (-1j, 'Z'),
+        'YY': (1, 'I'),
+        'YZ': (1j, 'X'),
+
+        'ZI': (1, 'Z'),
+        'ZX': (1j, 'Y'),
+        'ZY': (-1j, 'X'),
+        'ZZ': (1, 'I')
+    }
+
+    # arXiv 1908.08067 eq (11)
+
+    PauliWord_k = beta_k_Pk[0].split(' ')
+    PauliWord_s = beta_j_Pj[0].split(' ')
+
+    new_PauliWord = []
+    for i in range(len(PauliWord_s)):
+        qubitNo = PauliWord_s[i][1::]
+
+        if qubitNo == PauliWord_k[i][1::]:
+            PauliString_s = PauliWord_s[i][0]
+            PauliString_k = PauliWord_k[i][0]
+            term = PauliString_s + PauliString_k
+            try:
+                new_PauliString = convert_term[term]
+                new_PauliWord.append((new_PauliString, qubitNo))
+            except:
+                raise KeyError('Cannot combine: {}, as contains Non-Pauli operators'.format(term))
+        else:
+            raise ValueError(
+                'qubit indexes do Not match. P_s index = {} and P_k index = {}'.format(qubitNo, PauliWord_k[i][1::]))
+
+    # needed for Pauli products!
+    new_constant_SIGN = np.prod([factorpaulistring[0] for factorpaulistring, qubitNo in new_PauliWord])
+
+    seperator = ' '
+    new_PauliWord = seperator.join([factorpaulistring[1] + qubitNo for factorpaulistring, qubitNo in new_PauliWord])
+
+    return (new_PauliWord, new_constant_SIGN * beta_k_Pk[1]* beta_j_Pj[1])
+
+
+def Get_R_times_Hn_terms(LCU_dict):
+    R_terms = LCU_dict['R_LCU']
+    H_n = LCU_dict['H_n']['PauliWords']
+    gamma_l = LCU_dict['H_n']['gamma_l']
+
+    new_terms=[]
+    for term in H_n:
+        for key in R_terms:
+            new_term = convert_new(R_terms[key], term)
+            new_terms.append(new_term)
+
+    return new_terms
+
 
 def Get_ancilla_amplitudes(LCU_dict):
     """
@@ -925,9 +992,9 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
 
         # G_prep_circuit.append(cirq.measure(*ancilla_line_qubits)) # add measurement gates to ancilla line
 
-        R_dagger_gate_obj = LCU_R_gate(LCU_DICT, True, number_ancilla_qubits, No_system_qubits)
-        R_dagger_gate = cirq.Circuit(
-            cirq.decompose_once((R_dagger_gate_obj(*cirq.LineQubit.range(R_dagger_gate_obj.num_qubits())))))
+        R_gate_obj = LCU_R_gate(LCU_DICT, False, number_ancilla_qubits, No_system_qubits)
+        R_gate = cirq.Circuit(
+            cirq.decompose_once((R_gate_obj(*cirq.LineQubit.range(R_gate_obj.num_qubits())))))
 
         Pauli_S = anti_commuting_set[S_index]
 
@@ -936,9 +1003,13 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
             cirq.decompose_once((Pauli_S_circ_obj(
                 *cirq.LineQubit.range(Pauli_S_circ_obj.num_qubits())))))
 
-        R_gate_obj = LCU_R_gate(LCU_DICT, False, number_ancilla_qubits, No_system_qubits)
-        R_gate = cirq.Circuit(
-            cirq.decompose_once((R_gate_obj(*cirq.LineQubit.range(R_gate_obj.num_qubits())))))
+        change_basis_PS = Change_Basis_to_Measure_PauliWord(Pauli_S)
+        change_basis_PS_circuit = cirq.Circuit(
+            cirq.decompose_once((change_basis_PS(*cirq.LineQubit.range(change_basis_PS.num_qubits())))))
+
+        # R_dagger_gate_obj = LCU_R_gate(LCU_DICT, True, number_ancilla_qubits, No_system_qubits)
+        # R_dagger_gate = cirq.Circuit(
+        #     cirq.decompose_once((R_dagger_gate_obj(*cirq.LineQubit.range(R_dagger_gate_obj.num_qubits())))))
 
         measure_gate_obj = Measure_system_and_ancilla(Pauli_S,number_ancilla_qubits)
 
@@ -950,7 +1021,8 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
                 G_prep_circuit.all_operations(),
                 *R_gate.all_operations(),
                 Pauli_S_circ.all_operations(),
-                R_dagger_gate.all_operations(),
+                change_basis_PS_circuit.all_operations(),
+                # R_dagger_gate.all_operations(),
                 G_prep_circuit_UNDO.all_operations(),
                 measure_circ.all_operations()
             ]
@@ -961,9 +1033,67 @@ def Complete_LCU_circuit(anti_commuting_set, No_system_qubits, S_index):
         # else:
         #     gamma_l = LCU_DICT['gamma_l']
         l1_R_circuits = R_gate_obj.Get_each_l1_combination()
-        l1_R_dagger_circuits = R_dagger_gate_obj.Get_each_l1_combination()
+        # l1_R_dagger_circuits = R_dagger_gate_obj.Get_each_l1_combination()
 
-        return full_circuit, LCU_DICT['gamma_l'], l1_R_circuits + l1_R_dagger_circuits, number_ancilla_qubits #full_circuit, LCU_DICT['gamma_l'], LCU_DICT['l1_norm'] # # Get_each_l1_combination
+        ####
+
+        # # LCU_DICT = Get_R_linear_comb(anti_commuting_set, S_index, No_system_qubits)
+        # LCU_DICT = Get_R_linear_combination(anti_commuting_set, S_index, No_system_qubits)
+        #
+        # l1_norm_val, number_ancilla_qubits, G_ancilla_amplitudes = Get_ancilla_amplitudes(LCU_DICT)
+        #
+        # alpha_j = Get_state_prep_dict(number_ancilla_qubits, Coefficient_list=G_ancilla_amplitudes)
+        # state_circ = State_Prep_Circuit(alpha_j)
+        # ancilla_line_qubits = cirq.LineQubit.range(No_system_qubits, No_system_qubits + number_ancilla_qubits)
+        #
+        # G_prep_circuit = (cirq.Circuit(cirq.decompose_once((state_circ(*ancilla_line_qubits)))))
+        #
+        # G_prep_circuit_UNDO = cirq.Circuit(list(G_prep_circuit.all_operations())[::-1]) # reverses!
+        #
+        # # G_prep_circuit.append(cirq.measure(*ancilla_line_qubits)) # add measurement gates to ancilla line
+        #
+        # R_dagger_gate_obj = LCU_R_gate(LCU_DICT, True, number_ancilla_qubits, No_system_qubits)
+        # R_dagger_gate = cirq.Circuit(
+        #     cirq.decompose_once((R_dagger_gate_obj(*cirq.LineQubit.range(R_dagger_gate_obj.num_qubits())))))
+        #
+        # Pauli_S = anti_commuting_set[S_index]
+        #
+        # Pauli_S_circ_obj = Perform_PauliWord(Pauli_S)
+        # Pauli_S_circ = cirq.Circuit(
+        #     cirq.decompose_once((Pauli_S_circ_obj(
+        #         *cirq.LineQubit.range(Pauli_S_circ_obj.num_qubits())))))
+        #
+        # R_gate_obj = LCU_R_gate(LCU_DICT, False, number_ancilla_qubits, No_system_qubits)
+        # R_gate = cirq.Circuit(
+        #     cirq.decompose_once((R_gate_obj(*cirq.LineQubit.range(R_gate_obj.num_qubits())))))
+        #
+        # measure_gate_obj = Measure_system_and_ancilla(Pauli_S,number_ancilla_qubits)
+        #
+        # measure_circ = cirq.Circuit(
+        #     cirq.decompose_once((measure_gate_obj(*cirq.LineQubit.range(measure_gate_obj.num_qubits())))))
+        #
+        # full_circuit = cirq.Circuit(
+        #     [
+        #         G_prep_circuit.all_operations(),
+        #         *R_gate.all_operations(),
+        #         Pauli_S_circ.all_operations(),
+        #         R_dagger_gate.all_operations(),
+        #         G_prep_circuit_UNDO.all_operations(),
+        #         measure_circ.all_operations()
+        #     ]
+        # )
+        #
+        # # if Pauli_S[1]<0:
+        # #     gamma_l = LCU_DICT['gamma_l'] *-1
+        # # else:
+        # #     gamma_l = LCU_DICT['gamma_l']
+        # l1_R_circuits = R_gate_obj.Get_each_l1_combination()
+        # l1_R_dagger_circuits = R_dagger_gate_obj.Get_each_l1_combination()
+        #
+        # return full_circuit, LCU_DICT['gamma_l'], l1_R_circuits + l1_R_dagger_circuits, number_ancilla_qubits
+
+
+        return full_circuit, LCU_DICT['gamma_l'], l1_R_circuits, number_ancilla_qubits # full_circuit, LCU_DICT['gamma_l'], l1_R_circuits + l1_R_dagger_circuits, number_ancilla_qubits
 
 
 if __name__ == '__main__':
