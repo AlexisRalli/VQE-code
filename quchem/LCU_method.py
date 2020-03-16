@@ -360,7 +360,7 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
         ^^^^ therefore cos(ϕ_{n-1}) = B_{s} .... SO ... ϕ_{n-1} = arc cos (B_{s})
 
         AS:
-        R† H R = sin(ϕ_{n-1} - ALPHA) * H_{n-1} + cos(ϕ_{n-1} - APLHA) * P_{s}
+        R H R† = sin(ϕ_{n-1} - ALPHA) * H_{n-1} + cos(ϕ_{n-1} - APLHA) * P_{s}
         set
         ALPHA = ϕ_{n-1}
 
@@ -493,16 +493,59 @@ def convert_new(beta_k_Pk, beta_j_Pj):
 
 
 def Get_R_times_Hn_terms(LCU_dict):
+    """
+    Takes in LCU dict and looks at the following
+
+     R H R† = P_{s}
+
+    R H = P_{s} R
+
+    Therefore only need to implement R ------ P_{s} ------ M
+    on quantum computer
+
+    Function used to find what new object we are measuring (aka R H)...
+    currently makes sure that R H = P_{s} R is also true!
+
+    args:
+        threshold (optional, float): gives threshold of terms to ignore... e.g. the term
+                                    (0.00003+0j) [Y0 X1 X2 Y3]] would be ignored if threshold = 1e-2
+
+    returns:
+        R H (dict):
+
+    """
+
     R_terms = LCU_dict['R_LCU']
     H_n = LCU_dict['H_n']['PauliWords']
-    gamma_l = LCU_dict['H_n']['gamma_l']
 
-    new_terms=[]
-    for term in H_n:
+    new_terms = {}
+    for PauliWord, const in H_n:
         for key in R_terms:
-            new_term = convert_new(R_terms[key], term)
-            new_terms.append(new_term)
 
+            Pauli_R_term = (R_terms[key][0], (R_terms[key][1] * LCU_dict['LCU_correction'][key]))
+
+            new_term = convert_new(Pauli_R_term, (PauliWord, const))
+
+            if new_term[0] in new_terms.keys():
+                new_terms[new_term[0]] -= new_term[1] #TODO check this sign!
+            else:
+                new_terms[new_term[0]] = new_term[1]
+
+    P_S = (LCU_dict['P_s'], 1)
+
+    new_terms2 = {}
+    for key in R_terms:
+
+        Pauli_R_term = (R_terms[key][0], (R_terms[key][1] * LCU_dict['LCU_correction'][key]))
+
+        new_term = convert_new(P_S, Pauli_R_term)
+
+        if new_term[0] in new_terms2.keys():
+            new_terms2[new_term[0]] += new_term[1]  #TODO check this sign!
+        else:
+            new_terms2[new_term[0]] = new_term[1]
+
+    print(new_terms, 'VS', new_terms2)
     return new_terms
 
 
