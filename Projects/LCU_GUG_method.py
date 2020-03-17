@@ -112,8 +112,8 @@ ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
 # S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
 # def Calc_E_UP(THETA_params):
 #     ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
-#     w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4, 1)
-#     tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 500, 1)
+#     w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits)
+#     tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 50_000)
 #     tt.Get_expectation_value_via_parity()
 #     tt.Calc_energy_via_parity()
 #     return tt.Energy.real
@@ -166,7 +166,7 @@ S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
 w =ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits)
 ###
 # simulate
-tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 100)
+tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 50_000)
 tt.Get_expectation_value_via_parity()
 tt.Calc_energy_via_parity()
 tt.Energy
@@ -177,8 +177,8 @@ S_dict = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0}
 
 def Calc_E_UP(THETA):
     ansatz_Q_cicuit = NEW_Anastz(THETA)
-    w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, 4)
-    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 500)
+    w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits)
+    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 10_000)
     tt.Get_expectation_value_via_parity()
     tt.Calc_energy_via_parity()
     return tt.Energy.real
@@ -206,7 +206,7 @@ for i in tqdm(np.arange(0, 2*np.pi, 0.1), ascii=True, desc='Getting ENERGIES'):
     w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits)
     ###
     # simulate
-    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 10000)
+    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 10_000)
     tt.Get_expectation_value_via_parity()
     tt.Calc_energy_via_parity()
     E_list.append(tt.Energy)

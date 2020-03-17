@@ -94,3 +94,36 @@ tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 1)
 tt.Get_expectation_value_via_parity()
 tt.Calc_energy_via_parity()
 tt.Energy
+
+
+def Calc_E_UP(THETA_params_REDUCED):
+    ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params_REDUCED)
+    w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits)
+    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 100)
+    tt.Get_expectation_value_via_parity()
+    tt.Calc_energy_via_parity()
+    return tt.Energy.real
+from quchem.Scipy_Optimizer import *
+
+# import random
+# THETA_params_REDUCED = [random.uniform(0,2*np.pi) for _ in range(len(THETA_params_REDUCED))]
+# GG = Optimizer(Calc_E_UP, THETA_params_REDUCED, 'Nelder-Mead', store_values=True, display_iter_steps=True,
+#                tol=1e-5,
+#                display_convergence_message=True)
+# GG.get_env(50)
+# GG.plot_convergence()
+# plt.show()
+
+import random
+E_list=[]
+theta_list=[]
+for _ in range(3):
+    THETA_params_REDUCED = [random.uniform(0, 2 * np.pi) for _ in range(len(THETA_params_REDUCED))]
+    ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params_REDUCED)
+    w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits)
+    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 10000)
+    tt.Get_expectation_value_via_parity()
+    tt.Calc_energy_via_parity()
+    print(tt.Energy.real)
+    E_list.append(tt.Energy.real)
+    theta_list.append(THETA_params_REDUCED)
