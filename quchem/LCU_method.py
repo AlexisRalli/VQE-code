@@ -546,7 +546,7 @@ def Get_R_times_Hn_terms(LCU_dict):
             new_terms2[new_term[0]] = new_term[1]
 
     print(new_terms, 'VS', new_terms2)
-    return new_terms
+    return [(PauliWord, const) for PauliWord, const in new_terms.items()]
 
 
 def Get_ancilla_amplitudes(LCU_dict):
@@ -1231,183 +1231,6 @@ def ALCU_dict(Full_Ansatz_Q_Circuit, anti_commuting_sets, S_dict,
     return dic_holder
 
 
-from quchem.Simulating_Quantum_Circuit import *
-class ALCU_Simulation_Quantum_Circuit_Dict():
-    def __init__(self, circuits_factor_PauliWord_dict, num_shots, n_ancilla):
-        self.circuits_factor_PauliWord_dict = circuits_factor_PauliWord_dict
-        self.num_shots = num_shots
-        self.n_ancilla = n_ancilla
-
-        self.hist_key_dict = None
-        self.counter_results_raw_dict = None
-        self.Identity_result_dict = {}
-        self.binary_results_dict = None
-        self.expect_results_dict = None
-
-    def Get_Histkey_dict(self):
-        hist_key_dict={}
-        for key in self.circuits_factor_PauliWord_dict:
-            hist_key_dict[key]= Get_Histogram_key(self.circuits_factor_PauliWord_dict[key]['PauliWord'])
-        self.hist_key_dict = hist_key_dict
-
-    def Get_binary_results_dict(self):
-        if self.hist_key_dict is None:
-            self.Get_Histkey_dict()
-
-        binary_results_dict = {}
-        for key in self.circuits_factor_PauliWord_dict:
-
-            if self.hist_key_dict[key] != '':
-                #checks for non identity ciruict
-                if self.circuits_factor_PauliWord_dict[key]['LCU'] is False:
-                    counter_result = Simulate_Quantum_Circuit(self.circuits_factor_PauliWord_dict[key]['circuit'],
-                                                                self.num_shots, self.hist_key_dict[key])
-                    binary_results_dict[key] = Return_as_binary(counter_result, self.circuits_factor_PauliWord_dict[key]['PauliWord'])
-                else:
-                    simulator = cirq.Simulator()
-                    LCU_result_dict = {}
-                    ancilla_key = ''.join(['0' for _ in range(self.n_ancilla)])
-                    n_success_shots=0
-                    while n_success_shots != self.num_shots:
-                        raw_result = simulator.run(self.circuits_factor_PauliWord_dict[key]['circuit']) #, repetitions=num_shots)
-                        hist_result = raw_result.histogram(key=self.hist_key_dict[key])
-                        binary_res = Return_as_binary(hist_result, self.circuits_factor_PauliWord_dict[key]['PauliWord'])
-                        for state in binary_res:
-                            if state[:(-1-self.n_ancilla):-1] == ancilla_key:
-                                if state not in LCU_result_dict.keys():
-                                    LCU_result_dict[state] = 0
-                                LCU_result_dict[state] = LCU_result_dict[state] + binary_res[state]
-                                n_success_shots += 1
-                    binary_results_dict[key] = LCU_result_dict
-            else:
-                self.Identity_result_dict[key]= (self.circuits_factor_PauliWord_dict[key]['PauliWord'], self.circuits_factor_PauliWord_dict[key]['gamma_l'])
-
-        self.binary_results_dict = binary_results_dict
-
-    def Get_expectation_value_via_parity(self):
-        if self.binary_results_dict is None:
-            self.Get_binary_results_dict()
-
-        expect_results_dict = {}
-        for key in self.circuits_factor_PauliWord_dict:
-
-            if key in self.Identity_result_dict.keys():
-                expect_results_dict[key] = 1
-
-            elif self.circuits_factor_PauliWord_dict[key]['LCU']:
-                # remove ancilla results with slice!
-                ancilla_removed = {state[0:-1*self.n_ancilla]: counts for state, counts in self.binary_results_dict[key].items()}
-                expect_results_dict[key] = expectation_value_by_parity(ancilla_removed)
-            else:
-                expect_results_dict[key] = expectation_value_by_parity(self.binary_results_dict[key])
-
-        self.expect_results_dict = expect_results_dict
-
-    def Calc_energy_via_parity(self):
-        if self.expect_results_dict is None:
-            self.Get_expectation_value_via_parity()
-
-        Energy_list =[]
-        for key in self.circuits_factor_PauliWord_dict:
-            exp_val = self.expect_results_dict[key]
-            factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
-            Energy_list.append((exp_val*factor))
-
-        self.Energy_list = Energy_list
-        self.Energy = sum(Energy_list)
-
-        return self.Energy
-
-
-
-from quchem.Simulating_Quantum_Circuit import *
-class ALCU_Simulation_Quantum_Circuit_Dict():
-    def __init__(self, circuits_factor_PauliWord_dict, num_shots, n_ancilla):
-        self.circuits_factor_PauliWord_dict = circuits_factor_PauliWord_dict
-        self.num_shots = num_shots
-        self.n_ancilla = n_ancilla
-
-        self.hist_key_dict = None
-        self.counter_results_raw_dict = None
-        self.Identity_result_dict = {}
-        self.binary_results_dict = None
-        self.expect_results_dict = None
-
-    def Get_Histkey_dict(self):
-        hist_key_dict={}
-        for key in self.circuits_factor_PauliWord_dict:
-            hist_key_dict[key]= Get_Histogram_key(self.circuits_factor_PauliWord_dict[key]['PauliWord'])
-        self.hist_key_dict = hist_key_dict
-
-    def Get_binary_results_dict(self):
-        if self.hist_key_dict is None:
-            self.Get_Histkey_dict()
-
-        binary_results_dict = {}
-        for key in self.circuits_factor_PauliWord_dict:
-
-            if self.hist_key_dict[key] != '':
-                #checks for non identity ciruict
-                if self.circuits_factor_PauliWord_dict[key]['LCU'] is False:
-                    counter_result = Simulate_Quantum_Circuit(self.circuits_factor_PauliWord_dict[key]['circuit'],
-                                                                self.num_shots, self.hist_key_dict[key])
-                    binary_results_dict[key] = Return_as_binary(counter_result, self.circuits_factor_PauliWord_dict[key]['PauliWord'])
-                else:
-                    simulator = cirq.Simulator()
-                    LCU_result_dict = {}
-                    ancilla_key = ''.join(['0' for _ in range(self.n_ancilla)])
-                    n_success_shots=0
-                    while n_success_shots != self.num_shots:
-                        raw_result = simulator.run(self.circuits_factor_PauliWord_dict[key]['circuit']) #, repetitions=num_shots)
-                        hist_result = raw_result.histogram(key=self.hist_key_dict[key])
-                        binary_res = Return_as_binary(hist_result, self.circuits_factor_PauliWord_dict[key]['PauliWord'])
-                        for state in binary_res:
-                            if state[:(-1-self.n_ancilla):-1] == ancilla_key:
-                                if state not in LCU_result_dict.keys():
-                                    LCU_result_dict[state] = 0
-                                LCU_result_dict[state] = LCU_result_dict[state] + binary_res[state]
-                                n_success_shots += 1
-                    binary_results_dict[key] = LCU_result_dict
-            else:
-                self.Identity_result_dict[key]= (self.circuits_factor_PauliWord_dict[key]['PauliWord'], self.circuits_factor_PauliWord_dict[key]['gamma_l'])
-
-        self.binary_results_dict = binary_results_dict
-
-    def Get_expectation_value_via_parity(self):
-        if self.binary_results_dict is None:
-            self.Get_binary_results_dict()
-
-        expect_results_dict = {}
-        for key in self.circuits_factor_PauliWord_dict:
-
-            if key in self.Identity_result_dict.keys():
-                expect_results_dict[key] = 1
-
-            elif self.circuits_factor_PauliWord_dict[key]['LCU']:
-                # remove ancilla results with slice!
-                ancilla_removed = {state[0:-1*self.n_ancilla]: counts for state, counts in self.binary_results_dict[key].items()}
-                expect_results_dict[key] = expectation_value_by_parity(ancilla_removed)
-            else:
-                expect_results_dict[key] = expectation_value_by_parity(self.binary_results_dict[key])
-
-        self.expect_results_dict = expect_results_dict
-
-    def Calc_energy_via_parity(self):
-        if self.expect_results_dict is None:
-            self.Get_expectation_value_via_parity()
-
-        Energy_list =[]
-        for key in self.circuits_factor_PauliWord_dict:
-            exp_val = self.expect_results_dict[key]
-            factor = self.circuits_factor_PauliWord_dict[key]['gamma_l']
-            Energy_list.append((exp_val*factor))
-
-        self.Energy_list = Energy_list
-        self.Energy = sum(Energy_list)
-
-        return self.Energy
-
-
 
 from quchem.Simulating_Quantum_Circuit import *
 from functools import reduce
@@ -1516,7 +1339,7 @@ class ALCU_Simulation_Quantum_Circuit_DictRAW():
 
                 # l1_multiplied = reduce((lambda x, y: x * y),  self.circuits_factor_PauliWord_dict[key]['all_l1_norms']) # self.circuits_factor_PauliWord_dict[key]['all_l1_norms']#
                 # Energy_list.append((exp_val * factor *l1_multiplied)) #TODO not sure if use l1_multiplied AS have R and R_DAGGER (not sure wether dagger has an effect!)
-                Energy_list.append((exp_val * factor *1)) #TODO currently IGNORING L1_multiplied!
+                Energy_list.append((exp_val *1)/factor) #TODO currently IGNORING L1_multiplied!
 
 
         self.Energy_list = Energy_list
