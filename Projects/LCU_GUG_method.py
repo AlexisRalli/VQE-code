@@ -206,7 +206,7 @@ for i in tqdm(np.arange(0, 2*np.pi, 0.1), ascii=True, desc='Getting ENERGIES'):
     w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits)
     ###
     # simulate
-    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 500)
+    tt = ALCU_Simulation_Quantum_Circuit_DictRAW(w, 10000)
     tt.Get_expectation_value_via_parity()
     tt.Calc_energy_via_parity()
     E_list.append(tt.Energy)
