@@ -785,9 +785,10 @@ if __name__ == '__main__':
     #     for j in range(index+1 ,len(OperatorList)):
     #         print(commutator(OperatorList[index], OperatorList[j]))
 
-OperatorList = [op for op in QubitHam]
-a = OperatorList[12]
-b= OperatorList[13]
+if __name__ == '__main__':
+    OperatorList = [op for op in QubitHam]
+    a = OperatorList[12]
+    b= OperatorList[13]
 def OpenFermion_Commutativity(P1, P2, anti_comm_QWC):
     """
 
@@ -857,11 +858,11 @@ def OpenFermion_Commutativity(P1, P2, anti_comm_QWC):
             raise KeyError('Incorrect flag used. anti_comm_QWC must be: \'QWC\', \'C\' or \'AC\'')
 
 #TODO build nodes
+if __name__ == '__main__':
+    frozen_op = tuple(frozenset((PauliStr, const) for op in QubitHam for PauliStr, const in op.terms.items()))
+    i,j = frozen_op[1]
 
-frozen_op = tuple(frozenset((PauliStr, const) for op in QubitHam for PauliStr, const in op.terms.items()))
-i,j = frozen_op[1]
-
-OpenFermion_Commutativity(frozen_op[1],frozen_op[3], 'C')
+    OpenFermion_Commutativity(frozen_op[1],frozen_op[3], 'C')
 
 def Openfermion_Build_Graph_Nodes(List_of_nodes, Graph, plot_graph=False):
     """
