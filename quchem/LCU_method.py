@@ -479,16 +479,19 @@ def Get_X_SET(anti_commuting_set, S_index):
 
     anti_comm_set = anti_commuting_set.copy()
     P_S = anti_comm_set.pop(S_index)
-    H_n_1 = Get_beta_j_cofactors(anti_comm_set)  ## NOTE THIS DOESN'T CONTAIN P_S!!!
+    normalised_anti_comm_set_n_1 = Get_beta_j_cofactors(anti_comm_set)  ## NOTE THIS DOESN'T CONTAIN P_S!!!
+
+    H_n_1 = normalised_anti_comm_set_n_1['PauliWords']
 
     X_set={}
-    X_set['gamma_l'] = H_n_1['gamma_l']
-
     X_set['terms'] =[]
-    for PauliWord, constant in H_n_1['PauliWords']:
+    for PauliWord, constant in H_n_1:
 
         new_PauliWord, new_constant = convert(( PauliWord, constant), P_S[0]) #P_{ks} term
         X_set['terms'].append((new_PauliWord, new_constant * 1j))
+
+    if not np.isclose(sum(const**2 for pauliWord, const in X_set['terms']), 1):
+        raise ValueError('normalisation of X operator incorrect: {}'.format(sum(const**2 for pauliWord, const in X_set['terms'])))
 
     X_set['P_s'] = P_S
     X_set['H_n_1'] = H_n_1
@@ -529,76 +532,164 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
                          the PauliS term ('P_s')
      """
     LCU_dict = {}
-
     X_set = Get_X_SET(anti_commuting_set, S_index)
 
-
     phi_n_1 = np.arccos(X_set['P_s'][1])
-    LCU_dict['alpha'] = phi_n_1 / X_set['gamma_l']
+    LCU_dict['alpha'] = phi_n_1
 
-    H_n = [(PauliWord, const*X_set['gamma_l']*np.sin(phi_n_1))for PauliWord, const in X_set['H_n_1']['PauliWords']] + [(X_set['P_s'][0], np.cos(phi_n_1))]
+    H_n = [(PauliWord,fact*np.sin(phi_n_1)) for PauliWord, fact in X_set['H_n_1']] + [(X_set['P_s'][0], np.cos(phi_n_1))]
 
-    const = np.sin(phi_n_1 * LCU_dict['alpha'] / 2) * -1j
+    if not np.isclose(sum( c**2for p, c in H_n), 1):
+        raise ValueError('H_n definition normalisation is WRONG')
 
     seperator = ' '
     I_term = seperator.join(['I{}'.format(i) for i in range(no_qubits)])
-    if np.cos(phi_n_1 / 2)<0:
-        LCU_dict['R_LCU'] = {0: (I_term, np.cos(phi_n_1* LCU_dict['alpha'] / 2))}
-        LCU_dict['LCU_correction'] = {0: -1}
-    else:
-        LCU_dict['R_LCU'] = {0: (I_term, np.cos(phi_n_1* LCU_dict['alpha'] / 2))}
-        LCU_dict['LCU_correction'] = {0: 1}
+    I_P_word= (I_term, np.cos(phi_n_1 / 2))
+
+    R_Op = [I_P_word]
 
     # loop gets each X operator term
-    for i in range(len(X_set['terms'])):
-        P_term = X_set['terms'][i]
-        factor = P_term[1] * const
+    const = np.sin(LCU_dict['alpha'] / 2) * -1j
+    for P_term, factor in X_set['terms']:
+        new_factor = factor * const
+
+        R_Op.append((P_term, new_factor))
+
+    if not np.isclose((R_Op[0][1]** 2 + sum(abs(R_Op[i][1] ** 2) for i in range(1, len(R_Op)))), 1):
+        raise ValueError('R_operator definition normalisation is WRONG')
+
+    # LCU_dict['R_Op'] = R_Op
+    # need all constants of R_op to be positive and real for LCU
+    # hence next absorb phases into operator and have correct dict
+
+    LCU_dict['R_LCU']={}
+    LCU_dict['LCU_correction']={}
+    for index, (PauliWord, factor) in enumerate(R_Op):
 
         if np.iscomplex(factor) and factor.imag != 0:
             if factor.imag < 0:
-                LCU_dict['LCU_correction'].update({i + 1: -1j})
-                LCU_dict['R_LCU'].update({i + 1: (P_term[0], np.abs(factor.imag))})
+                LCU_dict['LCU_correction'].update({index: -1j})
+                LCU_dict['R_LCU'].update({index: (PauliWord, np.abs(factor.imag))})
             else:
-                LCU_dict['LCU_correction'].update({i + 1: 1j})
-                LCU_dict['R_LCU'].update({i + 1: (P_term[0], factor.imag)})
+                LCU_dict['LCU_correction'].update({index: 1j})
+                LCU_dict['R_LCU'].update({index: (PauliWord, factor.imag)})
 
         elif factor.real < 0:
-            LCU_dict['LCU_correction'].update({i + 1: -1})
-            LCU_dict['R_LCU'].update({i + 1: (P_term[0], np.abs(factor.real))})
+            LCU_dict['LCU_correction'].update({index: -1})
+            LCU_dict['R_LCU'].update({index: (PauliWord, np.abs(factor.real))})
         else:
-            LCU_dict['LCU_correction'].update({i + 1: 1})
-            LCU_dict['R_LCU'].update({i + 1: (P_term[0], factor.real)})
+            LCU_dict['LCU_correction'].update({index: 1})
+            LCU_dict['R_LCU'].update({index: (PauliWord, factor.real)})
 
-    if not np.isclose(sum([LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']]), 1):
-        raise ValueError('normalisation is WRONG: {}'.format(sum([LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']])))
+    if not np.isclose(sum(abs(LCU_dict['R_LCU'][key][1])**2 for key in LCU_dict['R_LCU']), 1):
+        raise ValueError('R_operator definition normalisation is WRONG')
 
-    LCU_dict['H_n'] = H_n
+    # LCU_dict['H_n'] = H_n
     LCU_dict['P_s'] = X_set['P_s'][0]
     LCU_dict['l1_norm'] = sum([LCU_dict['R_LCU'][key][1] for key in LCU_dict['R_LCU']])
     LCU_dict['gamma_l'] = 1 #TODO should remove this from all future terms!
-    # LCU_dict['H_n_1']= X_set['H_n_1']['PauliWords']
 
-    # LCU_dict['lambda'] = LCU_dict['l1_norm'] / sum([LCU_dict['R_LCU'][key][1]**2 + LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']]) # note do term**2 + term**2 (rather than just term**2)!
-
-    # LCU_dict['gamma_l'] = X_set['gamma_l']
-
-    # THIS USES gamma_l of H_n (whereas previously was using gamma_l of H_{n-1}
-
-    # H = Get_beta_j_cofactors(anti_commuting_set)
-    # gamma_l = H['gamma_l']
-
-    # if X_set['P_s'][1]<0:
-    #     LCU_dict['gamma_l'] = (X_set['gamma_l'] * -1) # gamma_l*-1
-    # else:
-    #     LCU_dict['gamma_l'] = X_set['gamma_l'] # gamma_l
-
-    # note overall we have:
-    # anti_commuting_set = H_n_1 * gamma_l + beta_s P_s
-    #
-    # for PauliWord, const in X_set['H_n_1']['PauliWords']:
-    #     index = anti_commuting_set.index(PauliWord)
-    #     np.isclose(anti_commuting_set[index][1], )
     return LCU_dict
+
+# def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
+#     """
+#     Note
+#         X = i ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
+#
+#         R = exp(-i ALPHA/2 X) = cos(ALPHA/2)I - i sin(ALPHA/2)X
+#
+#         R = cos(ALPHA/2)I + i sin(ALPHA/2) * ( ∑_{k=1}^{n-1} B_{k} P_{j} ) P_{s}
+#         ^^^ - this is just a linear combiniation of Pauli terms! Can implement using LCU
+#
+#         H_{n} = sin(ϕ_{n-1}) * H_{n-1} +  cos(ϕ_{n-1}) * P_{s})
+#         ^^^^ therefore cos(ϕ_{n-1}) = B_{s} .... SO ... ϕ_{n-1} = arc cos (B_{s})
+#
+#         AS:
+#         R H R† = sin(ϕ_{n-1} - ALPHA) * H_{n-1} + cos(ϕ_{n-1} - APLHA) * P_{s}
+#         set
+#         ALPHA = ϕ_{n-1}
+#
+#
+#         note:
+#          R† (gamma_l * H) R = gamma_l * R† H R
+#
+#          gamma_l *H_{n-1}=  gamma_l * ∑_{k=1}^{n-1} \beta_{k} P_{k}$
+#
+#     Args:
+#         anti_commuting_set (list):
+#         S_index (int):
+#         no_qubits (int):
+#     Returns:
+#         LCU_dict (dict): A dictionary containing the linear combination of terms required to perform R ('R_LCU')
+#                          the correction factors to make all real and positive ('LCU_correction')
+#                          the angle to perform R gate ('alpha')
+#                          the PauliS term ('P_s')
+#      """
+#     LCU_dict = {}
+#
+#     X_set = Get_X_SET(anti_commuting_set, S_index)
+#
+#     phi_n_1 = np.arccos(X_set['P_s'][1])
+#     LCU_dict['alpha'] = phi_n_1
+#
+#     H_n = [(PauliWord,fact*np.sin(phi_n_1)) for PauliWord, fact in X_set['H_n_1']] + [(X_set['P_s'][0], np.cos(phi_n_1))]
+#
+#     if not np.isclose(sum( c**2for p, c in H_n), 1):
+#         raise ValueError('H_n definition normalisation is WRONG')
+#
+#
+#     seperator = ' '
+#     I_term = seperator.join(['I{}'.format(i) for i in range(no_qubits)])
+#     factor = np.cos(phi_n_1 / 2)
+#
+#     if np.iscomplex(factor) and factor.imag != 0:
+#         if factor.imag < 0:
+#             LCU_dict['R_LCU'] = {0: (I_term, np.abs(factor.imag))}
+#             LCU_dict['LCU_correction'] = {0: -1j}
+#         else:
+#             LCU_dict['R_LCU'] = {0: (I_term, factor.imag)}
+#             LCU_dict['LCU_correction'] = {0: 1j}
+#
+#     elif factor.real < 0:
+#         LCU_dict['R_LCU'] = {0: (I_term, np.abs(factor.real))}
+#         LCU_dict['LCU_correction'] = {0: -1}
+#     else:
+#         LCU_dict['R_LCU'] = {0: (I_term, factor.real)}
+#         LCU_dict['LCU_correction'] = {0: 1}
+#
+#     # loop gets each X operator term
+#     # const = np.sin(LCU_dict['alpha'] / 2) * -1j
+#     const = np.sin(LCU_dict['alpha'] / 2) * 1j
+#     for i in range(len(X_set['terms'])):
+#         P_term = X_set['terms'][i]
+#         factor = P_term[1] * const
+#
+#         if np.iscomplex(factor) and factor.imag != 0:
+#             if factor.imag < 0:
+#                 LCU_dict['LCU_correction'].update({i + 1: -1j})
+#                 LCU_dict['R_LCU'].update({i + 1: (P_term[0], np.abs(factor.imag))})
+#             else:
+#                 LCU_dict['LCU_correction'].update({i + 1: 1j})
+#                 LCU_dict['R_LCU'].update({i + 1: (P_term[0], factor.imag)})
+#
+#         elif factor.real < 0:
+#             LCU_dict['LCU_correction'].update({i + 1: -1})
+#             LCU_dict['R_LCU'].update({i + 1: (P_term[0], np.abs(factor.real))})
+#         else:
+#             LCU_dict['LCU_correction'].update({i + 1: 1})
+#             LCU_dict['R_LCU'].update({i + 1: (P_term[0], factor.real)})
+#
+#     # if not np.isclose(sum([LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']]), 1):
+#     if not np.isclose((LCU_dict['R_LCU'][0][1] * LCU_dict['LCU_correction'][0])**2 -
+#                       sum((LCU_dict['R_LCU'][key][1] * LCU_dict['LCU_correction'][key])**2 for key in LCU_dict['R_LCU'] if key>0), 1):
+#         raise ValueError('normalisation is WRONG: {}'.format(sum([LCU_dict['R_LCU'][key][1]**2 for key in LCU_dict['R_LCU']])))
+#
+#     LCU_dict['H_n'] = H_n
+#     LCU_dict['P_s'] = X_set['P_s'][0]
+#     LCU_dict['l1_norm'] = sum([LCU_dict['R_LCU'][key][1] for key in LCU_dict['R_LCU']])
+#     LCU_dict['gamma_l'] = 1 #TODO should remove this from all future terms!
+#
+#     return LCU_dict
 
 def convert_new(beta_k_Pk, beta_j_Pj):
     convert_term = {
