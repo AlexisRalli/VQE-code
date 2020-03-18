@@ -200,7 +200,7 @@ THETA = random.uniform(0,2*np.pi)
 
 E_list=[]
 from tqdm import tqdm
-for i in tqdm(np.arange(0, 2*np.pi, 0.1), ascii=True, desc='Getting ENERGIES'):
+for i in tqdm(np.arange(0, 2*np.pi, 0.05), ascii=True, desc='Getting ENERGIES'):
 
     ansatz_Q_cicuit = NEW_Anastz(i)
     w = ALCU_dict(ansatz_Q_cicuit, anti_commuting_set_stripped, S_dict, Hamilt.molecule.n_qubits)
