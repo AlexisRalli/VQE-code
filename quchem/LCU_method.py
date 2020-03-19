@@ -204,16 +204,14 @@ if __name__ == '__main__':
     # print(results.histogram(key='Z'))                         ## re-use ###
 
 
-
-
 ##
 
 from quchem.Hamiltonian_Generator_Functions import *
 
 ### Variable Parameters
 if __name__ == '__main__':
-    Molecule = 'H2'  # LiH'
-    geometry = None
+    Molecule = 'LiH'  # LiH'
+    geometry = [('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))] # None
     num_shots = 10000
     HF_occ_index = [0, 1, 2]  # [0, 1,2] # for occupied_orbitals_index_list
     #######
@@ -640,14 +638,14 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
 
     H_n = [(PauliWord,fact*np.sin(phi_n_1)) for PauliWord, fact in X_set['H_n_1']] + [(X_set['P_s'][0], np.cos(phi_n_1))]
 
-    LCU_dict['H_n'] = H_n
-
-    if not np.isclose(sum( c**2for p, c in H_n), 1):
+    if not np.isclose(sum(c**2for p, c in H_n), 1):
         raise ValueError('H_n definition normalisation is WRONG')
+
+    LCU_dict['H_n'] = H_n
 
     seperator = ' '
     I_term = seperator.join(['I{}'.format(i) for i in range(no_qubits)])
-    I_P_word= (I_term, np.cos(phi_n_1 / 2))
+    I_P_word= (I_term, np.cos(LCU_dict['alpha'] / 2))
 
     R_Op = [I_P_word]
 
@@ -658,8 +656,8 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
 
         R_Op.append((P_term, new_factor))
 
-    if not np.isclose((R_Op[0][1]** 2 + sum(abs(R_Op[i][1] ** 2) for i in range(1, len(R_Op)))), 1):
-        raise ValueError('R_operator definition normalisation is WRONG: {}'.format((R_Op[0][1]** 2 + sum(abs(R_Op[i][1] ** 2) for i in range(1, len(R_Op))))))
+    if not np.isclose(sum(abs(const)**2for PauliWord, const in R_Op), 1):
+        raise ValueError('R_operator definition normalisation is WRONG: {}'.format(sum(abs(const)**2for PauliWord, const in R_Op)))
 
     LCU_dict['R_Op'] = R_Op
     # need all constants of R_op to be positive and real for LCU
