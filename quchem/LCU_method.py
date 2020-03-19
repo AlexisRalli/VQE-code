@@ -659,7 +659,7 @@ def Get_R_linear_combination(anti_commuting_set, S_index, no_qubits):
         R_Op.append((P_term, new_factor))
 
     if not np.isclose((R_Op[0][1]** 2 + sum(abs(R_Op[i][1] ** 2) for i in range(1, len(R_Op)))), 1):
-        raise ValueError('R_operator definition normalisation is WRONG')
+        raise ValueError('R_operator definition normalisation is WRONG: {}'.format((R_Op[0][1]** 2 + sum(abs(R_Op[i][1] ** 2) for i in range(1, len(R_Op))))))
 
     LCU_dict['R_Op'] = R_Op
     # need all constants of R_op to be positive and real for LCU
