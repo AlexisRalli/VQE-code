@@ -89,23 +89,7 @@ class Hamiltonian():
         if self.geometry is None:
             raise ValueError('Unable to find molecule in the PubChem database.')
 
-    def Get_CCSD_Amplitudes(self):
-        """
-        Parse coupled cluster singles and doubles amplitudes from psi4 file
-        where: H = constant + ∑_pq (h_pq a†_p a_q) + ∑_pqrs (h_pqrs a†_p a†_q a_r a_s)
-        note that:
-            - single amplitudes: h_pq is a (n_qubits x n_qubits) numpy array
-            - doubles amplitudes: h_pqrs is a (n_qubits x n_qubits x n_qubits x n_qubits) numpy array
-        """
 
-        from openfermionpsi4._psi4_conversion_functions import parse_psi4_ccsd_amplitudes
-        # https://github.com/quantumlib/OpenFermion-Psi4/blob/master/openfermionpsi4/_psi4_conversion_functions.py
-        self.molecule.single_cc_amplitudes, self.molecule.double_cc_amplitudes = (
-                                                                    parse_psi4_ccsd_amplitudes(
-                                                                        2 * self.molecule.n_orbitals,
-                                                                        self.molecule.get_n_alpha_electrons(),
-                                                                        self.molecule.get_n_beta_electrons(),
-                                                                        self.molecule.filename + ".out"))
 
     def PrintInfo(self):
         if self.molecule is None:
@@ -145,6 +129,27 @@ class Hamiltonian():
         if Get_H_matrix is True:
             from openfermion.transforms import get_sparse_operator
             self.MolecularHamiltonianMatrix = get_sparse_operator(self.MolecularHamiltonian)
+
+    def Get_CCSD_Amplitudes(self):
+        """
+        Parse coupled cluster singles and doubles amplitudes from psi4 file
+        where: H = constant + ∑_pq (h_pq a†_p a_q) + ∑_pqrs (h_pqrs a†_p a†_q a_r a_s)
+        note that:
+            - single amplitudes: h_pq is a (n_qubits x n_qubits) numpy array
+            - doubles amplitudes: h_pqrs is a (n_qubits x n_qubits x n_qubits x n_qubits) numpy array
+        """
+
+        from openfermionpsi4._psi4_conversion_functions import parse_psi4_ccsd_amplitudes
+        # https://github.com/quantumlib/OpenFermion-Psi4/blob/master/openfermionpsi4/_psi4_conversion_functions.py
+        if self.molecule is None:
+            self.Run_Psi4()
+
+        self.molecule.single_cc_amplitudes, self.molecule.double_cc_amplitudes = (
+                                                                    parse_psi4_ccsd_amplitudes(
+                                                                        2 * self.molecule.n_orbitals,
+                                                                        self.molecule.get_n_alpha_electrons(),
+                                                                        self.molecule.get_n_beta_electrons(),
+                                                                        self.molecule.filename + ".out"))
 
     def Get_FCI_from_MolecularHamialtonian(self):
 
@@ -481,41 +486,101 @@ class Hamiltonian():
 
         return NMO_basis, NOON_spins_combined
 
-    def Remove_NOON_terms(self, occ_threshold=0.98, unocc_threshold=1e-4, indices_to_remove_list_manual=None,
-                          Coupled_cluser_param=False, filter_small_terms=False):
+    def Get_Fermionic_Hamiltonian(self):
 
-        if indices_to_remove_list_manual:
-            if self.molecule is None:
-                self.Run_Psi4()
-            indices_remove = set(indices_to_remove_list_manual)
+        """
+        Returns the second quantised Fermionic Molecular Hamiltonian of the Molecular Hamiltonian
+
+        e.g. H = h00 a†0a0 + h11a†1a1 + h22a†2a2 + h33a†3a3 + h0110 a†0a†1a1a0 +h2332a†2a†3a3a2 + ... etc etc
+
+        note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
+
+        returns:
+            FermionicHamiltonian (openfermion.ops._fermion_operator.FermionOperator): Fermionic Operator
+
+        e.g. for H2:
+                             0.7151043387432434 [] +
+                            -1.2533097864345657 [0^ 0] +
+                            0.3373779633738658 [0^ 0^ 0 0] +
+                            0.09060523101737843 [0^ 0^ 2 2] +
+                            0.3373779633738658 [0^ 1^ 1 0] +
+                            0.09060523101737843 [0^ 1^ 3 2] + ... etc ... etc
+
+        """
+
+        from openfermion.transforms import get_fermion_operator
+        FermionicHamiltonian = get_fermion_operator(self.MolecularHamiltonian)
+
+        return FermionicHamiltonian
+
+    def Get_Qubit_Hamiltonian(self, threshold=None, transformation='JW'):
+
+        """
+        Returns the second quantised Qubit Molecular Hamiltonian of the Molecular Hamiltonian using the
+        JORDAN WIGNER transformation. First gets the fermionic Hamiltonian and than performs JW.
+
+        e.g. H = h0 I + h1 Z0 + h2 Z1 +h3 Z2 + h4 Z3 + h5 Z0Z1 ... etc etc
+        note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
+
+        args:
+            threshold (optional, float): gives threshold of terms to ignore... e.g. the term
+                                        (0.00003+0j) [Y0 X1 X2 Y3]] would be ignored if threshold = 1e-2
+        returns:
+            QubitHamiltonian (openfermion.ops._qubit_operator.QubitOperator): Qubit Operator
+
+        e.g. for H2:
+                             (-0.09706626861762624+0j) [] +
+                            (-0.04530261550868928+0j) [X0 X1 Y2 Y3] +
+                            (0.04530261550868928+0j) [X0 Y1 Y2 X3] +
+                            (0.04530261550868928+0j) [Y0 X1 X2 Y3] +
+                            (-0.04530261550868928+0j) [Y0 Y1 X2 X3] +
+                            (0.17141282639402405+0j) [Z0] + ... etc etc
+
+        """
+
+
+        FermionicHamiltonian = self.Get_Fermionic_Hamiltonian()
+
+        if transformation == 'JW':
+            from openfermion.transforms import jordan_wigner
+            QubitHamiltonian = jordan_wigner(FermionicHamiltonian)
+        elif:
+            from openfermion.transforms import bravyi_kitaev
+            QubitHamiltonian = bravyi_kitaev(FermionicHamiltonian)
+
+        if transformation == 'BK':
+            from openfermion.ops import QubitOperator
+            reduced_QubitHamiltonian = QubitOperator()
+            for key in QubitHamiltonian.terms:
+                if np.abs(QubitHamiltonian.terms[key]) > threshold:
+                    reduced_QubitHamiltonian += QubitOperator(key, QubitHamiltonian.terms[key])
+            return reduced_QubitHamiltonian
         else:
-            NMO_basis, NOON_vals = self.Get_NOON()
-            occupied_indices = np.where(NMO_basis>occ_threshold)[0]
-            unoccupied_indices = np.where(NMO_basis<unocc_threshold)[0]
-            indices_remove = set(occupied_indices)
-            indices_remove.update(set(unoccupied_indices))
+            return QubitHamiltonian
 
-        Sec_Quant_CC_ops, theta_parameters = self.Get_ia_and_ijab_terms(Coupled_cluser_param=Coupled_cluser_param,
-                                                                        filter_small_terms=filter_small_terms)
+    def Get_sparse_Qubit_Hamiltonian_matrix(self, QubitOperator):
+        """
+        Get sparse matrix of qubit Hamiltonian
 
-        reduced_Sec_Quant_CC_ops = []
-        reduced_theta_parameters=[]
+        Args:
+            QubitOperator (openfermion.ops._qubit_operator.QubitOperator): Qubit operator
 
-        for index, excitation in enumerate(Sec_Quant_CC_ops):
-            #each term made up of two parts: -1.0 [2^ 3^ 10 11] + 1.0 [11^ 10^ 3 2]
-            first_term, second_term = excitation.terms.items()
+        Returns:
+            16x16 sparse matrix
 
-            qubit_indices, creation_annihilation_flags = zip(*first_term[0])
+        e.g.
+        input:
+            (-0.09706626861762581+0j) [] +
+            (-0.045302615508689394+0j) [X0 X1 Y2 Y3] +
+            (0.045302615508689394+0j) [X0 Y1 Y2 X3] +
+            (0.045302615508689394+0j) [Y0 X1 X2 Y3] +
+            (-0.045302615508689394+0j) [Y0 Y1 X2 X3] +
+            (0.17141282639402383+0j) [Z0]
+        """
+        from openfermion import qubit_operator_sparse
+        return qubit_operator_sparse(QubitOperator)
 
-            if set(qubit_indices).isdisjoint(indices_remove):
-                reduced_Sec_Quant_CC_ops.append(excitation)
-                reduced_theta_parameters.append(theta_parameters[index])
-            else:
-                continue
-        return reduced_Sec_Quant_CC_ops, reduced_theta_parameters
 
-    def NOON_HF_state(self):
-        pass
 
 
 class Hamiltonian_Transforms():
@@ -734,103 +799,6 @@ class Hamiltonian_Transforms():
             BK_CC_ops.append(get_sparse_operator(BK_Op, n_qubits=self.n_qubits))
         return BK_CC_ops
 
-    def Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(self, QubitMolecularHamiltonian, n_qubits):
-        """
-         From a Molecular Qubit Hamiltonian (openfermion.ops._qubit_operator.QubitOperator) generate corresponding
-         list of PauliStrings with cofactor!
-
-        Args:
-            QubitMolecularHamiltonian (openfermion.ops._qubit_operator.QubitOperator): Qubit Operator of molecular
-                                                                                        Hamiltonian
-                                                                                        (from Get_Qubit_Hamiltonian_JW method)
-
-        Returns:
-            PauliWord_str_list (list): List of tuples (PauliWord_str, cofactor)
-
-        e.g.
-        QubitMolecularHamiltonian  =
-                            (-0.32760818995565577+0j) [] +
-                            (-0.04919764587885283+0j) [X0 X1 Y2 Y3] +
-                            (0.04919764587885283+0j) [X0 Y1 Y2 X3] +
-                            (0.04919764587885283+0j) [Y0 X1 X2 Y3] +
-                            (-0.04919764587885283+0j) [Y0 Y1 X2 X3] +
-                            (0.1371657293179602+0j) [Z0] +
-                            (0.15660062486143395+0j) [Z0 Z1] +
-                            (0.10622904488350779+0j) [Z0 Z2] +
-                            (0.15542669076236065+0j) [Z0 Z3] +
-                            (0.1371657293179602+0j) [Z1] +
-                            (0.15542669076236065+0j) [Z1 Z2] +
-                            (0.10622904488350779+0j) [Z1 Z3] +
-                            (-0.13036292044009176+0j) [Z2] +
-                            (0.1632676867167479+0j) [Z2 Z3] +
-                            (-0.13036292044009176+0j) [Z3]
-
-        becomes
-
-         PauliWord_str_list=
-                         [
-                            [('I0 I1 I2 I3', (-0.32760818995565577+0j)),
-                             ('Z0 I1 I2 I3', (0.1371657293179602+0j)),
-                             ('I0 Z1 I2 I3', (0.1371657293179602+0j)),
-                             ('I0 I1 Z2 I3', (-0.13036292044009176+0j)),
-                             ('I0 I1 I2 Z3', (-0.13036292044009176+0j)),
-                             ('Z0 Z1 I2 I3', (0.15660062486143395+0j)),
-                             ('Y0 X1 X2 Y3', (0.04919764587885283+0j)),
-                             ('Y0 Y1 X2 X3', (-0.04919764587885283+0j)),
-                             ('X0 X1 Y2 Y3', (-0.04919764587885283+0j)),
-                             ('X0 Y1 Y2 X3', (0.04919764587885283+0j)),
-                             ('Z0 I1 Z2 I3', (0.10622904488350779+0j)),
-                             ('Z0 I1 I2 Z3', (0.15542669076236065+0j)),
-                             ('I0 Z1 Z2 I3', (0.15542669076236065+0j)),
-                             ('I0 Z1 I2 Z3', (0.10622904488350779+0j)),
-                             ('I0 I1 Z2 Z3', (0.1632676867167479+0j))]
-                         ]
-        """
-
-        PauliWord_str_list = []
-        all_indices = np.arange(0, n_qubits, 1)
-
-        for QubitOP in QubitMolecularHamiltonian:
-            for tupleOfTuples, factor in QubitOP.terms.items():
-                qubit_OP_list = [tupl[1] + str(tupl[0]) for tupl in tupleOfTuples]
-
-                if len(qubit_OP_list) < n_qubits:
-                    # fill missing terms with Identity
-                    indices_present = [int(qubitNo_and_OP[1::]) for qubitNo_and_OP in qubit_OP_list]
-                    missing_indices = [index for index in all_indices if index not in indices_present]
-
-                    for index in missing_indices:
-                        qubit_OP_list.append('I{}'.format(index))
-
-                    qubit_OP_list = sorted(qubit_OP_list, key=lambda x: int(x[1::]))  # sort by qubitNo!
-
-                seperator = ' '
-                PauliWord = seperator.join(qubit_OP_list)
-                PauliWord_str_list.append((PauliWord, factor))
-
-        return PauliWord_str_list
-
-    def Get_sparse_Qubit_Hamiltonian_matrix(self, QubitOperator):
-        """
-        Get sparse matrix of qubit Hamiltonian
-
-        Args:
-            QubitOperator (openfermion.ops._qubit_operator.QubitOperator): Qubit operator
-
-        Returns:
-            16x16 sparse matrix
-
-        e.g.
-        input:
-            (-0.09706626861762581+0j) [] +
-            (-0.045302615508689394+0j) [X0 X1 Y2 Y3] +
-            (0.045302615508689394+0j) [X0 Y1 Y2 X3] +
-            (0.045302615508689394+0j) [Y0 X1 X2 Y3] +
-            (-0.045302615508689394+0j) [Y0 Y1 X2 X3] +
-            (0.17141282639402383+0j) [Z0]
-        """
-        from openfermion import qubit_operator_sparse
-        return qubit_operator_sparse(QubitOperator)
 
 class CalcEnergy():
     """

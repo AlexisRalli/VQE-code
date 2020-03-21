@@ -210,8 +210,8 @@ from quchem.Hamiltonian_Generator_Functions import *
 
 ### Variable Parameters
 if __name__ == '__main__':
-    Molecule = 'LiH'  # LiH'
-    geometry = [('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))] # None
+    Molecule = 'H2'  # LiH'
+    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))] # None#[('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))] # None
     num_shots = 10000
     HF_occ_index = [0, 1, 2]  # [0, 1,2] # for occupied_orbitals_index_list
     #######
@@ -916,91 +916,128 @@ if __name__ == '__main__':
 
 ### LCU_GUG method
 
-class PauliModified_gate(cirq.SingleQubitGate):
+
+class Change_modified_PauliStr_gate_to_Z_basis(cirq.SingleQubitGate):
     """
     Take in a string of PauliWord ('X', 'Y', 'Z', 'I')
+    e.g. X and correction factor e.g. 1i to give overall modified operator: iX
 
-    NOTE that for iPsPk term = X_sk = ('X0 X1 X2 Y3', -(1+0j))
-                                                       ^^^^ this is the correction factor!
-
-    Info on matrix definition found at: https://arxiv.org/pdf/1001.3855.pdf
-
+    The function finds eigenvalue of operator and THEN gives corresponding operator to change to Z basis for measurement!
 
     Args:
-        theta_sk (float): angle to rotate by in radians.
-        dagger (bool): Whether to have dagger or non dagger quantum gate
-        correction_factor (optional, complex): Correction value from X_sk operator.
-                                               e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
-                                              (due to X_sk = i*P_s*P_k... X_sk may require correction_factor!)
+        LCU_PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+        LCU_correction_value (complex):
 
-    Attributes:
-        theta_sk_over_2 (float): angle to rotate by in radians. Note divided by 2 due to definition of exponentiated
-                                 Pauli terms (https://arxiv.org/pdf/1001.3855.pdf)!
-
+    Returns
+        A cirq circuit object to be used by cirq.Circuit
 
     """
 
-    def __init__(self, Pauli_str, Correction_value, dagger=False):
+    def __init__(self, Pauli_str, Correction_value):
 
         self.Pauli_str = Pauli_str
-        self.dagger = dagger
         self.Correction_value = Correction_value
 
     def _unitary_(self):
 
-        if self.dagger:
+        from scipy.linalg import eig
 
-            if self.Pauli_str == 'Z':
-                P_mod = cirq.Z._unitary_() * self.Correction_value
-                return P_mod
-            elif self.Pauli_str == 'Y':
-                P_mod = cirq.Y._unitary_() * self.Correction_value
-                return P_mod
-            elif self.Pauli_str == 'X':
-                P_mod = cirq.X._unitary_() * self.Correction_value
-                return P_mod
-            elif self.Pauli_str == 'I':
-                P_mod = cirq.I._unitary_() * self.Correction_value
-                return P_mod
-            else:
-                raise TypeError('not a Pauli operation')
+        if self.Pauli_str == 'Z':
+            P_mod = cirq.Z._unitary_() * self.Correction_value
+
+        elif self.Pauli_str == 'Y':
+            P_mod = cirq.Y._unitary_() * self.Correction_value
+
+        elif self.Pauli_str == 'X':
+            P_mod = cirq.X._unitary_() * self.Correction_value
+
+        elif self.Pauli_str == 'I':
+            P_mod = cirq.I._unitary_() * self.Correction_value
+
         else:
-            if self.Pauli_str == 'Z':
-                P_mod = (cirq.Z._unitary_() * self.Correction_value).transpose().conj()
-                return P_mod
-            elif self.Pauli_str == 'Y':
-                P_mod = (cirq.Y._unitary_() * self.Correction_value).transpose().conj()
-                return P_mod
-            elif self.Pauli_str == 'X':
-                P_mod = (cirq.X._unitary_() * self.Correction_value).transpose().conj()
-                return P_mod
-            elif self.Pauli_str == 'I':
-                P_mod = (cirq.I._unitary_() * self.Correction_value).transpose().conj()
-                return P_mod
-            else:
-                raise TypeError('not a Pauli operation')
+            raise TypeError('not a Pauli operation')
+        val, P_mod_eig = eig(P_mod)
+
+        x1 = P_mod_eig[0,0]
+        x2 = P_mod_eig[1,0]
+        x3 = P_mod_eig[0,1]
+        x4 = P_mod_eig[1,1]
+
+        a= (-x4*x3)/((-x3*x1*x4)+(x3**2*x2))
+        b= (x3)/((-x1*x4)+(x3*x2))
+        c= (-x2*x1)/((-x1*x2*x3)+(x1**2*x4))
+        d= (x1)/((-x2*x3)+(x1*x4))
+        U = np.array([[a,b], [c,d]])
+
+        tol = 1e-8
+        U.real[abs(U.real) < tol] = 0.0
+        U.imag[abs(U.imag) < tol] = 0.0
+        return U
 
     def num_qubits(self):
         return 1
 
     def _circuit_diagram_info_(self, args):
-        # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
-        # Takes into account PauliWord constant.
+        return 'change to Z basis for modified PauliMod : {} times {}'.format(self.Pauli_str, self.Correction_value)
 
-        if self.dagger:
-            return 'PauliMod : {}_dag times {}'.format(self.Pauli_str, self.Correction_value)
+class Change_modified_PauliStr_gate_to_Z_basis(cirq.SingleQubitGate):
+    """
+    Take in a string of PauliWord ('X', 'Y', 'Z', 'I')
+    e.g. X and correction factor e.g. 1i to give overall modified operator: iX
+
+    The function finds eigenvalue of operator and THEN gives corresponding operator to change to Z basis for measurement!
+
+    Args:
+        LCU_PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
+        LCU_correction_value (complex):
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit
+
+    """
+
+    def __init__(self, Pauli_str, Correction_value):
+
+        self.Pauli_str = Pauli_str
+        self.Correction_value = Correction_value
+
+    def _unitary_(self):
+
+        from scipy.linalg import eig
+
+        if self.Pauli_str == 'Z':
+            P_mod = cirq.Z._unitary_() * self.Correction_value
+
+        elif self.Pauli_str == 'Y':
+            P_mod = cirq.Y._unitary_() * self.Correction_value
+
+        elif self.Pauli_str == 'X':
+            P_mod = cirq.X._unitary_() * self.Correction_value
+
+        elif self.Pauli_str == 'I':
+            P_mod = cirq.I._unitary_() * self.Correction_value
+
         else:
-            return 'PauliMod : {} times {}'.format(self.Pauli_str, self.Correction_value)
+            raise TypeError('not a Pauli operation')
+
+
+
+
+    def num_qubits(self):
+        return 1
+
+    def _circuit_diagram_info_(self, args):
+        return 'change to Z basis for modified PauliMod : {} times {}'.format(self.Pauli_str, self.Correction_value)
 
 
 if __name__ == '__main__':
     Pauli_str = 'Z'
     Correction_value = -1
-    dag = False
 
-    test_gate = PauliModified_gate(Pauli_str, Correction_value, dagger=dag)
+    test_gate = Change_modified_PauliStr_gate_to_Z_basis(Pauli_str, Correction_value)
     circ = test_gate.on(cirq.LineQubit(1))
     print(cirq.Circuit(circ))
+
 
 
 class Perform_Modified_PauliWord(cirq.Gate):
@@ -1010,7 +1047,6 @@ class Perform_Modified_PauliWord(cirq.Gate):
     Args:
         LCU_PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
         LCU_correction_value (complex):
-        dagger (bool): whether to have dagger gate or not
 
     Returns
         A cirq circuit object to be used by cirq.Circuit
@@ -1024,18 +1060,17 @@ class Perform_Modified_PauliWord(cirq.Gate):
         print(cirq.Circuit(
         cirq.decompose_once((P_circ_mod(*cirq.LineQubit.range(P_circ_mod.num_qubits()))))))
         >>
-                0: ───PauliMod : Y times -1j───
-                1: ───PauliMod : Z times -1j───
-                2: ───PauliMod : X times -1j───
-                3: ───PauliMod : I times -1j───
+                0: ───change to Z basis for modified PauliMod : Y times -1j───
+                1: ───change to Z basis for modified PauliMod : Z times -1j───
+                2: ───change to Z basis for modified PauliMod : X times -1j───
+                3: ───change to Z basis for modified PauliMod : I times -1j───
 
     """
 
-    def __init__(self, LCU_PauliWord_and_cofactor, LCU_correction_value, dagger):
+    def __init__(self, LCU_PauliWord_and_cofactor, LCU_correction_value):
 
         self.PauliWord_and_cofactor = LCU_PauliWord_and_cofactor
         self.correction_value = LCU_correction_value
-        self.dagger = dagger
 
     def _decompose_(self, qubits):
 
@@ -1045,18 +1080,13 @@ class Perform_Modified_PauliWord(cirq.Gate):
             qubitOp = PauliString[0]
             qubitNo = int(PauliString[1::])
 
-            yield PauliModified_gate(qubitOp, self.correction_value, dagger=self.dagger).on(qubits[qubitNo])
+            yield Change_modified_PauliStr_gate_to_Z_basis(qubitOp, self.correction_value).on(qubits[qubitNo])
 
     def _circuit_diagram_info_(self, args):
         string_list = []
         PauliWord = self.PauliWord_and_cofactor[0].split(' ')
-
-        if self.dagger:
-            for _ in range(len(PauliWord)):
-                string_list.append(' Pauliword_modified_for_LCU_DAGGER ')
-        else:
-            for _ in range(len(PauliWord)):
-                string_list.append(' Pauliword_modified_for_LCU ')
+        for _ in range(len(PauliWord)):
+            string_list.append('change to Z basis for Pauliword_modified_for_LCU ')
         return string_list
 
     def num_qubits(self):
@@ -1067,9 +1097,8 @@ class Perform_Modified_PauliWord(cirq.Gate):
 if __name__ == '__main__':
     test_case = ('Y0 Z1 Z2 Z3 Z4 Z5 Z6 Z7 Y8 X9 Z10 Y11', 0.00070859248123462)
     correction_val = (-0 - 1j)
-    dag = False
 
-    P_circ_mod = Perform_Modified_PauliWord(test_case, correction_val, dag)
+    P_circ_mod = Perform_Modified_PauliWord(test_case, correction_val)
 
     print(cirq.Circuit((P_circ_mod(*cirq.LineQubit.range(P_circ_mod.num_qubits())))))
     print(
