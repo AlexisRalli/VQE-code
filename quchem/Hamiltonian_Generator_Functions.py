@@ -544,16 +544,19 @@ class Hamiltonian():
         if transformation == 'JW':
             from openfermion.transforms import jordan_wigner
             QubitHamiltonian = jordan_wigner(FermionicHamiltonian)
-        elif:
+        elif transformation == 'BK':
             from openfermion.transforms import bravyi_kitaev
             QubitHamiltonian = bravyi_kitaev(FermionicHamiltonian)
 
-        if transformation == 'BK':
-            from openfermion.ops import QubitOperator
-            reduced_QubitHamiltonian = QubitOperator()
-            for key in QubitHamiltonian.terms:
+
+        from openfermion.ops import QubitOperator
+        reduced_QubitHamiltonian = QubitOperator()
+        reduction_flag = False
+        for key in QubitHamiltonian.terms:
                 if np.abs(QubitHamiltonian.terms[key]) > threshold:
                     reduced_QubitHamiltonian += QubitOperator(key, QubitHamiltonian.terms[key])
+                    reduction_flag = True
+        if reduction_flag:
             return reduced_QubitHamiltonian
         else:
             return QubitHamiltonian
