@@ -753,157 +753,20 @@ def Get_subgraph_of_coloured_graph(anti_commuting_set_stripped, anti_comm_QWC):
 
 
 
-if __name__ == '__main__':
-    from quchem.Hamiltonian_Generator_Functions import *
 
 
-    ### Parameters
-    Molecule = 'LiH'
-    geometry = [('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))]
-    num_shots = 10000
-    basis = 'sto-3g'
+########### Hamiltonian Graph Functions ##############
 
-
-    ### Get Hamiltonian
-    Hamilt = Hamiltonian(Molecule,
-                         run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
-                         basis=basis,
-                         multiplicity=1,
-                         geometry=geometry)  # normally None!
-
-    Hamilt.Get_Molecular_Hamiltonian()
-    SQ_CC_ops, THETA_params = Hamilt.Get_ia_and_ijab_terms(Coupled_cluser_param=True)
-
-    HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops, Hamilt.molecule.n_qubits)
-
-    QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW(threshold=None) # threshold=1e-12
-
-    OperatorList = [op for op in QubitHam]
-    from openfermion.utils._commutators import commutator
-    print(commutator(OperatorList[0],OperatorList[2]))
-
-
-    # # This method to check commutation relation is SLOW as it uses lin alg (matrix mulitplication)
-    # # Can maybe loop through via same method, but convert to str THEN check and if correct THEN append
-    # for index, term in enumerate(OperatorList):
-    #     for j in range(index+1 ,len(OperatorList)):
-    #         print(commutator(OperatorList[index], OperatorList[j]))
-    #
-    # for index, term in enumerate(OperatorList):
-    #     for j in range(index+1 ,len(OperatorList)):
-    #         print(commutator(OperatorList[index], OperatorList[j]))
-
-
-
-class Hamiltonian_Graph()
-    def __init__(self, QubitOperator_Hamiltonian):
-        self.QubitOperator_Hamiltonian_list = [qubitOperator for qubitOperator in QubitOperator_Hamiltonian]
-
-        self.QubitOperator_Hamiltonian_tuple_Frozen = tuple(frozenset((PauliStr, const) for qubitOperator in
-                                                                      QubitOperator_Hamiltonian for PauliStr, const
-                                                                      in qubitOperator.terms.items()))
-
-    def Calc_Commutativity(self, QubitOp_1_frozen, QubitOp_2_frozen, Comm_flag):
-        """
-
-         Find if two PauliWords either commute or anti_commute.
-         By default it will check if they commute.
-
-        Args:
-            QubitOp_1 ( openfermion.ops._qubit_operator.QubitOperator): First PauliWord to compare
-            QubitOp_2 ( openfermion.ops._qubit_operator.QubitOperator): Second PauliWord to compare
-            Comm_flag (str): flags to find either:
-                                                       qubit wise commuting (QWC) terms  -> flag = 'QWC',
-                                                                         commuting terms -> flag = 'C',
-                                                                    anti-commuting terms -> flag = 'AC'
-
-        Returns:
-            (bool): True or false as to whether terms commute or anti_commute
-
-        """
-
-        # checker = np.zeros(len(P1))
-
-        QubitOp_1_PauliStrs, _ = QubitOp_1_frozen
-        qubitNo_Op1, PauliStr_Op1 = list(zip(*QubitOp_1_PauliStrs))
-        qubitNo_Op1 = np.array(qubitNo_Op1)
-
-        QubitOp_2_PauliStrs, _ = QubitOp_2_frozen
-        qubitNo_Op2, PauliStr_Op2 = list(zip(*QubitOp_2_PauliStrs))
-        qubitNo_Op2 = np.array(qubitNo_Op2)
-
-        common_qubits = np.intersect1d(qubitNo_Op1, qubitNo_Op2)
-
-        PauliStr_Op1_common = PauliStr_Op1[np.where(np.isin(qubitNo_Op1, common_qubits)==True)]
-        PauliStr_Op2_common = PauliStr_Op2[np.where(np.isin(qubitNo_Op2, common_qubits)==True)]
-
-        #TODO currently doing
-
-        PauliStr_Op1_common = PauliStr_Op1[np.where(np.isin(qubitNo_Op1, common_qubits) == True)[0]]
-
-        set(qubitNo_Op1).intersection(set(qubitNo_Op2))
-
-        QubitOp_1_PauliStrs_list = list(QubitOp_1_PauliStrs)
-        if len(QubitOp_1_PauliStrs_list) == 0:
-            QubitOp_1_PauliStrs_list = [(0, 'I')]
-
-        if QubitOp_1_PauliStrs_list[0][0] != 0:
-            QubitOp_1_PauliStrs_list = [(i, 'I') for i in range(QubitOp_1_PauliStrs_list[0][0])] + QubitOp_1_PauliStrs_list
-
-        QubitOp_2_PauliStrs, _ = QubitOp_2_frozen
-        QubitOp_2_PauliStrs_list = list(QubitOp_2_PauliStrs)
-        if len(QubitOp_2_PauliStrs_list) == 0:
-            QubitOp_2_PauliStrs_list = [(0, 'I')]
-
-        if QubitOp_2_PauliStrs_list[0][0] != 0:
-            QubitOp_2_PauliStrs_list = [(i, 'I') for i in range(QubitOp_2_PauliStrs_list[0][0])] + QubitOp_2_PauliStrs_list
-
-        checker = []
-        for qubit_no in range(min(len(P1_list), len(P2_list))):
-            if P1_list[qubit_no][1] == 'I' or P2_list[qubit_no][1] == 'I':
-                checker.append(1)
-            elif P1_list[qubit_no][1] == P2_list[qubit_no][1]:
-                checker.append(1)
-            else:
-                checker.append(-1)
-        checker = np.array(checker)
-        if anti_comm_QWC == 'QWC':
-            # QWC commuting
-            if bool(np.all([x == 1 for x in checker])) is True:
-                return True
-            else:
-                return False
-        else:
-            if anti_comm_QWC == 'C':
-                # Commuting
-                if np.prod(checker) == 1:
-                    return True
-                else:
-                    return False
-            elif anti_comm_QWC == 'AC':
-                # ANTI-commuting
-                if np.prod(checker) == -1:
-                    return True
-                else:
-                    return False
-            else:
-                raise KeyError('Incorrect flag used. anti_comm_QWC must be: \'QWC\', \'C\' or \'AC\'')
-
-
-
-OperatorList = [op for op in QubitHam]
-a = OperatorList[12]
-b= OperatorList[13]
-def OpenFermion_Commutativity(P1, P2, anti_comm_QWC):
+def OpenFermion_Commutativity(QubitOp_1_frozen, QubitOp_2_frozen, Comm_flag):
     """
 
      Find if two PauliWords either commute or anti_commute.
      By default it will check if they commute.
 
     Args:
-        P1 ( openfermion.ops._qubit_operator.QubitOperator): First PauliWord to compare
-        P2 ( openfermion.ops._qubit_operator.QubitOperator): Second PauliWord to compare
-        anti_comm_QWC (str): flags to find either:
+        QubitOp_1 ( openfermion.ops._qubit_operator.QubitOperator): First PauliWord to compare
+        QubitOp_2 ( openfermion.ops._qubit_operator.QubitOperator): Second PauliWord to compare
+        Comm_flag (str): flags to find either:
                                                    qubit wise commuting (QWC) terms  -> flag = 'QWC',
                                                                      commuting terms -> flag = 'C',
                                                                 anti-commuting terms -> flag = 'AC'
@@ -915,59 +778,65 @@ def OpenFermion_Commutativity(P1, P2, anti_comm_QWC):
 
     # checker = np.zeros(len(P1))
 
-    P1_PauliStrs, _ = P1
-    P1_list = list(P1_PauliStrs)
-    if len(P1_list)==0:
-        P1_list = [(0, 'I')]
-
-    if P1_list[0][0] != 0:
-        P1_list =  [(i, 'I') for i in range(P1_list[0][0])] + P1_list
-
-    P1_PauliStrs, _ = P2
-    P2_list = list(P1_PauliStrs)
-    if len(P2_list)==0:
-        P2_list = [(0, 'I')]
-
-    if P2_list[0][0] != 0:
-        P2_list = [(i, 'I') for i in range(P2_list[0][0])] + P2_list
-
-    checker=[]
-    for qubit_no in range(min(len(P1_list), len(P2_list))):
-        if P1_list[qubit_no][1]  == 'I' or P2_list[qubit_no][1] == 'I':
-            checker.append(1)
-        elif P1_list[qubit_no][1]  == P2_list[qubit_no][1]:
-            checker.append(1)
+    QubitOp_1_PauliStrs, _ = QubitOp_1_frozen
+    if QubitOp_1_PauliStrs:
+        qubitNo_Op1, PauliStr_Op1 = list(zip(*QubitOp_1_PauliStrs))
+        qubitNo_Op1 = np.array(qubitNo_Op1)
+    else:
+        #identity term!
+        if Comm_flag == 'C':
+            return True
+        elif Comm_flag == 'QWC':
+            return True
+        elif Comm_flag == 'AC':
+            return False
         else:
-            checker.append(-1)
-    checker = np.array(checker)
-    if anti_comm_QWC == 'QWC':
+            raise ValueError('unknown commutation flag')
+
+    QubitOp_2_PauliStrs, _ = QubitOp_2_frozen
+    if QubitOp_2_PauliStrs:
+        qubitNo_Op2, PauliStr_Op2 = list(zip(*QubitOp_2_PauliStrs))
+        qubitNo_Op2 = np.array(qubitNo_Op2)
+    else:
+        # identity term!
+        if Comm_flag == 'C':
+            return True
+        elif Comm_flag == 'QWC':
+            return True
+        elif Comm_flag == 'AC':
+            return False
+        else:
+            raise ValueError('unknown commutation flag')
+
+    common_qubits = np.intersect1d(qubitNo_Op1, qubitNo_Op2)
+
+    PauliStr_Op1_common = np.take(PauliStr_Op1, np.where(np.isin(qubitNo_Op1, common_qubits) == True)).flatten()
+    PauliStr_Op2_common = np.take(PauliStr_Op2, np.where(np.isin(qubitNo_Op2, common_qubits) == True)).flatten()
+
+    commutativity_check = np.array([1 if Pauli_op1_common == PauliStr_Op2_common[index] else -1
+                                    for index, Pauli_op1_common in enumerate(PauliStr_Op1_common)])
+
+    if Comm_flag == 'QWC':
         # QWC commuting
-        if bool(np.all([x==1 for x in checker])) is True:
+        if bool(np.all([x == 1 for x in commutativity_check])) is True:
             return True
         else:
             return False
     else:
-        if anti_comm_QWC == 'C':
+        if Comm_flag == 'C':
             # Commuting
-            if np.prod(checker) == 1:
+            if np.prod(commutativity_check) == 1:
                 return True
             else:
                 return False
-        elif anti_comm_QWC == 'AC':
+        elif Comm_flag == 'AC':
             # ANTI-commuting
-            if np.prod(checker) == -1:
+            if np.prod(commutativity_check) == -1:
                 return True
             else:
                 return False
         else:
             raise KeyError('Incorrect flag used. anti_comm_QWC must be: \'QWC\', \'C\' or \'AC\'')
-
-#TODO build nodes
-
-frozen_op = tuple(frozenset((PauliStr, const) for op in QubitHam for PauliStr, const in op.terms.items()))
-i,j = frozen_op[1]
-
-OpenFermion_Commutativity(frozen_op[1],frozen_op[3], 'C')
 
 def Openfermion_Build_Graph_Nodes(List_of_nodes, Graph, plot_graph=False):
     """
@@ -1019,7 +888,7 @@ def Openfermion_Build_Graph_Nodes(List_of_nodes, Graph, plot_graph=False):
             node_list.append(node)
 
             PauliStrs, _ = node
-            PauliStr_list = [''.join(map(str,[element for element in tupl[::-1]])) for tupl in i]
+            PauliStr_list = [''.join(map(str,[element for element in tupl[::-1]])) for tupl in PauliStrs]
             PauliWord= ' '.join(PauliStr_list)
             labels[node] = PauliWord
 
@@ -1072,7 +941,6 @@ def Openfermion_Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(Graph, List_of_nod
 
         if plot_graph == True:
             node_list.append(selected_PauliWord)
-
             PauliStrs, _ = selected_PauliWord
             PauliStr_list = [''.join(map(str, [element for element in tupl[::-1]])) for tupl in PauliStrs]
             PauliWord = ' '.join(PauliStr_list)
@@ -1141,7 +1009,7 @@ def Openfermion_Get_clique_cover(Graph, strategy='largest_first', plot_graph=Fal
                                      that are completely connected by edges
 
     """
-    comp_GRAPH = Get_Complemenary_Graph(Graph, plot_graph=False)
+    comp_GRAPH = Openfermion_Get_Complemenary_Graph(Graph, plot_graph=False)
 
     greedy_colouring_output_dic = nx.greedy_color(comp_GRAPH, strategy=strategy, interchange=False)
     unique_colours = set(greedy_colouring_output_dic.values())
@@ -1220,12 +1088,10 @@ class Openfermion_Hamiltonian_Graph():
 
         self.Graph = Openfermion_Build_Graph_Nodes(self.QubitHamiltonianFrozen, self.Graph, plot_graph=plot_graph)
 
-
     def _Build_Graph_edges(self, commutativity_flag, plot_graph=False):
 
         self.Graph = Openfermion_Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(self.Graph, self.QubitHamiltonianFrozen,
                                                                                commutativity_flag, plot_graph = plot_graph)
-
 
     def _Colour_Graph(self, Graph_colouring_strategy='largest_first', plot_graph=False):
 
@@ -1252,9 +1118,240 @@ class Openfermion_Hamiltonian_Graph():
         return qubitOperator_list_str
 
 
+if __name__ == '__main__':
+    from quchem.Hamiltonian_Generator_Functions import *
+
+
+    ### Parameters
+    Molecule = 'H2'#LiH'
+    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))] # [('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))]
+    num_shots = 10000
+    basis = 'sto-3g'
+
+
+    ### Get Hamiltonian
+    Hamilt = Hamiltonian(Molecule,
+                         run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
+                         basis=basis,
+                         multiplicity=1,
+                         geometry=geometry)  # normally None!
+
+    Hamilt.Get_Molecular_Hamiltonian()
+    SQ_CC_ops, THETA_params = Hamilt.Get_ia_and_ijab_terms(Coupled_cluser_param=True)
+
+    HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops, Hamilt.molecule.n_qubits)
+
+    QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW(threshold=None) # threshold=1e-12
+
+    xx = Openfermion_Hamiltonian_Graph(QubitHam)
+    set_list = xx.Get_Clique_Cover_as_QubitOp('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
+    # from openfermion.utils._commutators import commutator
+    # print(commutator(OperatorList[0],OperatorList[2]))
+
+def Graph_of_two_sets(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC, plot_graph=False):
+    """
+
+    Function builds graph edges for commuting / anticommuting / QWC PauliWords
+
+    Args:
+        PauliWord_string_nodes_list_1 (list): list of PauliWords (str) of set 1
+        PauliWord_string_nodes_list_2 (list): list of PauliWords (str) of set 2
+        anti_comm_QWC (str): flags to find either:
+                                           qubit wise commuting (QWC) terms  -> flag = 'QWC',
+                                                             commuting terms -> flag = 'C',
+                                                        anti-commuting terms -> flag = 'AC'
+        plot_graph (optional, bool): whether to plot graph
+
+    Returns:
+        Graph: a networkX Graph with nodes connected if they commute / QWC / anti-commute
+
+    """
+
+    combined_sets = qubitOperator_list_1 + qubitOperator_list_2
+
+    qubitOperator_list_combined_frozen = tuple(frozenset((PauliStr, const) for op in combined_sets \
+                                             for PauliStr, const in op.terms.items()))
+
+    Graph = nx.Graph()
+
+    ## build nodes
+    for node in qubitOperator_list_combined_frozen:
+        Graph.add_node(node)
+
+    ## build edges
+    node_list = []
+    labels = {}
+    for index, selected_PauliWord in enumerate(tqdm(list(Graph.nodes), ascii=True, desc='Building Graph Edges')):
+
+        for j in range(index + 1, len(Graph.nodes)):
+            comparison_PauliWord = list(Graph.nodes)[j]
+
+            if OpenFermion_Commutativity(selected_PauliWord, comparison_PauliWord, anti_comm_QWC) is True:
+                Graph.add_edge(selected_PauliWord, comparison_PauliWord)
+            else:
+                continue
+
+        if plot_graph == True:
+            node_list.append(selected_PauliWord)
+            PauliStrs, _ = selected_PauliWord
+            PauliStr_list = [''.join(map(str, [element for element in tupl[::-1]])) for tupl in PauliStrs]
+            PauliWord = ' '.join(PauliStr_list)
+            labels[selected_PauliWord] = PauliWord
+
+    if plot_graph == True:
+        plt.figure()
+
+        pos = nx.circular_layout(Graph)
+
+        nx.draw_networkx_nodes(Graph, pos,
+                               nodelist=node_list,
+                               node_color='r',
+                               node_size=500,
+                               alpha=0.8)
+
+        nx.draw_networkx_labels(Graph, pos, labels)  # , font_size=8)
+        nx.draw_networkx_edges(Graph, pos, width=1.0, alpha=0.5)
+        plt.show()
+
+    return Graph
+
+
+def Check_if_graph_of_two_sets_completely_connected(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC,
+                                                    plot_graph=False):
+    """
+
+    Function checks if graph of two sets is completely connected or not
+
+    Args:
+        GRAPH (networkx.classes.graph.Graph): networkX graph of two sets
+        set1_P (list): list of PauliWords (str) of set 1
+        set2_P (list): list of PauliWords (str) of set 2
+
+    Returns:
+        Bool: True if completely connected
+
+    """
+
+    G = Graph_of_two_sets(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC, plot_graph=plot_graph)
+
+
+    qubitOperator_list_1_frozen = tuple(frozenset((PauliStr, const) for op in qubitOperator_list_1 \
+                                             for PauliStr, const in op.terms.items()))
+
+    qubitOperator_list_2_frozen = tuple(frozenset((PauliStr, const) for op in qubitOperator_list_2 \
+                                             for PauliStr, const in op.terms.items()))
+
+
+    adj_mat = nx.adjacency_matrix(G, nodelist=[*qubitOperator_list_1_frozen, *qubitOperator_list_2_frozen])
+
+    # select correct part of adjacency matrix!
+    check_connected = adj_mat[:len(qubitOperator_list_1_frozen), len(qubitOperator_list_1_frozen):len(qubitOperator_list_1_frozen)+len(qubitOperator_list_2_frozen)]
+
+    #Get number of connected terms
+    num_non_zero = check_connected.nnz
+
+    #Get number of connected terms if completely connected
+    num_non_zero_full = check_connected.shape[0]*check_connected.shape[1]
+
+    if num_non_zero == num_non_zero_full:
+        return True, adj_mat
+    else:
+        return False, adj_mat
+
+#TODO currently think Check_if_graph_of_two_sets_completely_connected is WRONG
+# xx = Openfermion_Hamiltonian_Graph(QubitHam)
+# set_list = xx.Get_Clique_Cover_as_QubitOp('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
+#
+# qubitOperator_list_1= set_list[9]
+# qubitOperator_list_2 = set_list[10]
+# anti_comm_QWC='C'
+#
+# ll = Graph_of_two_sets(qubitOperator_list_1,qubitOperator_list_2, anti_comm_QWC, plot_graph=True)
+# # # BOOL, adj_mat = Check_if_graph_of_two_sets_completely_connected(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC, plot_graph=False)
+# # adj_mat.todense()
+# set_list
 
 
 
 
 
+def Check_if_graph_of_two_sets_completely_connected(GRAPH, set1_P, set2_P):
+    """
 
+    Function checks if graph of two sets is completely connected or not
+
+    Args:
+        GRAPH (networkx.classes.graph.Graph): networkX graph of two sets
+        set1_P (list): list of PauliWords (str) of set 1
+        set2_P (list): list of PauliWords (str) of set 2
+
+    Returns:
+        Bool: True if completely connected
+
+    """
+    adj_mat = nx.adjacency_matrix(GRAPH, nodelist=[*set1_P, *set2_P])
+
+    # select correct part of adjacency matrix!
+    check_connected = adj_mat[:len(set1_P), len(set1_P):len(set1_P)+len(set2_P)]
+
+    #Get number of connected terms
+    num_non_zero = check_connected.nnz
+
+    #Get number of connected terms if completely connected
+    num_non_zero_full = check_connected.shape[0]*check_connected.shape[1]
+
+    if num_non_zero == num_non_zero_full:
+        return True
+    else:
+        return False
+
+
+def Get_subgraph_of_coloured_graph(anti_commuting_set_stripped, anti_comm_QWC):
+    """
+
+    Function takes in a  dictionary of sets (anti_commuting_set_stripped), where each
+    value is a list of (PauliWord, constant). It takes the KEY of each set and works out what other KEYS
+    commute with it. NOTE this is keys of the dictionary - to be used to select terms in anti_commuting_set_stripped
+
+    Args:
+        anti_commuting_set_stripped (dict):  dictionary of sets, each is a list of (PauliWord, constant)
+        anti_comm_QWC (str): flags to find either:
+                                           qubit wise commuting (QWC) terms  -> flag = 'QWC',
+                                                             commuting terms -> flag = 'C',
+                                                        anti-commuting terms -> flag = 'AC'
+    Returns:
+        GRAPH_key_nodes: a networkX Graph with nodes as sets and connection edge when everything between sets is QWC, C or AC
+
+    anti_commuting_set_stripped =
+        {
+         0: [('I0 I1 I2 I3 I4 I5 I6 I7 I8 I9 I10 I11 I12 I13',(-46.46560078368167+0j))],
+         1: [('I0 I1 I2 I3 I4 I5 I6 I7 Z8 Z9 I10 I11 I12 I13',(0.2200397733437614+0j))],
+         2: [('I0 I1 I2 I3 I4 I5 I6 I7 Z8 I9 I10 I11 I12 I13', (1.3692852793098753+0j)),
+          ('Y0 X1 I2 I3 I4 I5 I6 I7 X8 Y9 I10 I11 I12 I13', (0.006509359453068324+0j)),
+          ('Y0 Z1 Z2 X3 I4 I5 I6 I7 X8 Y9 I10 I11 I12 I13', (-0.00812685940290403+0j)),
+          ('I0 X1 X2 I3 I4 I5 I6 I7 X8 X9 I10 I11 I12 I13', (0.00812685940290403+0j)),
+          ('Y0 Z1 Z2 Z3 Z4 Z5 Z6 X7 X8 Y9 I10 I11 I12 I13',(-0.0033479000466714085+0j)),
+          ('I0 X1 Z2 Z3 Z4 Z5 X6 I7 X8 X9 I10 I11 I12 I13',(0.0033479000466714085+0j)),
+          ('Y0 Z1 Z2 Z3 Z4 Z5 Z6 Z7 Y8 X9 Z10 X11 I12 I13', (-0.0038801488134230276+0j)),
+          ('I0 X1 Z2 Z3 Z4 Z5 Z6 Z7 Y8 Y9 X10 I11 I12 I13',(-0.0038801488134230276+0j))]
+       }
+    anti_comm_QWC = 'C'
+
+    """
+    GRAPH_key_nodes = nx.Graph()
+    for key in anti_commuting_set_stripped:
+        GRAPH_key_nodes.add_node(key)
+
+    for key in anti_commuting_set_stripped:
+        set1_P, set1_C = zip(*anti_commuting_set_stripped[key])
+
+        for k in range(key + 1, len(anti_commuting_set_stripped)):
+            set2_P, set2_C = zip(*anti_commuting_set_stripped[k])
+
+            Graph_of_sets = Graph_of_two_sets(set1_P, set2_P,
+                                              anti_comm_QWC, plot_graph=False, node_attributes_dict=None)
+
+            if Check_if_sets_completely_connected(Graph_of_sets, set1_P, set2_P):
+                GRAPH_key_nodes.add_edge(key, k)  # connection of anti_commuting set key if completely connected
+
+    return GRAPH_key_nodes
