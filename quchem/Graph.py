@@ -884,7 +884,7 @@ def Openfermion_Build_Graph_Nodes(List_of_nodes, Graph, plot_graph=False):
     for node in List_of_nodes:
         Graph.add_node(node)
 
-        if plot_graph == True:
+        if plot_graph is True:
             node_list.append(node)
 
             PauliStrs, _ = node
@@ -893,7 +893,7 @@ def Openfermion_Build_Graph_Nodes(List_of_nodes, Graph, plot_graph=False):
             labels[node] = PauliWord
 
 
-    if plot_graph == True:
+    if plot_graph is True:
         plt.figure()
 
         pos = nx.circular_layout(Graph)
@@ -939,14 +939,14 @@ def Openfermion_Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(Graph, List_of_nod
             else:
                 continue
 
-        if plot_graph == True:
+        if plot_graph is True:
             node_list.append(selected_PauliWord)
             PauliStrs, _ = selected_PauliWord
             PauliStr_list = [''.join(map(str, [element for element in tupl[::-1]])) for tupl in PauliStrs]
             PauliWord = ' '.join(PauliStr_list)
             labels[selected_PauliWord] = PauliWord
 
-    if plot_graph == True:
+    if plot_graph is True:
         plt.figure()
 
         pos = nx.circular_layout(Graph)
@@ -969,7 +969,7 @@ def Openfermion_Get_Complemenary_Graph(Graph, plot_graph=False):
 
     node_list=[]
     labels={}
-    if plot_graph == True:
+    if plot_graph is True:
         plt.figure()
         for node in Complement_Graph.nodes:
             node_list.append(node)
@@ -1123,8 +1123,8 @@ if __name__ == '__main__':
 
 
     ### Parameters
-    Molecule = 'H2'#LiH'
-    geometry = [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))] # [('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))]
+    Molecule = 'LiH' #'H2
+    geometry = [('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))] # [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
     num_shots = 10000
     basis = 'sto-3g'
 
@@ -1144,9 +1144,9 @@ if __name__ == '__main__':
     QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW(threshold=None) # threshold=1e-12
 
     xx = Openfermion_Hamiltonian_Graph(QubitHam)
-    set_list = xx.Get_Clique_Cover_as_QubitOp('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
-    # from openfermion.utils._commutators import commutator
-    # print(commutator(OperatorList[0],OperatorList[2]))
+    set_dict_list = xx.Get_Clique_Cover_as_QubitOp('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
+
+####### sub graph
 
 def Graph_of_two_sets(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC, plot_graph=False):
     """
@@ -1191,14 +1191,14 @@ def Graph_of_two_sets(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC,
             else:
                 continue
 
-        if plot_graph == True:
+        if plot_graph is True:
             node_list.append(selected_PauliWord)
             PauliStrs, _ = selected_PauliWord
             PauliStr_list = [''.join(map(str, [element for element in tupl[::-1]])) for tupl in PauliStrs]
             PauliWord = ' '.join(PauliStr_list)
             labels[selected_PauliWord] = PauliWord
 
-    if plot_graph == True:
+    if plot_graph is True:
         plt.figure()
 
         pos = nx.circular_layout(Graph)
@@ -1254,11 +1254,10 @@ def Check_if_graph_of_two_sets_completely_connected(qubitOperator_list_1, qubitO
     num_non_zero_full = check_connected.shape[0]*check_connected.shape[1]
 
     if num_non_zero == num_non_zero_full:
-        return True, adj_mat
+        return True
     else:
-        return False, adj_mat
+        return False
 
-#TODO currently think Check_if_graph_of_two_sets_completely_connected is WRONG
 # xx = Openfermion_Hamiltonian_Graph(QubitHam)
 # set_list = xx.Get_Clique_Cover_as_QubitOp('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
 #
@@ -1272,41 +1271,24 @@ def Check_if_graph_of_two_sets_completely_connected(qubitOperator_list_1, qubitO
 # set_list
 
 
+# succ = []
+# for key in set_list:
+#     qubitOperator_list_1 = set_list[key]
+#     if len(qubitOperator_list_1) > 1:
+#         for k in range(key + 1, len(set_list)):
+#             qubitOperator_list_2 = set_list[k]
+#
+#             if len(qubitOperator_list_2) > 1:
+#                 BOOL  = Check_if_graph_of_two_sets_completely_connected(qubitOperator_list_1,
+#                                                                                 qubitOperator_list_2,
+#                                                                                 anti_comm_QWC, plot_graph=False)
+#                 print(BOOL)
+#                 if BOOL is True:
+#                     succ.append((key, k))
+# succ
 
 
-
-def Check_if_graph_of_two_sets_completely_connected(GRAPH, set1_P, set2_P):
-    """
-
-    Function checks if graph of two sets is completely connected or not
-
-    Args:
-        GRAPH (networkx.classes.graph.Graph): networkX graph of two sets
-        set1_P (list): list of PauliWords (str) of set 1
-        set2_P (list): list of PauliWords (str) of set 2
-
-    Returns:
-        Bool: True if completely connected
-
-    """
-    adj_mat = nx.adjacency_matrix(GRAPH, nodelist=[*set1_P, *set2_P])
-
-    # select correct part of adjacency matrix!
-    check_connected = adj_mat[:len(set1_P), len(set1_P):len(set1_P)+len(set2_P)]
-
-    #Get number of connected terms
-    num_non_zero = check_connected.nnz
-
-    #Get number of connected terms if completely connected
-    num_non_zero_full = check_connected.shape[0]*check_connected.shape[1]
-
-    if num_non_zero == num_non_zero_full:
-        return True
-    else:
-        return False
-
-
-def Get_subgraph_of_coloured_graph(anti_commuting_set_stripped, anti_comm_QWC):
+def Get_subgraph_of_sets(set_dict_lists, anti_comm_QWC, plot_graph=False):
     """
 
     Function takes in a  dictionary of sets (anti_commuting_set_stripped), where each
@@ -1339,19 +1321,90 @@ def Get_subgraph_of_coloured_graph(anti_commuting_set_stripped, anti_comm_QWC):
 
     """
     GRAPH_key_nodes = nx.Graph()
-    for key in anti_commuting_set_stripped:
-        GRAPH_key_nodes.add_node(key)
 
-    for key in anti_commuting_set_stripped:
-        set1_P, set1_C = zip(*anti_commuting_set_stripped[key])
+    keys_of_single_QubitOp=[]
+    for key in set_dict_lists:
+        qubitOp_list = set_dict_lists[key]
+        if len(qubitOp_list)>1:
+            GRAPH_key_nodes.add_node(key)
+        else:
+            keys_of_single_QubitOp.append(key)
 
-        for k in range(key + 1, len(anti_commuting_set_stripped)):
-            set2_P, set2_C = zip(*anti_commuting_set_stripped[k])
+    for key in set_dict_lists:
+        qubitOperator_list_1 = set_dict_lists[key]
 
-            Graph_of_sets = Graph_of_two_sets(set1_P, set2_P,
-                                              anti_comm_QWC, plot_graph=False, node_attributes_dict=None)
+        if len(qubitOperator_list_1) > 1:
 
-            if Check_if_sets_completely_connected(Graph_of_sets, set1_P, set2_P):
-                GRAPH_key_nodes.add_edge(key, k)  # connection of anti_commuting set key if completely connected
+            for k in range(key + 1, len(set_dict_lists)):
+                qubitOperator_list_2 = set_dict_lists[k]
+                if len(qubitOperator_list_2) > 1:
+                    BOOL = Check_if_graph_of_two_sets_completely_connected(qubitOperator_list_1,
+                                                                                    qubitOperator_list_2,
+                                                                                    anti_comm_QWC, plot_graph=False)
+                    if BOOL is True:
+                        GRAPH_key_nodes.add_edge(key, k)  # connection of SET KEYS if sets completely connected
 
-    return GRAPH_key_nodes
+    if plot_graph is True:
+        plt.figure()
+        nx.draw(GRAPH_key_nodes, with_labels=1)
+        plt.show()
+
+    # # related sets
+    # print(GRAPH_key_nodes.edges)
+
+    return GRAPH_key_nodes, keys_of_single_QubitOp
+
+
+if __name__ == '__main__':
+    comm_FLAG = 'AC'
+    AC_set_dict_list = xx.Get_Clique_Cover_as_QubitOp('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
+
+    print('No of terms in Hamiltonian reduced from {} to {} (reduction={})'.format(len(xx.QubitHamiltonianFrozen),
+                                                                                   len(AC_set_dict_list),
+                                                                                   len(xx.QubitHamiltonianFrozen)- len(AC_set_dict_list)))
+
+
+
+    GG, keys_of_single_QubitOp = Get_subgraph_of_sets(AC_set_dict_list, 'C', plot_graph=True)
+
+    print('Number of completely commuting sets (non-unique) in reduced Hamiltonian: ', len(GG.edges))
+    ## note edges show sets that completely commute
+    # GG has nodes of all qubitOps in AC_set_dict_list with length greater than 1
+
+    ## get clique cover of sub graph AKA UNIQUE sets:
+    coloured_sub_graph = Openfermion_Get_clique_cover(GG)
+    ## coloured_sub_graph shows what we do in experiment! WITH the single ops too: keys_of_single_QubitOp!!!
+    # NOTE coloured_sub_graph only contains terms with more than one qubitOperator
+
+
+    print('Number of completely UNIQUE commuting sets in reduced Hamiltonian= {}'.format(len([coloured_sub_graph[key] for key in coloured_sub_graph if len(coloured_sub_graph[key]) >1])))
+    print('THESE can be measured SIMULTANEOUSLY')
+
+    # print('Number of anti_commuting_set reductions that can be done SIMULTANEOUSLY:',
+    #       (len(AC_set_dict_list) - len(keys_of_single_QubitOp)) - len(
+    #           coloured_sub_graph))
+
+
+    # note coloured_sub_graph only contains indices of terms with more than one qubitOp in it...
+    # hence minus keys_of_single_QubitOp
+
+    # print('overall no. terms to measure: ', len(coloured_sub_graph) + len(keys_of_single_QubitOp))
+
+    print('No of terms in reduced Hamiltonian reduced = {} BUT only requires to {} measurements'.format(
+        len(AC_set_dict_list),
+        len(coloured_sub_graph) + len(keys_of_single_QubitOp)))
+
+#
+# taken_indices=[]
+# unqiue_terms =[]
+# for a,b in GG.edges:
+#     if a not in taken_indices and b not in taken_indices:
+#         unqiue_terms.append((a,b))
+#         taken_indices.append(a)
+#         taken_indices.append(b)
+# print(len(unqiue_terms))
+
+# qubitOperator_list_1= AC_set_dict_list[35]
+# qubitOperator_list_2 = AC_set_dict_list[44]
+# anti_comm_QWC='C'
+# Check_if_graph_of_two_sets_completely_connected(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC, plot_graph=False)
