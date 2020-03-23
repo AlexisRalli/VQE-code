@@ -1,33 +1,26 @@
 import cirq
+import numpy as np
 
-def Get_Histogram_key(PauliWord):
+def Get_Histogram_key(qubitOperator):
     """
      Function to obtain histogram key string for Cirq Simulator.
 
     e.g.
-            PauliWord = 'I0 Z1 Z2 I3 I4 X5'
+            PauliWord = QubitOperator('X0 Z2 Y3', 0.5j)
 
-            code converts to list ['Z0', 'Z1', 'I2', 'I3', 'I4' 'X5']
-            and gets non identity terms
+            returning: histogram_string = '0,2,3'
 
-            returning: histogram_string = '0,1,5'
-
-    note running Get_Histogram_key('I0 I1 I2') returns empty string: ''
 
     Args:
-        PauliWord (str): String Form of PauliWord to measure.
+        qubitOperator (openfermion.ops._qubit_operator.QubitOperator): QubitOperator
 
     Returns:
         histogram_string (str): Returns string corresponding to histogram key (required for Cirq simulator)
 
     """
 
-
-    PauliWord = PauliWord.split(' ')
-
-    string_list = [PauliString[1::] for PauliString in PauliWord if PauliString[0] != 'I']
-    histogram_string = ','.join(string_list)
-
+    qubit_No, PauliStr = zip(*list(*qubitOperator.terms.keys()))
+    histogram_string = ','.join([str(i) for i in qubit_No])
     return histogram_string
 
 def Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string):
@@ -67,31 +60,42 @@ def Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string):
 
     return hist_result
 
-if __name__ == '__main__':
-    import numpy as np
-    from quchem.quantum_circuit_functions import *
-    HF_circ = State_Prep([0,0,1,1])
-    HF_circuit = cirq.Circuit(cirq.decompose_once((HF_circ(*cirq.LineQubit.range(HF_circ.num_qubits())))))
-    P_Word_exponentiated = ('Z0 X1 I2 Y3',  0.5j)
-    theta = np.pi
-    entangle_circ = full_exponentiated_PauliWord_circuit(P_Word_exponentiated, theta)
-    entangle_circuit = cirq.Circuit(cirq.decompose_once((entangle_circ(*cirq.LineQubit.range(entangle_circ.num_qubits())))))
+def Get_wavefunction(quantum_circuit, sig_figs=3):
+    """
+     Function to simulate quantum circuit and wavefunction
 
-    P_Word = ('Z0 X1 I2 Y3', (0.8918294488900189+0j))
-    Pauilword_perform_measure = Perform_PauliWord_and_Measure(P_Word)
-    q_circuit_Perform_measure =cirq.Circuit(
-            cirq.decompose_once((Pauilword_perform_measure(*cirq.LineQubit.range(Pauilword_perform_measure.num_qubits())))))
-    full_circuit = cirq.Circuit(
-       [
-           HF_circuit.all_operations(),
-           entangle_circuit.all_operations(),
-           q_circuit_Perform_measure.all_operations()
-       ]
-    )
-    histogram_string = Get_Histogram_key(P_Word[0])
-    counter = Simulate_Quantum_Circuit(full_circuit, 10000, histogram_string)
+    """
+    quantum_circuit_M_gates_removed = quantum_circuit.moments[
+                                      :-1]  # removes last moment (aka measurement step - which collapses wavefunction)
+    quantum_circuit_new = cirq.Circuit(quantum_circuit_M_gates_removed)
+    simulator = cirq.Simulator()
+    result = simulator.simulate(quantum_circuit_new, qubit_order=quantum_circuit_new.all_qubits())
+    print(np.around(result.final_state, sig_figs))
+    return result.final_state
 
-def Return_as_binary(counter_result: object, PauliWord: object) -> object:
+def Get_state_as_str(n_qubits, qubit_state_int):
+    """
+    converts qubit state int into binary form.
+
+    Args:
+        n_qubits (int): Number of qubits
+        qubit_state_int (int): qubit state as int (NOT BINARY!)
+    Returns:
+        string of qubit state in binary!
+
+    state = |000> + |001> + |010> + |011> + |100> + |101 > + |110 > + |111>
+    state  = |0> +   |1> +   |2> +   |3> +   |4> +   |5 > +   |6 > +   |7>
+
+    n_qubits = 3
+    state = 5
+    Get_state_as_str(n_qubits, state)
+    >> '101'
+
+    """
+    bin_str_len = '{' + "0:0{}b".format(n_qubits) + '}'
+    return bin_str_len.format(qubit_state_int)
+
+def Return_as_binary(counter_result, histogram_string):
     """
      Function to convert counter_result into counter with keys as quantum states (binary)
 
@@ -110,18 +114,15 @@ def Return_as_binary(counter_result: object, PauliWord: object) -> object:
         state_dictionary (dict): Return counter result dict with states in binary form
 
     """
+    n_qubits_measured = len(histogram_string.split(','))
 
-    state_dictionary ={}
+    counter_result_binary = {}
+    for int_state in counter_result:
+        binary_state = Get_state_as_str(n_qubits_measured, int_state)
 
-    PauliWord = PauliWord.split(' ')
-    num_terms_to_measure = len([i for i in PauliWord if i[0] != 'I'])
-    binary_length = '{' + '0:0{}b'.format(num_terms_to_measure) + '}'
+        counter_result_binary[binary_state] = counter_result[int_state]
 
-    for output_state in counter_result:
-        binary_key = binary_length.format(output_state)
-        state_dictionary[binary_key] = counter_result[output_state]
-
-    return state_dictionary
+    return counter_result_binary
 
 def calc_parity(state):
     """
@@ -183,7 +184,6 @@ def expectation_value_by_parity(binary_counter_result):
     #print(binary_counter_result, total_no_measurements, Total)
     expectation_value = Total / total_no_measurements
     return expectation_value
-
 
 class Simulation_Quantum_Circuit_Dict():
 
@@ -260,7 +260,6 @@ class Simulation_Quantum_Circuit_Dict():
 
         return self.Energy
 
-
 class Simulate_Single_Circuit():
 
     def __init__(self, PauliWord, quantum_circuit, num_shots):
@@ -298,3 +297,31 @@ class Simulate_Single_Circuit():
 
         self.expect_result = expect_result
         return expect_result
+
+
+from quchem.quantum_circuit_functions import Generate_Full_Q_Circuit
+class VQE_Experiment():
+    def __init__(self, qubitHamiltonian, ansatz_circuit, n_shots):
+        self.qubitHamiltonian = qubitHamiltonian
+        self.ansatz_circuit = ansatz_circuit
+        self.n_shots = n_shots
+
+    def Calc_Energy(self):
+
+        E_list=[]
+        for qubitOp in self.qubitHamiltonian:
+            for PauliWord, const in qubitOp.terms.items():
+                if PauliWord is not ():
+                    Q_circuit = Generate_Full_Q_Circuit(self.ansatz_circuit, qubitOp)
+                    hist_key_str = Get_Histogram_key(qubitOp)
+                    int_state_counter = Simulate_Quantum_Circuit(Q_circuit, self.n_shots, hist_key_str)
+                    binary_state_counter = Return_as_binary(int_state_counter, hist_key_str)
+                    exp_result = expectation_value_by_parity(binary_state_counter)
+                    E_list.append(exp_result*const)
+                else:
+                    E_list.append(const)
+        return sum(E_list).real
+
+    def Get_wavefunction_of_state(self, sig_figs=3):
+        return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
+

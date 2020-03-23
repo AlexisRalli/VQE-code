@@ -410,7 +410,6 @@ class full_exponentiated_PauliWord_circuit(cirq.Gate):
 
 ####### For Hamiltonian ####
 
-
 class Change_PauliWord_measurement_to_Z_basis(cirq.Gate):
     """
     Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
@@ -502,7 +501,6 @@ class Measure_PauliWord(cirq.Gate):
         control_qubit = max(qubit_list)
         return control_qubit + 1  # index from 0
 
-
 class change_pauliword_to_Z_basis_then_measure(cirq.Gate):
     """
     Class to generate cirq circuit as gate that changes basis and measures PauliWord in Z BASIS (all non I terms).
@@ -571,7 +569,7 @@ def Generate_Full_Q_Circuit(Full_Ansatz_Q_Circuit, PauliWord_QubitOp):
     )
     return full_circuit
 
-def Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(Full_Ansatz_Q_Circuit, PauliWord_str_list_Qubit_Hamiltonian, n_qubits):
+def Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(Full_Ansatz_Q_Circuit, QubitOperator_Hamiltonian):
     """
      Function that appends Ansatz Quantum Circuit to Pauli perform and measure circuit instance.
 
@@ -584,31 +582,18 @@ def Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(Full_Ansatz_Q_Circuit, Paul
         dic_holder (dict): Returns a dictionary of each quantum circuit, with cofactor, PauliWord and cirq Q Circuit
 
     """
-    # dic_holder = []
-    # for PauliString_and_Constant in PauliWord_str_list_Qubit_Hamiltonian:
-    #     Q_circuit = Generate_Full_Q_Circuit(Full_Ansatz_Q_Circuit, PauliString_and_Constant)
-    #     dic_holder.append([Q_circuit, PauliString_and_Constant[1]])
-
-    I_Measure = ['I{}'.format(i) for i in range(n_qubits)]
-    seperator = ' '
-    PauliWord_I_only = seperator.join(I_Measure)
-
     dic_holder = {}
-    for i in range(len(PauliWord_str_list_Qubit_Hamiltonian)):
-        PauliString_and_Constant = PauliWord_str_list_Qubit_Hamiltonian[i]
-        temp_d={}
-        if PauliString_and_Constant[0] == PauliWord_I_only:
-            temp_d['circuit'] = None
-            temp_d['gamma_l'] = PauliString_and_Constant[1]
-            temp_d['PauliWord'] = PauliString_and_Constant[0]
-        else:
-            Q_circuit = Generate_Full_Q_Circuit(Full_Ansatz_Q_Circuit, PauliString_and_Constant)
-            temp_d['circuit'] = Q_circuit
-            temp_d['gamma_l'] = PauliString_and_Constant[1]
-            temp_d['PauliWord'] = PauliString_and_Constant[0]
-        dic_holder[i] = temp_d
+    for index, PauliWord_QubitOp in enumerate(QubitOperator_Hamiltonian):
+        for QubitOp_str, const in PauliWord_QubitOp.terms.items():
+            temp_d = {}
+            if QubitOp_str:
+                temp_d['circuit'] = Generate_Full_Q_Circuit(Full_Ansatz_Q_Circuit, PauliWord_QubitOp)
+                temp_d['PauliWord'] = PauliWord_QubitOp
+            else:
+                temp_d['circuit'] = None
+                temp_d['PauliWord'] = PauliWord_QubitOp
+
+            dic_holder[index] = temp_d
 
     return dic_holder
-
-
 
