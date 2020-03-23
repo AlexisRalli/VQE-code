@@ -499,7 +499,7 @@ class Ansatz():
         # BK_state = jw_configuration_state(occupied_orbitals_index_list, self.n_orbitals)
         # return BK_state
         BK_HF_occ_Basis = self.Get_BK_HF_state_in_OCC_basis()
-        return self.Convert_occ_num_basis_to_basis_state(BK_HF_occ_Basis)
+        return self.Convert_occ_num_basis_to_basis_state(BK_HF_occ_Basis[::-1])
 
 if __name__ == '__main__':
 #     ####### Ansatz ######
