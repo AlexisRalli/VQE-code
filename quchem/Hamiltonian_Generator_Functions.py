@@ -162,88 +162,6 @@ class Hamiltonian():
             raise ValueError('Calculated FCI energy from Moleular Hamiltonian Operator not equivalent to PSI4 calculation')
         return FCI_Energy
 
-    def Get_Basis_state_in_occ_num_basis(self, occupied_orbitals_index_list=None):
-        """
-
-        Method to obtain basis state under JW transform of state defined in occupation number basis.
-        e.g. for H2 under the Jordan Wigner transfrom has |HF> = |0011> in occ no. basis
-        occupied_orbitals_index_list = [0,1] <- as first orbitals occupied
-
-        These outputs (|HF> and <HF|) can be used with MolecularHamiltonianMatrix!.
-
-        Args:
-            occupied_orbitals_index_list (list, optional): list of orbital indices that are OCCUPIED
-
-        returns:
-            reference_ket (scipy.sparse.csr.csr_matrix): Sparse matrix of KET corresponding to occ no basis state under
-                                                         JW transform
-            reference_bra (scipy.sparse.csr.csr_matrix): Sparse matrix of BRA corresponding to occ no basis state under
-                                                         JW transform
-
-        """
-
-        from openfermion import jw_configuration_state
-
-        if occupied_orbitals_index_list is None:
-            reference_ket = scipy.sparse.csc_matrix(jw_configuration_state(list(range(0, self.molecule.n_electrons)),
-                                                   self.molecule.n_qubits)).transpose()
-        else:
-            reference_ket = scipy.sparse.csc_matrix(jw_configuration_state(occupied_orbitals_index_list,
-                                                                           self.molecule.n_qubits)).transpose()
-        reference_bra = reference_ket.transpose().conj()
-        return reference_ket, reference_bra
-
-        # To be used as follows:
-        # hamiltonian_ket = self.MolecularHamiltonianMatrix.dot(reference_ket)
-
-    def Convert_basis_state_to_occ_num_basis(self, state):
-        """
-
-        For a state defined by a basis state vector... get state in occupation number basis. Note doesn't work for
-        entangled states!
-
-
-
-        Args:
-            state (numpy.ndarray): dense numpy array of basis state
-
-        returns:
-            state_list (list): List of qubit values in order
-
-        e.g.
-        np.arrayarray([[0],
-                   [0],
-                   [0],
-                   [1],
-                   [0],
-                   [0],
-                   [0],
-                   [0]])
-
-        output = ['0', '1', '1']
-
-        """
-        Number_Qubits = int(np.log2(int(state.shape[0])))
-
-        state_list = []
-
-        for _ in range(Number_Qubits):
-            length = int(state.shape[0])
-
-            position_1 = np.where(state == 1)[0]
-
-            if position_1 < length / 2:
-                # single_q = np.array([[1], [0]])
-                single_q = '0'
-                state = state[0:int(length / 2), :]
-            else:
-                # single_q = np.array([[0], [1]])
-                single_q = '1'
-                state = state[int(length / 2)::, :]
-            state_list.append(single_q)
-
-        return state_list
-
     def Get_NOON(self):
         """
         See https://journals.aps.org/prx/pdf/10.1103/PhysRevX.8.031022 appendix C for further details
@@ -289,7 +207,8 @@ class Hamiltonian():
         if self.molecule is None:
             self.Run_Psi4()
 
-        one_RDM = self.molecule.cisd_one_rdm
+        # one_RDM = self.molecule.cisd_one_rdm
+        one_RDM = self.molecule.fci_one_rdm
 
         # THIS is wrong:
         # from numpy import diag
@@ -298,8 +217,13 @@ class Hamiltonian():
         from numpy.linalg import eig
         NMO_basis, eig_vectors = eig(one_RDM)
 
-        # adding each pair of entries
-        NOON_spins_combined = np.add.reduceat(NMO_basis, np.arange(0, len(NMO_basis), 2))
+        # # adding each pair of entries
+
+        # TODO this is wrong I think
+        # NOON_spins_combined = np.add.reduceat(NMO_basis, np.arange(0, len(NMO_basis), 2))
+
+        #think this is correct
+        NOON_spins_combined = [NMO_basis[i*2] + NMO_basis[i*2+1] for i in range(int(len(NMO_basis) / 2))]
 
         return NMO_basis, NOON_spins_combined
 
