@@ -60,18 +60,19 @@ def Simulate_Quantum_Circuit(quantum_circuit, num_shots, histogram_string):
 
     return hist_result
 
-def Get_wavefunction(quantum_circuit, sig_figs=3):
+def Get_wavefunction(quantum_circuit_no_M_gates, sig_figs=3):
     """
      Function to simulate quantum circuit and wavefunction
 
     """
-    quantum_circuit_M_gates_removed = quantum_circuit.moments[
-                                      :-1]  # removes last moment (aka measurement step - which collapses wavefunction)
-    quantum_circuit_new = cirq.Circuit(quantum_circuit_M_gates_removed)
+
     simulator = cirq.Simulator()
-    result = simulator.simulate(quantum_circuit_new, qubit_order=quantum_circuit_new.all_qubits())
-    print(np.around(result.final_state, sig_figs))
-    return result.final_state
+    # result = simulator.simulate(quantum_circuit_no_M_gates, qubit_order=quantum_circuit_no_M_gates.all_qubits())
+    # print(np.around(result.final_state, sig_figs))
+    # return result.final_state
+    result = simulator.compute_amplitudes(quantum_circuit_no_M_gates, bitstrings=[i for i in range(2 ** len(quantum_circuit_no_M_gates.all_qubits()))])
+    result=np.around(result, sig_figs)
+    return result.reshape([(2 ** len(quantum_circuit_no_M_gates.all_qubits())), 1])
 
 def Get_state_as_str(n_qubits, qubit_state_int):
     """
