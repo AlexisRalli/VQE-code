@@ -243,7 +243,7 @@ class Engtangle_final(cirq.Gate):
         for index, (qubitNo, PauliStr) in enumerate(self.PauliWord[::-1]):
             if qubitNo > min_qubit:
                 qubitNo_next = self.PauliWord[::-1][index + 1][0]
-                yield cirq.CNOT.on(qubits[qubitNo], qubits[qubitNo_next])
+                yield cirq.CNOT.on(qubits[qubitNo_next],qubits[qubitNo])
 
     def _circuit_diagram_info_(self, args):
         string_list = []
@@ -255,56 +255,6 @@ class Engtangle_final(cirq.Gate):
         qubit_list, _ = zip(*(self.PauliWord))
         control_qubit = max(qubit_list)
         return control_qubit + 1  # index from 0
-
-class Change_of_Basis_final(cirq.Gate):
-    """
-    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
-    qubits in order to perform PauliWord: e^(cofactor * theta * PauliWord)
-
-    e.g.: ('X0 I1 Y2 X3', 0.125j)
-        gives :
-                0: ───H───────────
-                2: ───Rx(-0.5π)───
-                3: ───H───────────
-
-    Args:
-        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
-
-    Returns
-        A cirq circuit object to be used by cirq.Circuit
-
-    """
-    def __init__(self, PauliWord_and_cofactor):
-
-        self.PauliWord_and_cofactor = PauliWord_and_cofactor
-
-    def _decompose_(self, qubits):
-
-        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
-
-        for PauliString in PauliWord:
-            qubitOp = PauliString[0]
-            qubitNo = int(PauliString[1::])
-
-            if qubitOp == 'X':
-                yield cirq.H(qubits[qubitNo])
-            elif qubitOp == 'Y':
-                 yield cirq.rx(-np.pi / 2)(qubits[qubitNo])
-            elif qubitOp == 'Z' or 'I':
-                continue
-            else:
-                raise ValueError("Qubit Operation: {} is NOT a Pauli operation".format(qubitOp))
-
-    def _circuit_diagram_info_(self, args):
-        Ansatz_basis_change_list = []
-        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
-        for i in range(len(PauliWord)):
-                Ansatz_basis_change_list.append('Basis_change')
-        return Ansatz_basis_change_list
-
-    def num_qubits(self):
-        PauliWord = self.PauliWord_and_cofactor[0].split(' ')
-        return len(PauliWord)
 
 class Change_of_Basis_final(cirq.Gate):
     """
@@ -437,9 +387,10 @@ class Change_PauliWord_measurement_to_Z_basis(cirq.Gate):
 
         for qubitNo, PauliStr in (self.PauliWord):
             if PauliStr == 'X':
-                yield cirq.H(qubits[qubitNo])
+                # yield cirq.H(qubits[qubitNo])
+                yield cirq.ry(-np.pi / 2)(qubits[qubitNo])
             elif PauliStr == 'Y':
-                yield cirq.rx(-np.pi / 2)(qubits[qubitNo])
+                yield cirq.rx(np.pi / 2)(qubits[qubitNo])
             elif PauliStr == 'Z' or 'I':
                 continue
             else:
@@ -597,3 +548,198 @@ def Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(Full_Ansatz_Q_Circuit, Qubi
 
     return dic_holder
 
+
+#### Prepare arb state ###
+
+def Get_state_as_str(n_qubits, qubit_state_int):
+    """
+    converts qubit state int into binary form.
+
+    Args:
+        n_qubits (int): Number of qubits
+        qubit_state_int (int): qubit state as int (NOT BINARY!)
+    Returns:
+        string of qubit state in binary!
+
+    state = |000> + |001> + |010> + |011> + |100> + |101 > + |110 > + |111>
+    state  = |0> +   |1> +   |2> +   |3> +   |4> +   |5 > +   |6 > +   |7>
+
+    n_qubits = 3
+    state = 5
+    Get_state_as_str(n_qubits, state)
+    >> '101'
+
+    """
+    bin_str_len = '{' + "0:0{}b".format(n_qubits) + '}'
+    return bin_str_len.format(qubit_state_int)
+
+class My_U_Gate(cirq.SingleQubitGate):
+    """
+    Description
+
+    Args:
+        theta (float): angle to rotate by in radians.
+        number_control_qubits (int): number of control qubits
+    """
+
+    def __init__(self, theta):
+        self.theta = theta
+    def _unitary_(self):
+        Unitary_Matrix = np.array([
+                    [np.cos(self.theta), np.sin(self.theta)],
+                    [np.sin(self.theta), -1* np.cos(self.theta)]
+                ])
+        return Unitary_Matrix
+    def num_qubits(self):
+        return 1
+
+    def _circuit_diagram_info_(self,args):
+        # return cirq.CircuitDiagramInfo(
+        #     wire_symbols=tuple([*['@' for _ in range(self.num_control_qubits-1)],' U = {} rad '.format(self.theta.__round__(4))]),exponent=1)
+        return ' U = {} rad '.format(self.theta.__round__(4))
+
+def Get_control_parameters(num_qubits, Coefficient_list):
+    if len(Coefficient_list) != 2 ** num_qubits:
+        raise ValueError('incorrect number of coefficients')
+
+    state_list = [Get_state_as_str(num_qubits, i) for i in range(2 ** num_qubits)]
+
+    alpha_j_dict = {}
+    for target_qubit in range(num_qubits - 1):
+
+        number_controls = target_qubit
+
+        if number_controls > 0:
+            CONTROL_state_list = [Get_state_as_str(number_controls, i) for i in range(2 ** number_controls)]
+        else:
+            CONTROL_state_list = ['']
+
+        term_list = []
+        for control_state in CONTROL_state_list:
+            top_term_str = control_state + '1'
+            bottom_term_str = control_state + '0'
+
+            top = 0
+            bottom = 0
+            for index, state_str in enumerate(state_list):
+                if state_str[:target_qubit + 1] == top_term_str:
+                    top += Coefficient_list[index] ** 2
+
+                if state_str[:target_qubit + 1] == bottom_term_str:
+                    bottom += Coefficient_list[index] ** 2
+                else:
+                    continue
+
+            if (bottom == 0) and (top == 0):
+                angle = 0
+            else:
+                try:
+                    angle = np.arctan(np.sqrt(top / bottom))
+                except:
+                    raise ValueError('undetermined angle! NEED TO CHECK PROBLEM')
+
+            term_list.append({'control_state': control_state, 'angle': angle})
+        alpha_j_dict[target_qubit] = term_list
+
+    ##final rotation ##
+
+    term_list = []
+    for index, state_str in enumerate([Get_state_as_str((num_qubits - 1), i) for i in range(2 ** (num_qubits - 1))]):
+        control_state_str = state_str
+
+        top_term_str = control_state_str + '1'
+        bottom_term_str = control_state_str + '0'
+
+        index_top = state_list.index(top_term_str)
+        index_bottom = state_list.index(bottom_term_str)
+
+        top = Coefficient_list[index_top]
+        bottom = Coefficient_list[index_bottom]
+
+        if (bottom == 0) and (top == 0):
+            angle = 0
+        else:
+            try:
+                angle = np.arctan(top / bottom)
+            except:
+                raise ValueError('undetermined angle! NEED TO CHECK PROBLEM')
+
+        term_list.append({'control_state': control_state_str, 'angle': angle})
+
+    alpha_j_dict[num_qubits - 1] = term_list
+
+    return alpha_j_dict
+
+class State_Prep_Circuit(cirq.Gate):
+    """
+    Function to build cirq Circuit that will make an arbitrary state!
+
+    e.g.:
+    {
+         0: [{'control_state': None, 'angle': 0.7853981633974483}],
+         1: [{'control_state': '0', 'angle': 0.7853981633974483},
+          {'control_state': '1', 'angle': 0.7853981633974483}]
+      }
+
+gives :
+
+0: ── U = 0.51 rad ──(0)─────────────@──────────────(0)────────────(0)──────────────@────────────────@────────────────
+                     │               │              │              │                │                │
+1: ────────────────── U = 0.91 rad ── U = 0.93 rad ─(0)────────────@────────────────(0)──────────────@────────────────
+                                                    │              │                │                │
+2: ───────────────────────────────────────────────── U = 0.30 rad ─ U = 0.59 rad ─── U = 0.72 rad ─── U = 0.71 rad ───
+
+    Args:
+        circuit_param_dict (dict): A Dictionary of Tuples (qubit, control_val(int)) value is angle
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops to generate arbitrary state
+
+    """
+
+    def __init__(self, circuit_param_dict):
+
+        self.circuit_param_dict = circuit_param_dict
+
+    def _decompose_(self, qubits):
+
+        for qubit in self.circuit_param_dict:
+
+            for term in self.circuit_param_dict[qubit]:
+                if term['control_state']:
+                    control_values = [int(bit) for bit in term['control_state']]
+                    num_controls = len(control_values)
+                    theta = term['angle']
+
+                    if theta == 0:
+                        yield cirq.I.on(cirq.LineQubit(qubit))
+                    else:
+                        U_single_qubit = My_U_Gate(theta)
+                        qubit_list = cirq.LineQubit.range(0, 1 + num_controls)
+                        yield U_single_qubit.controlled(num_controls=num_controls, control_values=control_values).on(
+                            *qubit_list)
+                #                     U_single_qubit = My_U_Gate(theta)
+                #                     qubit_list = cirq.LineQubit.range(0,1+num_controls)
+                #                     yield U_single_qubit.controlled(num_controls=num_controls, control_values=control_values).on(*qubit_list)
+                else:
+                    theta = term['angle']
+                    if theta == 0:
+                        yield cirq.I.on(cirq.LineQubit(qubit))
+                    else:
+                        yield My_U_Gate(theta).on(cirq.LineQubit(qubit))
+
+    #                     theta = term['angle']
+    #                     yield My_U_Gate(theta).on(cirq.LineQubit(qubit))
+
+    def _circuit_diagram_info_(self, args):
+
+        max_qubit = max(self.circuit_param_dict.keys())
+        string_list = []
+        for i in range(max_qubit):
+            string_list.append('state prep circuit')
+        return string_list
+
+    def num_qubits(self):
+        return max(self.circuit_param_dict.keys())
+
+cirq.CNOT
