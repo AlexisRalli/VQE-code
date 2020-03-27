@@ -1,9 +1,7 @@
 import numpy as np
-import scipy
 
 from openfermion.hamiltonians import MolecularData
 from openfermionpsi4 import run_psi4
-
 
 class Hamiltonian():
     """
@@ -248,6 +246,8 @@ class Hamiltonian():
                             0.09060523101737843 [0^ 1^ 3 2] + ... etc ... etc
 
         """
+        if self.MolecularHamiltonianMatrix is None:
+            self.Get_Molecular_Hamiltonian(Get_H_matrix=False)
 
         from openfermion.transforms import get_fermion_operator
         FermionicHamiltonian = get_fermion_operator(self.MolecularHamiltonian)
