@@ -1,6 +1,4 @@
 import scipy
-
-
 class Ansatz():
     def __init__(self, n_electrons, n_orbitals):
         self.n_electrons = n_electrons
