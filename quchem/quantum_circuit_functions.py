@@ -642,33 +642,43 @@ def Get_control_parameters(num_qubits, Coefficient_list):
         alpha_j_dict[target_qubit] = term_list
 
     ##final rotation ##
+    if num_qubits!=1:
+        term_list = []
+        for index, state_str in enumerate([Get_state_as_str((num_qubits - 1), i) for i in range(2 ** (num_qubits - 1))]):
+            control_state_str = state_str
 
-    term_list = []
-    for index, state_str in enumerate([Get_state_as_str((num_qubits - 1), i) for i in range(2 ** (num_qubits - 1))]):
-        control_state_str = state_str
+            top_term_str = control_state_str + '1'
+            bottom_term_str = control_state_str + '0'
 
-        top_term_str = control_state_str + '1'
-        bottom_term_str = control_state_str + '0'
+            index_top = state_list.index(top_term_str)
+            index_bottom = state_list.index(bottom_term_str)
 
-        index_top = state_list.index(top_term_str)
-        index_bottom = state_list.index(bottom_term_str)
+            top = Coefficient_list[index_top]
+            bottom = Coefficient_list[index_bottom]
 
-        top = Coefficient_list[index_top]
-        bottom = Coefficient_list[index_bottom]
+            if (bottom == 0) and (top == 0):
+                angle = 0
+            else:
+                try:
+                    angle = np.arctan(top / bottom)
+                except:
+                    raise ValueError('undetermined angle! NEED TO CHECK PROBLEM')
 
-        if (bottom == 0) and (top == 0):
-            angle = 0
-        else:
-            try:
-                angle = np.arctan(top / bottom)
-            except:
-                raise ValueError('undetermined angle! NEED TO CHECK PROBLEM')
+            term_list.append({'control_state': control_state_str, 'angle': angle})
 
-        term_list.append({'control_state': control_state_str, 'angle': angle})
+        alpha_j_dict[num_qubits - 1] = term_list
 
-    alpha_j_dict[num_qubits - 1] = term_list
+        return alpha_j_dict
+    else:
 
-    return alpha_j_dict
+        # [np.cos(self.theta), np.sin(self.theta)],         [1]  =  [a]
+        # [np.sin(self.theta), -1 * np.cos(self.theta)]     [0]     [b]
+        theta = np.arccos(Coefficient_list[0])
+        alpha_j_dict[0] = [{'control_state': '', 'angle': theta}]
+
+        return alpha_j_dict
+
+
 
 class State_Prep_Circuit(cirq.Gate):
     """
@@ -697,9 +707,10 @@ gives :
 
     """
 
-    def __init__(self, circuit_param_dict):
+    def __init__(self, circuit_param_dict, N_system_qubits=0):
 
         self.circuit_param_dict = circuit_param_dict
+        self.N_system_qubits = N_system_qubits
 
     def _decompose_(self, qubits):
 
@@ -712,10 +723,10 @@ gives :
                     theta = term['angle']
 
                     if theta == 0:
-                        yield cirq.I.on(cirq.LineQubit(qubit))
+                        yield cirq.I.on(cirq.LineQubit(qubit+self.N_system_qubits))
                     else:
                         U_single_qubit = My_U_Gate(theta)
-                        qubit_list = cirq.LineQubit.range(0, 1 + num_controls)
+                        qubit_list = cirq.LineQubit.range(self.N_system_qubits, self.N_system_qubits+1 + num_controls)
                         yield U_single_qubit.controlled(num_controls=num_controls, control_values=control_values).on(
                             *qubit_list)
                 #                     U_single_qubit = My_U_Gate(theta)
@@ -724,9 +735,9 @@ gives :
                 else:
                     theta = term['angle']
                     if theta == 0:
-                        yield cirq.I.on(cirq.LineQubit(qubit))
+                        yield cirq.I.on(cirq.LineQubit(qubit+self.N_system_qubits))
                     else:
-                        yield My_U_Gate(theta).on(cirq.LineQubit(qubit))
+                        yield My_U_Gate(theta).on(cirq.LineQubit(qubit+self.N_system_qubits))
 
     #                     theta = term['angle']
     #                     yield My_U_Gate(theta).on(cirq.LineQubit(qubit))
@@ -742,4 +753,26 @@ gives :
     def num_qubits(self):
         return max(self.circuit_param_dict.keys())
 
-cirq.CNOT
+class prepare_arb_state():
+    def __init__(self, Coefficient_list, N_System_qubits):
+        self.Coefficient_list = Coefficient_list
+        self.N_System_qubits = N_System_qubits
+    def _Get_control_parameters_dict(self):
+        return Get_control_parameters(self.Get_max_no_ancilla_qubits(), self.Coefficient_list)
+
+    def Get_state_prep_Circuit(self):
+        circ_obj = State_Prep_Circuit(self._Get_control_parameters_dict(), self.N_System_qubits)
+        circuit = (
+            cirq.Circuit(cirq.decompose_once((circ_obj(*cirq.LineQubit.range(self.N_System_qubits, self.N_System_qubits+circ_obj.num_qubits()))))))
+        return circuit
+
+    def Get_max_no_ancilla_qubits(self):
+        return int(np.ceil(np.log2(len(self.Coefficient_list))))  # note round up with np.ceil
+
+    def get_wave_function(self, sig_figs=3):
+        circuit = self.Get_state_prep_Circuit()
+        simulator = cirq.Simulator()
+        result = simulator.compute_amplitudes(circuit, bitstrings=[i for i in range(2 ** len(circuit.all_qubits()))])
+        result = np.around(result, sig_figs)
+        return result.reshape([(2 ** len(circuit.all_qubits())), 1])
+

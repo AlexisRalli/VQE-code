@@ -370,34 +370,6 @@ class Openfermion_Hamiltonian_Graph():
         return qubitOperator_list_str
 
 
-if __name__ == '__main__':
-    from quchem.Hamiltonian_Generator_Functions import *
-
-
-    ### Parameters
-    Molecule = 'LiH' #'H2
-    geometry = [('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))] # [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
-    num_shots = 10000
-    basis = 'sto-3g'
-
-
-    ### Get Hamiltonian
-    Hamilt = Hamiltonian(Molecule,
-                         run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
-                         basis=basis,
-                         multiplicity=1,
-                         geometry=geometry)  # normally None!
-
-    Hamilt.Get_Molecular_Hamiltonian()
-    SQ_CC_ops, THETA_params = Hamilt.Get_ia_and_ijab_terms(Coupled_cluser_param=True)
-
-    HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops, Hamilt.molecule.n_qubits)
-
-    QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW(threshold=None) # threshold=1e-12
-
-    xx = Openfermion_Hamiltonian_Graph(QubitHam)
-    set_dict_list = xx.Get_Clique_Cover_as_QubitOp('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
-
 ####### sub graph
 
 def Graph_of_two_sets_OLDFUNCT_NO_COLOUR(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC, plot_graph=False):
@@ -466,7 +438,6 @@ def Graph_of_two_sets_OLDFUNCT_NO_COLOUR(qubitOperator_list_1, qubitOperator_lis
         plt.show()
 
     return Graph
-
 
 def Graph_of_two_sets(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC, plot_graph=False):
     """
@@ -553,7 +524,6 @@ def Graph_of_two_sets(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC,
         plt.show()
 
     return Graph
-
 
 def Graph_of_two_sets_CONNECTED_OLD(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC, plot_graph=False):
     """
@@ -649,7 +619,6 @@ def Graph_of_two_sets_CONNECTED_OLD(qubitOperator_list_1, qubitOperator_list_2, 
         return Graph, False
     else:
         return Graph, bool(np.prod(completely_connected_check))  # <-- NEW (True if completely connected)
-
 
 def Graph_of_two_sets_CONNECTED(qubitOperator_list_1, qubitOperator_list_2, anti_comm_QWC, plot_graph=False):
     """
@@ -818,9 +787,61 @@ def Get_subgraph_of_sets(set_dict_lists, anti_comm_QWC, plot_graph=False, plot_s
 
     return GRAPH_key_nodes, keys_of_single_QubitOp
 
+class Hamiltonian_Graph_reduction(Openfermion_Hamiltonian_Graph):
+    def __init__(self, QubitHamiltonian, commutativity_flag_relating_QubitHam, Graph_colouring_strategy='largest_first',
+                 plot_qubit_Hamiltonian_relation_graph=False):
+        super().__init__(QubitHamiltonian)
+
+        self.Hamiltonian_QubitOp_sets = self.Get_Clique_Cover_as_QubitOp(commutativity_flag_relating_QubitHam, Graph_colouring_strategy=Graph_colouring_strategy,
+                                         plot_graph=plot_qubit_Hamiltonian_relation_graph)
+
+    def _Get_graph_of_subgraphs(self, sub_graph_relationship_C_QWC_AC, plot_graph=False):
+        Graph_of_subgraph_set_keys, keys_of_single_QubitOps = Get_subgraph_of_sets(self.Hamiltonian_QubitOp_sets,
+                                                                            sub_graph_relationship_C_QWC_AC, plot_graph=plot_graph,
+                                                                            plot_sub_graphs=False)
+        return Graph_of_subgraph_set_keys, keys_of_single_QubitOps
+
+    def Get_Coloured_graph_of_subgraphs(self, sub_graph_relationship_C_QWC_AC, plot_graphof_subgraphs=False,
+                                        info_print=True):
+
+        Graph_of_subgraph_set_keys, keys_of_single_QubitOps =  self._Get_graph_of_subgraphs(sub_graph_relationship_C_QWC_AC, plot_graph=plot_graphof_subgraphs)
+
+        Coloured_graph_of_subgraph_set_keys = Openfermion_Get_clique_cover(Graph_of_subgraph_set_keys)
+
+        if info_print:
+            print('No of terms in Hamiltonian reduced from {} to {} (reduction={})'.format(
+                len(self.QubitHamiltonianFrozen),
+                len(self.Hamiltonian_QubitOp_sets),
+                len(self.QubitHamiltonianFrozen) - len(self.Hamiltonian_QubitOp_sets)))
+
+            if sub_graph_relationship_C_QWC_AC == 'C':
+                print('Number of completely commuting sets (non-unique) in reduced Hamiltonian: ',
+                      len(Graph_of_subgraph_set_keys.edges))
+                print('Number of completely UNIQUE commuting sets in reduced Hamiltonian= {}'.format(
+                    len([Coloured_graph_of_subgraph_set_keys[key] for key in Coloured_graph_of_subgraph_set_keys if len(Coloured_graph_of_subgraph_set_keys[key]) > 1])))
+                print('THESE can be measured SIMULTANEOUSLY')
+
+            elif sub_graph_relationship_C_QWC_AC == 'AC':
+                print('Number of completely ANTI commuting sets (non-unique) in reduced Hamiltonian: ',
+                      len(Graph_of_subgraph_set_keys.edges))
+                print('Number of completely UNIQUE ANTI commuting sets in reduced Hamiltonian= {}'.format(
+                    len([Coloured_graph_of_subgraph_set_keys[key] for key in Coloured_graph_of_subgraph_set_keys if len(Coloured_graph_of_subgraph_set_keys[key]) > 1])))
+                print('THESE can be measured SIMULTANEOUSLY')
+            else:
+                print('Number of completely qubit wise commuting sets (non-unique) in reduced Hamiltonian: ',
+                      len(Graph_of_subgraph_set_keys.edges))
+                print('Number of completely UNIQUE qubit wise commuting sets in reduced Hamiltonian= {}'.format(
+                    len([Coloured_graph_of_subgraph_set_keys[key] for key in Coloured_graph_of_subgraph_set_keys if len(Coloured_graph_of_subgraph_set_keys[key]) > 1])))
+                print('THESE can be measured SIMULTANEOUSLY')
+
+            print('No of terms in reduced Hamiltonian reduced = {} BUT only requires to {} measurements'.format(
+                len(self.Hamiltonian_QubitOp_sets),
+                len(Coloured_graph_of_subgraph_set_keys) + len(keys_of_single_QubitOps)))
+
+        return Coloured_graph_of_subgraph_set_keys, keys_of_single_QubitOps
 
 
-#
+
 # taken_indices=[]
 # unqiue_terms =[]
 # for a,b in GG.edges:

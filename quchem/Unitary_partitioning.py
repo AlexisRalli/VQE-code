@@ -18,15 +18,13 @@ if __name__ == '__main__':
      10: [('I0 I1 I2 Z3', (-0.13036292044009176+0j)), ('X0 Y1 Y2 X3', (0.04919764587885283+0j))]
 }
 
-
-def Get_beta_j_cofactors(anti_commuting_set):
+from openfermion.ops import QubitOperator
+def Get_beta_j_cofactors(qubitOp_list):
     """
-    Function takes in list of anti-commuting PauliWord tuples (PauliWord, constant)
-    and returns the corresponding anti-commuting sets, but with new coefcators that
-    obey eq (10) in ArXiv:1908.08067 (sum_j B_j^2 = 1) and an overall correction (gamma_l).
+    TODO
 
     Args:
-        anti_commuting_set (list): A list of Pauliwords, where each entry is a tuple of (PauliWord, constant)
+        anti_commuting_set (list):
 
     Returns:
         dict: A dictionary of normalised_anti_commuting_set (key = 'PauliWords') and correction factor (key = 'gamma_l')
@@ -35,22 +33,19 @@ def Get_beta_j_cofactors(anti_commuting_set):
        :emphasize-lines: 4
 
        from quchem.Unitary_partitioning import *
-       Anti_commuting_set = [('I0 Z1 I2 I3', (0.1371657293179602+0j)), ('Y0 Y1 X2 X3', (-0.04919764587885283+0j))]
+       Anti_commuting_set = []
 
        Get_beta_j_cofactors(Anti_commuting_set)
-       >> {'PauliWords': [  ('I0 Z1 I2 I3', (0.9412848366792171+0j)),
-                            ('Y0 Y1 X2 X3', (-0.33761347164735517+0j))
-                          ],
-          'gamma_l': (0.14572180914107857+0j)}
+       >> TODO
 
     """
-    normalised_terms = []
-    factor = sum([constant ** 2 for PauliWord, constant in anti_commuting_set])
-    for PauliWord, constant in anti_commuting_set:
-        new_constant = constant/np.sqrt(factor)
-        normalised_terms.append((PauliWord, new_constant))
+    factor = sum([const ** 2 for qubitOp in qubitOp_list for PauliStrs, const in qubitOp.terms.items()])
 
-    return {'PauliWords': normalised_terms, 'gamma_l': np.sqrt(factor)}
+    normalised_qubitOp_list = [QubitOperator(PauliStrs, const / np.sqrt(factor)) for qubitOp in qubitOp_list for
+                               PauliStrs, const in qubitOp.terms.items()]
+
+    return {'PauliWords': normalised_qubitOp_list, 'gamma_l': factor}
+
 
 if __name__ == '__main__':
     vv = Get_beta_j_cofactors(anti_commuting_sets[7])
