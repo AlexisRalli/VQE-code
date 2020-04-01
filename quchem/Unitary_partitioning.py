@@ -44,7 +44,7 @@ def Get_beta_j_cofactors(qubitOp_list):
     normalised_qubitOp_list = [QubitOperator(PauliStrs, const / np.sqrt(factor)) for qubitOp in qubitOp_list for
                                PauliStrs, const in qubitOp.terms.items()]
 
-    return {'PauliWords': normalised_qubitOp_list, 'gamma_l': factor}
+    return {'PauliWords': normalised_qubitOp_list, 'gamma_l': np.sqrt(factor)}
 
 
 if __name__ == '__main__':
