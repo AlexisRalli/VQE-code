@@ -369,7 +369,7 @@ class Change_PauliWord_measurement_to_Z_basis(cirq.Gate):
         gives :
                 0: ───H───────────
 
-                3: ───Rx(-0.5π)───
+                3: ───Rx(-0.5π)───list_of_Pn_qNos
 
     Args:
         PauliWord_QubitOp (openfermion.QubitOperator): QubitOperator of PauliWord

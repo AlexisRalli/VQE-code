@@ -3,41 +3,18 @@ from scipy.sparse import csr_matrix
 from scipy.sparse import kron
 import numpy as np
 
-if __name__ == '__main__':
-    anti_commuting_sets = {
-     0: [('I0 I1 I2 I3', (-0.32760818995565577+0j))],
-     1: [('Z0 Z1 I2 I3', (0.15660062486143395+0j))],
-     2: [('Z0 I1 Z2 I3', (0.10622904488350779+0j))],
-     3: [('Z0 I1 I2 Z3', (0.15542669076236065+0j))],
-     4: [('I0 Z1 Z2 I3', (0.15542669076236065+0j))],
-     5: [('I0 Z1 I2 Z3', (0.10622904488350779+0j))],
-     6: [('I0 I1 Z2 Z3', (0.1632676867167479+0j))],
-     7: [('Z0 I1 I2 I3', (0.1371657293179602+0j)), ('Y0 X1 X2 Y3', (0.04919764587885283+0j)), ('X0 I1 I2 I3', (0.04919764587885283+0j))], # <- I added this term to check code
-     8: [('I0 Z1 I2 I3', (0.1371657293179602+0j)), ('Y0 Y1 X2 X3', (-0.04919764587885283+0j))],
-     9: [('I0 I1 Z2 I3', (-0.13036292044009176+0j)),('X0 X1 Y2 Y3', (-0.04919764587885283+0j))],
-     10: [('I0 I1 I2 Z3', (-0.13036292044009176+0j)), ('X0 Y1 Y2 X3', (0.04919764587885283+0j))]
-}
 
 from openfermion.ops import QubitOperator
 def Get_beta_j_cofactors(qubitOp_list):
     """
-    TODO
+    Function takes in list of QubitOperators and returns a dictionary containing the normalised set of QubitOperators
+    and correction term (gamma_l).
 
     Args:
-        anti_commuting_set (list):
+        qubitOp_list (list): A list of QubitOperators
 
     Returns:
-        dict: A dictionary of normalised_anti_commuting_set (key = 'PauliWords') and correction factor (key = 'gamma_l')
-
-    .. code-block:: python
-       :emphasize-lines: 4
-
-       from quchem.Unitary_partitioning import *
-       Anti_commuting_set = []
-
-       Get_beta_j_cofactors(Anti_commuting_set)
-       >> TODO
-
+        dict: A dictionary of normalised terms (key = 'PauliWords') and correction factor (key = 'gamma_l')
     """
     factor = sum([const ** 2 for qubitOp in qubitOp_list for PauliStrs, const in qubitOp.terms.items()])
 
@@ -46,1409 +23,257 @@ def Get_beta_j_cofactors(qubitOp_list):
 
     return {'PauliWords': normalised_qubitOp_list, 'gamma_l': np.sqrt(factor)}
 
-
-if __name__ == '__main__':
-    vv = Get_beta_j_cofactors(anti_commuting_sets[7])
-
-def convert_X_sk(X_sk):
+def Get_X_sk(qubitOp_Ps, qubitOp_Pk):
     """
+    Function takes in two QubitOperators (P_s, and P_k) and returns the QubitOperator X_sk (= i P_s P_k)
 
-    Converts P_s, P_k tuple into the corresponding X_sk term (PauliWord, correction_factor).
-    Where X_sk = i P_s P_k [note that beta cofactors omitted in definition. When multiplying the PauliWords,
-    they gain different cofactors, YX = -1i Z . This effect is taken into account by this function and the overall
-    effect is returned as the correction factor.
 
     Args:
-        X_sk (tuple): A tuple of (Pauliword_s, Pauliword_k) where each is a tuple of (PauliWord, constant)
+        qubitOp_Ps (QubitOperator): QubitOperator of P_s
+        qubitOp_Pk (QubitOperator): QubitOperator of P_k
 
     Returns:
-        tuple: i* (P_s P_k) as a (Pauliword, constant). Note that constant here is NOT cofactor from Hamiltonian
-               but in fact the correction term from multiplying all the Paulis. e.g. YX = -1i Z.
-
-    .. code-block:: python
-       :emphasize-lines: 7
-
-       from quchem.Unitary_partitioning import *
-       X_sk = (
-              ('Z0 I1 I2 I3', (0.8918294488900189+0j)), # P_s
-              ('Y0 X1 X2 Y3', (0.3198751585326103+0j))  # P_k
-            )
-
-       convert_X_sk(X_sk)
-       >> ('X0 X1 X2 Y3', (1+0j))
+        X_sk (QubitOperator): QubitOperator of X_sk
 
     """
-    convert_term ={
-        'II': (1,'I'),
-        'IX': (1,'X'),
-        'IY': (1,'Y'),
-        'IZ': (1,'Z'),
+    convert_term = {
+        'II': (1, 'I'),
+        'IX': (1, 'X'),
+        'IY': (1, 'Y'),
+        'IZ': (1, 'Z'),
 
-        'XI': (1,'X'),
-        'XX': (1,'I'),
-        'XY': (1j,'Z'),
-        'XZ': (-1j,'Y'),
+        'XI': (1, 'X'),
+        'XX': (1, 'I'),
+        'XY': (1j, 'Z'),
+        'XZ': (-1j, 'Y'),
 
-        'YI': (1,'Y'),
-        'YX': (-1j,'Z'),
-        'YY': (1,'I'),
-        'YZ': (1j,'X'),
+        'YI': (1, 'Y'),
+        'YX': (-1j, 'Z'),
+        'YY': (1, 'I'),
+        'YZ': (1j, 'X'),
 
-        'ZI': (1,'Z'),
-        'ZX': (1j,'Y'),
-        'ZY': (-1j,'X'),
-        'ZZ': (1,'I')
+        'ZI': (1, 'Z'),
+        'ZX': (1j, 'Y'),
+        'ZY': (-1j, 'X'),
+        'ZZ': (1, 'I')
     }
 
-    # arXiv 1908.08067 eq (11)
-    new_constant = 1j
+    PauliStr_tuples_Ps = [tup for PauliStrs, const in qubitOp_Ps.terms.items() for tup in PauliStrs]
+    qubitNo_Ps, PauliStr_Ps = zip(*PauliStr_tuples_Ps)
+    qubitNo_Ps = np.array(qubitNo_Ps)
 
-    PauliWord_s = X_sk[0][0].split(' ')
-    PauliWord_k = X_sk[1][0].split(' ')
+    PauliStr_tuples_Pk = [tup for PauliStrs, const in qubitOp_Pk.terms.items() for tup in PauliStrs]
+    qubitNo_Pk, PauliStr_Pk = zip(*PauliStr_tuples_Pk)
+    qubitNo_Pk = np.array(qubitNo_Pk)
 
-    new_PauliWord = []
-    for i in range(len(PauliWord_s)):
-        qubitNo = PauliWord_s[i][1::]
+    common_qubits = np.intersect1d(qubitNo_Ps, qubitNo_Pk)
 
-        if qubitNo == PauliWord_k[i][1::]:
-            PauliString_s =  PauliWord_s[i][0]
-            PauliString_k = PauliWord_k[i][0]
+    PauliStr_Ps_common = np.take(PauliStr_Ps, np.where(np.isin(qubitNo_Ps, common_qubits) == True)).flatten()
+    PauliStr_Pk_common = np.take(PauliStr_Pk, np.where(np.isin(qubitNo_Pk, common_qubits) == True)).flatten()
 
-            term = PauliString_s + PauliString_k
+    new_paulistr_list = []
+    new_factor = []
+    for index, pauli_str_Ps in enumerate(PauliStr_Ps_common):
 
-            try:
-                new_PauliString = convert_term[term]
-                new_PauliWord.append((new_PauliString, qubitNo))
-            except:
-                raise KeyError('Cannot combine: {}, as contains Non-Pauli operators'.format(term))
-        else:
-            raise ValueError('qubit indexes do Not match. P_s index = {} and P_k index = {}'.format(qubitNo, PauliWord_k[i][1::]))
+        pauli_str_Pk = PauliStr_Pk_common[index]
+        qubitNo = common_qubits[index]
 
-    # needed for Pauli products!
-    new_constant_SIGN = np.prod([factorpaulistring[0] for factorpaulistring, qubitNo in new_PauliWord])
+        combined_pauli_str = pauli_str_Ps + pauli_str_Pk
+
+        if convert_term[combined_pauli_str][1] != 'I':
+            new_pauli_str = convert_term[combined_pauli_str][1] + str(qubitNo)
+            new_paulistr_list.append(new_pauli_str)
+
+            new_factor.append(convert_term[combined_pauli_str][0])
+
+    new_constant = np.prod(new_factor)
+
+    for index, qubitNo in enumerate(qubitNo_Ps):
+        if qubitNo not in common_qubits:
+            Paulistring_Ps = PauliStr_Ps[index]
+            new_paulistr_list.append(Paulistring_Ps + str(qubitNo))
+
+    for index, qubitNo in enumerate(qubitNo_Pk):
+        if qubitNo not in common_qubits:
+            Paulistring_Pk = PauliStr_Pk[index]
+            new_paulistr_list.append(Paulistring_Pk + str(qubitNo))
 
     seperator = ' '
-    new_PauliWord = seperator.join([factorpaulistring[1] + qubitNo for factorpaulistring, qubitNo in new_PauliWord])
+    pauliStr_list = seperator.join(new_paulistr_list)
 
-    return (new_PauliWord, new_constant_SIGN*new_constant)
+    X_sk = QubitOperator(pauliStr_list, 1j * new_constant)
 
+    return X_sk
 
-def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0): #
+def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0):  #
     """
 
-    Function takes in a normalised_anti_commuting_set, which is a list of PauliWord tuples (PauliWord, constant),
-    and returns each R_sk operator according to eq (11) in ArXiv:1908.08067.
-
-    Args:
-        normalised_anticommuting_set_DICT (list): A list of Pauliwords, where each entry is a tuple of (PauliWord, constant)
-        S (optional, int) = index for PauliWord_S term. If not stated then takes first entry (index = 0)
-
-    Returns:
-        dict: A dictionary of 'PauliWord_S' yields (PauliWord, correction_factor_due_matrix_multiplication), t
-        he normalisation correction value 'gamma_l' (complex) and each 'X_sk_theta_sk'... which is a list of
-        dictionaries that are defined with 'X_sk' = (PauliWord, correction_factor_due_matrix_multiplication) and
-        'theta_sk' is rotational angle in radians. NOTE: each element of X_sk_theta_sk dict is a list of sub
-        dictionaries each associated to one sk term.
-
-    .. code-block:: python
-       :emphasize-lines: 9
-
-       from quchem.Unitary_partitioning import *
-       normalised_anticommuting_set_DICT = {
-                                            'PauliWords': [   ('Z0 I1 I2 I3', (0.8918294488900189+0j)),
-                                                              ('Y0 X1 X2 Y3', (0.3198751585326103+0j)),
-                                                              ('X0 I1 I2 I3', (0.3198751585326103+0j))   ],
-                                            'gamma_l': (0.1538026463340925+0j)
-                                            }
-
-       Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0)
-        >> {
-             'X_sk_theta_sk': [   {'X_sk': ('X0 X1 X2 Y3', (1+0j)), 'theta_sk': (0.34438034648829496+0j)},
-                                    {'X_sk': ('Y0 I1 I2 I3', (-1+0j)), 'theta_sk': (0.325597719954341+0j)}
-                                ],
-             'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
-             'gamma_l': (0.1538026463340925+0j)
-           }
+TODO
 
     """
 
-    anti_commuting_set = normalised_anticommuting_set_DICT['PauliWords']
+    qubit_Op_list_normalisted = normalised_anticommuting_set_DICT['PauliWords'].copy()
 
-    if len(anti_commuting_set) > 1:
+    if len(qubit_Op_list_normalisted) > 1:
 
-        k_indexes = [index for index in range(len(anti_commuting_set)) if
-                   index != S]
+        PauliS = qubit_Op_list_normalisted.pop(S)
+        beta_S = list(PauliS.terms.values())[0]
 
         Op_list = []
-        beta_S = anti_commuting_set[S][1]
+        running_total = 0
+        for index, PauliK in enumerate(qubit_Op_list_normalisted):
+            if index == 0:
+                X_sk_op = Get_X_sk(PauliS, PauliK)
+                beta_K = list(PauliK.terms.values())[0]
+                theta_sk = np.arctan(beta_K / beta_S)
 
-        for k in k_indexes:
-            X_sk_op =(anti_commuting_set[S], anti_commuting_set[k])
+                if beta_S.real < 0:
+                    theta_sk = theta_sk + np.pi
 
-            beta_K = anti_commuting_set[k][1]
-
-            tan_theta_sk = beta_K / beta_S
-            theta_sk = np.arctan(tan_theta_sk)
-            Op_list.append({'X_sk': convert_X_sk(X_sk_op),
-                            'theta_sk': theta_sk})  # , 'factor': normalised_anti_commuting_sets[key]['factor']})
-
-            beta_S = beta_K*np.sin(theta_sk) + beta_S*np.cos(theta_sk)
-
-        return {'X_sk_theta_sk': Op_list, 'PauliWord_S': (anti_commuting_set[S][0], beta_S), 'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}
-
-
-if __name__ == '__main__':
-    ww = Get_X_sk_operators(vv)
-
-
-class X_sk_terms():
-    def __init__(self,anti_commuting_sets, S_dict=None):
-        self.anti_commuting_sets = anti_commuting_sets
-
-        if S_dict is None:
-            # makes PauliS always 0th index in anticommuting sets
-            self.S_dict={}
-            for key in anti_commuting_sets:
-                self.S_dict[key] = 0
-        else:
-            self.S_dict = S_dict
-
-        self.normalised_anti_commuting_sets = None
-        self.X_sk_Ops = None
-
-    def Get_normalised_set(self):
-        normalised_anti_commuting_sets={}
-        for key in self.anti_commuting_sets:
-            if len(self.anti_commuting_sets[key]) <= 1:
-                continue
             else:
-                normalised_anti_commuting_sets[key] = Get_beta_j_cofactors(self.anti_commuting_sets[key])
+                beta_K = list(PauliK.terms.values())[0]
+                running_total += beta_K ** 2
+                theta_sk = np.arctan(beta_K / np.sqrt(beta_S ** 2 + running_total))
 
-        self.normalised_anti_commuting_sets = normalised_anti_commuting_sets
+            Op_list.append({'X_sk': X_sk_op,
+                            'theta_sk_over2': theta_sk / 2})  # , 'factor': normalised_anti_commuting_sets[key]['factor']})
 
-    def Get_X_sk_Operators(self):
-        if self.normalised_anti_commuting_sets is None:
-            self.Get_normalised_set()
+        #         if beta_S<0: # if list(PauliS.terms.values())[0] < 0:
+        #             sign_gamma_l = -1
+        #         else:
+        #             sign_gamma_l = 1
 
-        X_sk_Ops={}
-        for key in self.normalised_anti_commuting_sets:
-            X_sk_Ops[key] = Get_X_sk_operators(self.normalised_anti_commuting_sets[key], S=self.S_dict[key])
+        return {'X_sk_and_theta_terms': Op_list, 'PauliWord_S': QubitOperator(list(PauliS.terms.keys())[0], 1),
+                'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}  # *sign_gamma_l}
 
-        self.X_sk_Ops = X_sk_Ops
-
-    def Get_all_X_sk_operators(self):
-        self.Get_normalised_set()
-        self.Get_X_sk_Operators()
-
-if __name__ == '__main__':
-    ALL_X_SK_TERMS = X_sk_terms(anti_commuting_sets, S_dict={0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1,
-                                                             10: 1})
-    ALL_X_SK_TERMS.Get_all_X_sk_operators()
-    print(ALL_X_SK_TERMS.X_sk_Ops)
-
-
+# ANDREW CODE:
+# def thetasFromOplist(normalisedOplist):
+#     betas = [x for x in normalisedOplist]
+#     squaredBetas = [x**2 for x in betas]
+#
+#     runningTotal = squaredBetas[-1]
+#     squaredBetaSums = [runningTotal]
+#     for i in range(1,len(normalisedOplist)-1):
+#         runningTotal += squaredBetas[i-1]
+#         squaredBetaSums.append(runningTotal)
+#
+#     l2Betas = [x**(1./2.) for x in squaredBetaSums]
+#     l2Betas[0] = betas[-1]
+#     thetas = [np.arctan(betas[i]/l2Betas[i]) for i in range(len(l2Betas))]
+#     if betas[-1].real < 0.:
+#         thetas[0] = thetas[0] + np.pi
+#     return thetas
+#
+# thetasFromOplist([0.9668047296891765, -0.25551636865500044])
+from quchem.quantum_circuit_functions import full_exponentiated_PauliWord_circuit
+from openfermion.ops import QubitOperator
 import cirq
-class Change_of_Basis_initial_X_sk(cirq.Gate):
+
+def Build_reduction_circuit(normalised_anticommuting_set_X_sk_DICT):
+    for term in normalised_anticommuting_set_X_sk_DICT['X_sk_and_theta_terms']:
+        pauliword_X_sk = list(term['X_sk'].terms.keys())[0]
+        const_X_sk = list(term['X_sk'].terms.values())[0]
+
+        theta_sk_over2 = term['theta_sk_over2']
+
+        full_exp_circ_obj = full_exponentiated_PauliWord_circuit(QubitOperator(pauliword_X_sk, -1j),
+                                                                 theta_sk_over2 * const_X_sk)
+
+        circuit = cirq.Circuit(
+            cirq.decompose_once((full_exp_circ_obj(*cirq.LineQubit.range(full_exp_circ_obj.num_qubits())))))
+
+        yield circuit
+
+from quchem.quantum_circuit_functions import change_pauliword_to_Z_basis_then_measure
+def Generate_Full_Q_Circuit_unitary_part(Full_Ansatz_Q_Circuit, normalised_anticommuting_set_X_sk_DICT):
     """
-    Class to generate cirq circuit as gate in order to perform: e^(-i theta_sk/2 * X_sk) ... eq (12) arXiv: 1908.08067
-
-    This class generates change of basis in oder to perform PauliWord as a Z terms only
-    aka: e^(cofactor * theta_sk/2 * PauliWord_Z_ONLY)
-
-
-
-    e.g.:
-           X_sk = ('X0 X1 X2 Y3', (1+0j))
-    gives:
-                0: ───H──────────
-                1: ───H──────────
-                2: ───H──────────
-                3: ───Rx(0.5π)───
-
+     TODO
 
     Args:
-        X_sk (tuple): A tuple of tuples: (X_sk, constant). Note that constant here is NOT cofactor from Hamiltonian
-               but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
 
-    Returns
-        A cirq circuit object to be used by cirq.Circuit
-
-    """
-
-    def __init__(self, X_sk):
-
-        self.X_sk = X_sk
-
-    def _decompose_(self, qubits):
-
-        PauliWord = self.X_sk[0].split(' ')
-
-        for PauliString in PauliWord:
-            qubitOp = PauliString[0]
-            qubitNo = int(PauliString[1::])
-
-            if qubitOp == 'X':
-                yield cirq.H(qubits[qubitNo])
-            elif qubitOp == 'Y':
-                 yield cirq.rx(np.pi / 2)(qubits[qubitNo])
-            elif qubitOp == 'Z' or 'I':
-                continue
-            else:
-                raise ValueError("Qubit Operation: {} is NOT a Pauli operation".format(qubitOp))
-
-    def _circuit_diagram_info_(self, args):
-        Ansatz_basis_change_list = []
-        PauliWord = self.X_sk[0].split(' ')
-        for i in range(len(PauliWord)):
-                Ansatz_basis_change_list.append('Basis_change')
-        return Ansatz_basis_change_list
-
-    def num_qubits(self):
-        PauliWord = self.X_sk[0].split(' ')
-        return len(PauliWord)
-
-if __name__ == '__main__':
-    #X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
-    X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
-    #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
-
-    Basis_change_circuit = Change_of_Basis_initial_X_sk(X_SK_Test)
-
-    print(cirq.Circuit((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits())))))
-    print(
-        cirq.Circuit(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
-
-class Engtangle_initial_X_sk(cirq.Gate):
-    """
-    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
-    qubits in order to perform PauliWord as a Z terms only for: e^(cofactor * theta/2 * PauliWord_Z_ONLY)
-    where change of basis for  e^(-i theta_sk/2 * X_sk) already performed.
-
-    e.g.: X_sk = ('X0 X1 X2 Y3', (1+0j))
-        gives :
-                    0: ───@───────────
-                          │
-                    1: ───X───@───────
-                              │
-                    2: ───────X───@───
-                                  │
-                    3: ───────────X───
-
-    Args:
-        X_sk (tuple): A tuple of tuples: (X_sk, constant). Note that constant here is NOT cofactor from Hamiltonian
-               but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
-
-    Returns
-        A cirq circuit object to be used by cirq.Circuit
-
-    """
-
-
-    def __init__(self, X_sk):
-
-        self.X_sk = X_sk
-
-    def _decompose_(self, qubits):
-
-        PauliWord = self.X_sk[0].split(' ')
-
-        # note identity terms removed here
-        qubitNo_qubitOp_list = [(int(PauliString[1::]), PauliString[0]) for PauliString in PauliWord if PauliString[0] != 'I']
-
-        control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list])
-
-        for j in range(len(qubitNo_qubitOp_list)):
-            qubitNo = qubitNo_qubitOp_list[j][0]
-            #qubitOp = qubitNo_qubitOp_list[j][1]
-
-            if qubitNo < control_qubit:
-                qubitNo_NEXT = qubitNo_qubitOp_list[j + 1][0]
-                yield cirq.CNOT(qubits[qubitNo], qubits[qubitNo_NEXT])
-
-
-    def _circuit_diagram_info_(self, args):
-        string_list = []
-        PauliWord = self.X_sk[0].split(' ')
-        for i in range(len(PauliWord)):
-                string_list.append('Entangling circuit')
-        return string_list
-
-
-    def num_qubits(self):
-        PauliWord = self.X_sk[0].split(' ')
-        return len(PauliWord)
-
-if __name__ == '__main__':
-    #X_SK_Test = ww[7][0]['X_sk'] # (  ('Z0 I1 I2 I3', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3', (0.3198751585326103+0j))   )
-    X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
-
-    #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
-
-    Ent_initial = Engtangle_initial_X_sk(X_SK_Test)
-
-    print(cirq.Circuit((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits())))))
-    print(
-        cirq.Circuit(cirq.decompose_once((Ent_initial(*cirq.LineQubit.range(Ent_initial.num_qubits()))))))
-
-class My_R_sk_Gate(cirq.SingleQubitGate):
-
-    """
-    My_R_sk_Gate class generate R_sk and R_sk dagger quantum circuits as a gate. Gate defined in
-    eq (12) arXiv: 1908.08067.
-
-    NOTE that for iPsPk term = X_sk = ('X0 X1 X2 Y3', -(1+0j))
-                                                       ^^^^ this is the correction factor!
-
-    Info on matrix definition found at: https://arxiv.org/pdf/1001.3855.pdf
-
-
-    Args:
-        theta_sk (float): angle to rotate by in radians.
-        dagger (bool): Whether to have dagger or non dagger quantum gate
-        correction_factor (optional, complex): Correction value from X_sk operator.
-                                               e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
-                                              (due to X_sk = i*P_s*P_k... X_sk may require correction_factor!)
-
-    Attributes:
-        theta_sk_over_2 (float): angle to rotate by in radians. Note divided by 2 due to definition of exponentiated
-                                 Pauli terms (https://arxiv.org/pdf/1001.3855.pdf)!
-
-    .. code-block:: python
-       :emphasize-lines: 6
-
-       from quchem.Unitary_partitioning import *
-       import cirq
-
-       X_sk = ('X0 X1 X2 Y3', (1+0j))
-       theta_sk =  (0.34438034648829496+0j)
-       R_S_DAGGER = My_R_sk_Gate(theta_sk, dagger=True, correction_factor=X_sk[1])
-
-       # example of use with cirq.
-       Q_circuit = R_S_DAGGER.on(cirq.LineQubit(1))
-       print(cirq.Circuit(Q_circuit))
-
-       >> 1: ───R_sk_DAGGER = (0.34438034648829496+0j) rad───
-    """
-
-    def __init__(self, theta_sk, dagger=True, correction_factor=1):
-
-        self.theta_sk = theta_sk
-        self.dagger = dagger
-        self.correction_factor = correction_factor
-
-    def _unitary_(self):
-        # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
-        # Takes into account PauliWord constant.
-        if self.dagger:
-
-            # R_sk_dag = np.array([
-            #             [np.e** (-0.5j * self.theta_sk * self.correction_factor), 0],
-            #             [0, np.e** (+0.5j * self.theta_sk * self.correction_factor)]
-            #         ])
-            R_sk_dag = cirq.rz(self.theta_sk * self.correction_factor)._unitary_()
-            return R_sk_dag
-        else:
-            # R_sk = np.array([
-            #     [np.e ** (+0.5j * self.theta_sk * self.correction_factor), 0],
-            #     [0, np.e ** (-0.5j * self.theta_sk * self.correction_factor)]
-            # ])
-            R_sk = (cirq.rz(self.theta_sk * self.correction_factor)**-1)._unitary_()
-            return R_sk
-
-    def num_qubits(self):
-        return 1
-
-    def _circuit_diagram_info_(self, args):
-        # NOTE THAT ABOVE term is angle multiplied by constant!!!! V Important to take this into account!
-        # Takes into account PauliWord constant.
-
-        if self.dagger:
-            return 'R_sk_DAGGER = {} rad'.format(self.theta_sk * self.correction_factor)
-        else:
-            return 'R_sk = {} rad'.format(self.theta_sk * self.correction_factor)
-
-if __name__ == '__main__':
-    X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
-    theta_sk = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['theta_sk']
-    R_S = My_R_sk_Gate(theta_sk, dagger=True, correction_factor=X_SK_Test[1])
-    w = R_S.on(cirq.LineQubit(1))
-    print(cirq.Circuit(w))
-
-class R_sk_DAGGER(cirq.Gate):
-    """
-    Class that uses My_R_sk_Gate class to generate full R_sk OR R_sk dagger quantum circuit as a gate. Gate defined in
-    eq (12) arXiv: 1908.08067.
-
-    Note this puts correct correction_factor for X_sk.
-
-    Args:
-        theta_sk (float): angle to rotate by in radians.
-        dagger (bool): Where to have dagger or non dagger quantum gate
-        X_sk (tuple): Tuple of (PauliWord, correction_factor)
-                      e.g. if X_sk = ('X0 X1 X2 Y3', (-1+0j)) then it would be -1.
-
-
-    .. code-block:: python
-       :emphasize-lines: 6
-
-       from quchem.Unitary_partitioning import *
-       import cirq
-
-       X_sk = ('X0 X1 X2 Y3', (1+0j))
-       theta_sk =  (0.34438034648829496+0j)
-       Q_circuit = R_sk_DAGGER(X_SK_Test, theta_sk, dagger=True)
-
-       # example of use with cirq.
-       print(cirq.Circuit(cirq.decompose_once(
-         (R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits()))))))
-
-       >> 3: ───R_sk_DAGGER = (0.34438034648829496+0j) rad───
-    """
-    def __init__(self, X_sk, theta_sk, dagger=True):
-
-        self.X_sk = X_sk
-        self.theta_sk = theta_sk
-        self.dagger = dagger
-
-
-    def _decompose_(self, qubits):
-
-        PauliWord = self.X_sk[0].split(' ')
-
-        # note identity terms removed here
-        qubitNo_qubitOp_list = [(int(PauliString[1::]), PauliString[0]) for PauliString in PauliWord if PauliString[0] != 'I']
-
-        control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list])
-
-        yield My_R_sk_Gate(self.theta_sk, dagger=self.dagger, correction_factor=self.X_sk[1]).on(qubits[control_qubit])
-
-    def num_qubits(self):
-        PauliWord = self.X_sk[0].split(' ')
-        return len(PauliWord)
-
-    def _circuit_diagram_info_(self, args):
-        string_list = []
-        PauliWord = self.X_sk[0].split(' ')
-        for i in range(len(PauliWord)):
-                string_list.append('R_sk_rotation circuit')
-        return string_list
-
-if __name__ == '__main__':
-    X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
-    theta_sk = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['theta_sk']
-    #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
-
-    R_sk_rot_circuit = R_sk_DAGGER(X_SK_Test, theta_sk, dagger=True)
-
-    print(cirq.Circuit((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits())))))
-    print(
-        cirq.Circuit(cirq.decompose_once((R_sk_rot_circuit(*cirq.LineQubit.range(R_sk_rot_circuit.num_qubits()))))))
-
-class Engtangle_final_X_sk(cirq.Gate):
-
-    """
-    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
-    qubits in order to perform PauliWord as a Z terms only for: e^(cofactor * theta/2 * PauliWord_Z_ONLY)
-    where change of basis for  e^(-i theta_sk/2 * X_sk) already performed.
-
-    e.g.: X_sk = ('X0 X1 X2 Y3', (1+0j))
-        gives :
-                    0: ───────────@───
-                                  │
-                    1: ───────@───X───
-                              │
-                    2: ───@───X───────
-                          │
-                    3: ───X───────────
-
-    Args:
-        X_sk (tuple): A tuple of tuples: (X_sk, constant). Note that constant here is NOT cofactor from Hamiltonian
-               but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
-
-    Returns
-        A cirq circuit object to be used by cirq.Circuit
-
-    """
-
-    def __init__(self, X_sk):
-
-        self.X_sk = X_sk
-
-    def _decompose_(self, qubits):
-
-        PauliWord = self.X_sk[0].split(' ')
-
-        # note identity terms removed here
-        qubitNo_qubitOp_list_REVERSE = [(int(PauliString[1::]), PauliString[0]) for PauliString in PauliWord if PauliString[0] != 'I'][::-1]
-
-        control_qubit = max([qubitNo for qubitNo, qubitOp in qubitNo_qubitOp_list_REVERSE])
-
-        for i in range(len(qubitNo_qubitOp_list_REVERSE)):
-            qubitNo, qubitOp = qubitNo_qubitOp_list_REVERSE[i]
-
-            if qubitNo < control_qubit and qubitNo >= 0:
-                qubitNo_NEXT = qubitNo_qubitOp_list_REVERSE[i - 1][0]   # note negative here
-                yield cirq.CNOT(qubits[qubitNo], qubits[qubitNo_NEXT])
-
-
-    def _circuit_diagram_info_(self, args):
-        string_list = []
-        PauliWord = self.X_sk[0].split(' ')
-        for i in range(len(PauliWord)):
-                string_list.append('Entangling circuit')
-        return string_list
-
-
-    def num_qubits(self):
-        PauliWord = self.X_sk[0].split(' ')
-        return len(PauliWord)
-
-if __name__ == '__main__':
-    X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
-    #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
-
-    Ent_final = Engtangle_final_X_sk(X_SK_Test)
-
-    print(cirq.Circuit((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits())))))
-    print(
-        cirq.Circuit(cirq.decompose_once((Ent_final(*cirq.LineQubit.range(Ent_final.num_qubits()))))))
-
-class Change_of_Basis_final_X_sk(cirq.Gate):
-
-    """
-    Class to generate cirq circuit as gate... which generates CNOT entangling gates between non Idenity PauliWord
-    qubits in order to perform PauliWord as a Z terms only for: e^(cofactor * theta/2 * PauliWord_Z_ONLY)
-    where change of basis for  e^(-i theta_sk/2 * X_sk) already performed.
-
-    e.g.: X_sk = ('X0 X1 X2 Y3', (1+0j))
-        gives :
-                    0: ───────────@───
-                                  │
-                    1: ───────@───X───
-                              │
-                    2: ───@───X───────
-                          │
-                    3: ───X───────────
-
-    Args:
-        X_sk (tuple): A tuple of tuples: (X_sk, constant). Note that constant here is NOT cofactor from Hamiltonian
-               but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
-
-    Returns
-        A cirq circuit object to be used by cirq.Circuit
-
-    """
-
-    def __init__(self, X_sk):
-
-        self.X_sk = X_sk
-
-    def _decompose_(self, qubits):
-
-        PauliWord = self.X_sk[0].split(' ')
-
-        for PauliString in PauliWord:
-            qubitOp = PauliString[0]
-            qubitNo = int(PauliString[1::])
-
-            if qubitOp == 'X':
-                yield cirq.H(qubits[qubitNo])
-            elif qubitOp == 'Y':
-                 yield cirq.rx(-np.pi / 2)(qubits[qubitNo])
-            elif qubitOp == 'Z' or 'I':
-                continue
-            else:
-                raise ValueError("Qubit Operation: {} is NOT a Pauli operation".format(qubitOp))
-
-    def _circuit_diagram_info_(self, args):
-        Ansatz_basis_change_list = []
-        PauliWord = self.X_sk[0].split(' ')
-        for i in range(len(PauliWord)):
-                Ansatz_basis_change_list.append('Basis_change')
-        return Ansatz_basis_change_list
-
-    def num_qubits(self):
-        PauliWord = self.X_sk[0].split(' ')
-        return len(PauliWord)
-
-if __name__ == '__main__':
-    X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
-    #X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
-
-    Basis_change_circuit = Change_of_Basis_final_X_sk(X_SK_Test)
-
-    print(cirq.Circuit((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits())))))
-    print(
-        cirq.Circuit(cirq.decompose_once((Basis_change_circuit(*cirq.LineQubit.range(Basis_change_circuit.num_qubits()))))))
-
-class R_sk_full_circuit(cirq.Gate):
-
-    """
-    Class to generate cirq circuit as gate performing : e^(cofactor * theta * X_sk) OR e^(cofactor * theta * X_sk)^DAGGER
-
-    e.g.: X_SK_Test =('X0 X1 X2 Y3', (1+0j))
-          theta_sk = np.pi
-          dagger=True
-
-        gives :
-                0: ───H──────────@───────────────────────────────────────────────────────────────@───H───────────
-                                 │                                                               │
-                1: ───H──────────X───@───────────────────────────────────────────────────────@───X───H───────────
-                                     │                                                       │
-                2: ───H──────────────X───@───────────────────────────────────────────────@───X───────H───────────
-                                         │                                               │
-                3: ───Rx(0.5π)───────────X───R_sk_DAGGER = (1.5707963267948966+0j) rad───X───────────Rx(-0.5π)───
-
-    Args:
-        X_sk (tuple): A tuple of tuples: (X_sk, constant). Note that constant here is NOT cofactor from Hamiltonian
-                      but in fact the correction term from multiplying P_s and P_k... e.g. YX = -1i Z.
-        theta_sk (float): angle to rotate
-        dagger (bool): whether to have daggered or non dagger circuit.
-
-    Returns
-        A cirq circuit object to be used by cirq.Circuit
-
-    """
-
-
-    def __init__(self, X_sk, theta_sk, dagger):
-
-        self.X_sk = X_sk
-        self.theta_sk = theta_sk
-        self.dagger = dagger
-
-
-    def _decompose_(self, qubits):
-
-
-        Basis_change_initial_circuit = Change_of_Basis_initial_X_sk(self.X_sk)
-        Ent_initial = Engtangle_initial_X_sk(self.X_sk)
-        R_sk_rot_circuit = R_sk_DAGGER(self.X_sk, self.theta_sk, dagger=self.dagger)
-        Ent_final = Engtangle_final_X_sk(self.X_sk)
-
-        Basis_change_final_circuit = Change_of_Basis_final_X_sk(self.X_sk)
-
-        basis_change_initial_gen = Basis_change_initial_circuit._decompose_(qubits)
-        Ent_initial_gen = Ent_initial._decompose_(qubits)
-        R_sk_rot_circuit_gen = R_sk_rot_circuit._decompose_(qubits)
-        Ent_final_gen = Ent_final._decompose_(qubits)
-        basis_change_final_gen = Basis_change_final_circuit._decompose_(qubits)
-
-        list_generators = [basis_change_initial_gen, Ent_initial_gen, R_sk_rot_circuit_gen, Ent_final_gen,
-                           basis_change_final_gen]
-        yield list_generators
-
-
-
-    def _circuit_diagram_info_(self, args):
-        string_list = []
-        PauliWord = self.X_sk[0].split(' ')
-        for i in range(len(PauliWord)):
-                string_list.append('R_sk_circuit')
-        return string_list
-
-    def num_qubits(self):
-        PauliWord = self.X_sk[0].split(' ')
-        return len(PauliWord)
-
-if __name__ == '__main__':
-    X_SK_Test = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['X_sk']
-    theta_sk = ALL_X_SK_TERMS.X_sk_Ops[7]['X_sk_theta_sk'][0]['theta_sk']
-    # X_SK_Test = (  ('Z0 I1 I2 I3 I4 I5 I6 I7 I8 I9 X10', (0.8918294488900189+0j)), ('Y0 X1 X2 Y3 I4 I5 I6 I7 I8 I9 Z10', (0.3198751585326103+0j))   )
-
-    R_sk_full = R_sk_full_circuit(X_SK_Test, theta_sk, dagger=True)
-
-    print(cirq.Circuit((R_sk_full(*cirq.LineQubit.range(R_sk_full.num_qubits())))))
-    print(
-        cirq.Circuit(
-            cirq.decompose_once((R_sk_full(*cirq.LineQubit.range(R_sk_full.num_qubits()))))))
-
-# TODO build R_S operator!
-
-def Get_R_S_operators(X_sk_and_theta_sk, dagger=True):
-    """
-    Function takes in a dictionary from dictionary output from Get_X_sk_operators function... (dict of dict)
-
-    which is a  dictionary of 'PauliWord_S' yields (PauliWord, correction_factor_due_matrix_multiplication), the
-    normalisation correction value 'gamma_l' (complex) and each 'X_sk_theta_sk'... which is a list of
-    dictionaries that are defined with 'X_sk' = (PauliWord, correction_factor_due_matrix_multiplication) and
-    'theta_sk' is rotational angle in radians. NOTE: each element of X_sk_theta_sk dict is a list of sub
-    dictionaries each associated to one sk term.
-
-    and outputs quantum circuits with for each R_s_k operation. Note number of terms in list is same as length of
-    X_sk_theta_sk in in input dictionary.
-
-
-    Args:
-        X_sk_and_theta_sk (dict): A dictionary of
-        dagger (bool, optional): Whether to have daggered operation or not
 
     Returns:
-        list: A list of quantum dictionaries, containing quantum circuit generators and gamma_l terms.
-
-    .. code-block:: python
-       :emphasize-lines: 11
-
-       from quchem.Unitary_partitioning import *
-       X_sk_and_theta_sk =
-                      {
-                         'X_sk_theta_sk': [   {'X_sk': ('X0 X1 X2 Y3', (1+0j)), 'theta_sk': (0.34438034648829496+0j)},
-                                                {'X_sk': ('Y0 I1 I2 I3', (-1+0j)), 'theta_sk': (0.325597719954341+0j)}
-                                            ],
-                         'PauliWord_S': ('Z0 I1 I2 I3', (1+0j)),
-                         'gamma_l': (0.1538026463340925+0j)
-                      }
-
-       Get_R_S_operators(input, dagger=True)
-       >> [
-            {'q_circuit': <__main__.R_sk_full_circuit at 0x7fb7dc2839b0>,
-             'gamma_l': (0.1538026463340925+0j)},
-
-            {'q_circuit': <__main__.R_sk_full_circuit at 0x7fb7dc2837f0>,
-            'gamma_l': (0.1538026463340925+0j)}
-          ]
+        full_circuit (cirq.circuits.circuit.Circuit): Full cirq VQE circuit
 
     """
 
-    list_quantum_circuits_and_gammal = []
-    for terms in X_sk_and_theta_sk['X_sk_theta_sk']:
-        R_s_k_circuit_instance = R_sk_full_circuit(terms['X_sk'], terms['theta_sk'], dagger=dagger)
+    Reduction_circuit_obj = Build_reduction_circuit(normalised_anticommuting_set_X_sk_DICT)
+    Reduction_circuit_circ = cirq.Circuit(Reduction_circuit_obj)
 
-        correction_factor = X_sk_and_theta_sk['gamma_l']
+    measure_PauliS_in_Z_basis_obj = change_pauliword_to_Z_basis_then_measure(
+        normalised_anticommuting_set_X_sk_DICT['PauliWord_S'])
+    measure_PauliS_in_Z_basis_Q_circ = cirq.Circuit(cirq.decompose_once(
+        (measure_PauliS_in_Z_basis_obj(*cirq.LineQubit.range(measure_PauliS_in_Z_basis_obj.num_qubits())))))
 
-        list_quantum_circuits_and_gammal.append({'q_circuit': R_s_k_circuit_instance, 'gamma_l': correction_factor})
+    full_circuit = cirq.Circuit(
+        [
+            Full_Ansatz_Q_Circuit.all_operations(),
+            *Reduction_circuit_circ.all_operations(),
+            *measure_PauliS_in_Z_basis_Q_circ.all_operations(),
+        ]
+    )
+    return full_circuit
 
-    return list_quantum_circuits_and_gammal
+from quchem.Simulating_Quantum_Circuit import *
+class VQE_Experiment_UP():
+    def __init__(self, graph_dict_sets, ansatz_circuit, n_shots, S_key_dict=None):
+        self.graph_dict_sets = graph_dict_sets
+        self.ansatz_circuit = ansatz_circuit
+        self.S_key_dict = S_key_dict
+        self.n_shots = n_shots
 
+    def Calc_Energy(self):
 
-if __name__ == '__main__':
-    X_sk_and_theta_sk = ALL_X_SK_TERMS.X_sk_Ops[7]
-    qq = Get_R_S_operators(X_sk_and_theta_sk, dagger=True)
-    print(cirq.Circuit(
-        (qq[0]['q_circuit'](*cirq.LineQubit.range(qq[0]['q_circuit'].num_qubits())))))
-    print(cirq.Circuit(cirq.decompose_once(
-        (qq[0]['q_circuit'](*cirq.LineQubit.range(qq[0]['q_circuit'].num_qubits()))))))
+        E_list = []
+        for set_key in self.graph_dict_sets:
 
+            if len(self.graph_dict_sets[set_key]) > 1:
 
-from quchem.quantum_circuit_functions import *
+                normalised_set = Get_beta_j_cofactors(self.graph_dict_sets[set_key])
 
-class UnitaryPartition(X_sk_terms):
-    """
-    Class that takes in dictionary of anti_commuting_sets of PauliStrings, full ansatz Q circuit and dictionary of
-    Pauli_S indices (index of which term to take as PauliS in anti_commuting_sets dict).
-
-    Args:
-        anti_commuting_sets (dict):
-        S_dict (): Dictionary with keys corresponding to anti_commuting_sets (dict) with values
-                    associated with which term to take as the Pauli_S term. If S_dict=None then takes 0th index
-                    of all anti_commuting sets.
-        full_anstaz_circuit (): cirq Ansatz Q circuit.
-
-    Attributes:
-        X_sk_Ops ():
-        normalised_anti_commuting_sets ():
-        circuits_and_constants ():
-
-    """
-
-
-    def __init__(self, anti_commuting_sets, full_anstaz_circuit, S_dict=None):
-        self.anti_commuting_sets = anti_commuting_sets
-        super().__init__(anti_commuting_sets, S_dict=S_dict)
-        self.Get_all_X_sk_operators()
-        self.full_anstaz_circuit = full_anstaz_circuit
-
-    def Get_Quantum_circuits_and_constants(self):
-
-        circuits_and_constants = {}
-        ansatz_circuit = list(self.full_anstaz_circuit.all_operations())
-        for key in self.anti_commuting_sets:
-            if key not in self.X_sk_Ops:
-                PauliWord_constant = self.anti_commuting_sets[key]
-
-                Pauli_circuit_object = Perform_PauliWord_and_Measure(*PauliWord_constant)
-
-                q_circuit_Pauliword = cirq.Circuit(
-                    cirq.decompose_once(
-                        (Pauli_circuit_object(*cirq.LineQubit.range(Pauli_circuit_object.num_qubits())))))
-
-                circuit_ops = list(q_circuit_Pauliword.all_operations())
-
-                if circuit_ops == []:
-                    # deals with identity only circuit
-                    circuits_and_constants[key] = {'circuit': None,
-                                                   'gamma_l': PauliWord_constant[0][1], 'PauliWord': PauliWord_constant[0][0]}
+                if self.S_key_dict is None:
+                    X_sk_dict = Get_X_sk_operators(normalised_set, S=0)
                 else:
-                    full_circuit = cirq.Circuit(
-                        [
-                            *ansatz_circuit,
-                            *circuit_ops
-                        ])
+                    X_sk_dict = Get_X_sk_operators(normalised_set, S=self.S_key_dict[set_key])
 
-                    circuits_and_constants[key] = {'circuit': full_circuit,
-                                                   'gamma_l': PauliWord_constant[0][1], 'PauliWord': PauliWord_constant[0][0]}
-            else:
+                Q_circuit = Generate_Full_Q_Circuit_unitary_part(self.ansatz_circuit, X_sk_dict)
+                hist_key_str = Get_Histogram_key(X_sk_dict['PauliWord_S'])
+                int_state_counter = Simulate_Quantum_Circuit(Q_circuit, self.n_shots, hist_key_str)
+                binary_state_counter = Return_as_binary(int_state_counter, hist_key_str)
+                exp_result = expectation_value_by_parity(binary_state_counter)
+                E_list.append(exp_result * X_sk_dict['gamma_l'])
 
-                R_S_DAGGER_operators = Get_R_S_operators(self.X_sk_Ops[key], dagger=True)
-
-                term_reduction_circuits_first = [cirq.decompose_once(
-                    (term['q_circuit'](*cirq.LineQubit.range(term['q_circuit'].num_qubits())))) for term in R_S_DAGGER_operators]
-
-                Pauliword_S = self.X_sk_Ops[key]['PauliWord_S']
-                q_circuit_Pauliword_S_object = Perform_PauliWord(Pauliword_S)
-
-                q_circuit_Pauliword_S = cirq.Circuit(
-                    cirq.decompose_once((q_circuit_Pauliword_S_object(
-                        *cirq.LineQubit.range(q_circuit_Pauliword_S_object.num_qubits())))))
-
-
-                R_S_operators = Get_R_S_operators(self.X_sk_Ops[key], dagger=False)
-
-                term_reduction_circuits_LAST = [cirq.decompose_once(
-                    (term['q_circuit'](*cirq.LineQubit.range(term['q_circuit'].num_qubits())))) for term in R_S_operators]
-
-                q_circuit_change_basis_and_measure = Change_Basis_and_Measure_PauliWord(Pauliword_S)
-
-                q_circuit_Pauliword_S_change_basis_and_measure = cirq.Circuit(
-                    cirq.decompose_once(
-                        (q_circuit_change_basis_and_measure(
-                            *cirq.LineQubit.range(q_circuit_change_basis_and_measure.num_qubits())))))
-
-                full_circuit = cirq.Circuit(
-                    [
-                        *ansatz_circuit,
-                        *term_reduction_circuits_first,
-                        *q_circuit_Pauliword_S.all_operations(),
-                        *term_reduction_circuits_LAST,
-                        *q_circuit_Pauliword_S_change_basis_and_measure.all_operations()
-                    ]
-                )
-
-                # TODO not sure if this part of code is correct!!!
-                #iX_sk_constant = np.prod([X_sk['X_sk'][1] for X_sk in self.X_sk_Ops[key]['X_sk_theta_sk']])
-                # iX_sk_constant=1
-
-                circuits_and_constants[key] = {'circuit': full_circuit,
-                                               'gamma_l': self.X_sk_Ops[key]['gamma_l']*Pauliword_S[1], # note multiplying by factor in front of pauliword!
-                                               'PauliWord': Pauliword_S[0]}
-
-            self.circuits_and_constants = circuits_and_constants
-
-if __name__ == '__main__':
-    full_anstaz_circuit = [cirq.X.on(cirq.LineQubit(2)),
-                           cirq.X.on(cirq.LineQubit(3)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(0)),
-                           cirq.H.on(cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.rz(np.pi * 0.0).on(cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(0)),
-                           cirq.H.on(cirq.LineQubit(2)),
-                           cirq.H.on(cirq.LineQubit(0)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.rz(np.pi * 0.0).on(cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(0)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(2)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.rz(np.pi * 0.3183098861837907).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(3)),
-                           cirq.H.on(cirq.LineQubit(1)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.rz(np.pi * -0.3183098861837907).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.H.on(cirq.LineQubit(1)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(3)),
-                           cirq.H.on(cirq.LineQubit(0)),
-                           cirq.H.on(cirq.LineQubit(1)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(2)),
-                           cirq.H.on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.rz(np.pi * 0.6366197723675814).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(0)),
-                           cirq.H.on(cirq.LineQubit(1)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(2)),
-                           cirq.H.on(cirq.LineQubit(3)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(0)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(1)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(2)),
-                           cirq.H.on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.rz(np.pi * -0.6366197723675814).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(0)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(1)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(2)),
-                           cirq.H.on(cirq.LineQubit(3)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(0)),
-                           cirq.H.on(cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(2)),
-                           cirq.H.on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.rz(np.pi * -0.6366197723675814).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(0)),
-                           cirq.H.on(cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(2)),
-                           cirq.H.on(cirq.LineQubit(3)),
-                           cirq.H.on(cirq.LineQubit(0)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(2)),
-                           cirq.H.on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.rz(np.pi * -0.6366197723675814).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(0)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(2)),
-                           cirq.H.on(cirq.LineQubit(3)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(0)),
-                           cirq.H.on(cirq.LineQubit(1)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(2)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.rz(np.pi * 0.6366197723675814).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(0)),
-                           cirq.H.on(cirq.LineQubit(1)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(2)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(3)),
-                           cirq.H.on(cirq.LineQubit(0)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(1)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(2)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.rz(np.pi * 0.6366197723675814).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(0)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(1)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(2)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(3)),
-                           cirq.H.on(cirq.LineQubit(0)),
-                           cirq.H.on(cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(2)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.rz(np.pi * 0.6366197723675814).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(0)),
-                           cirq.H.on(cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(2)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(3)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(0)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(2)),
-                           cirq.rx(np.pi * 0.5).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.rz(np.pi * -0.6366197723675814).on(cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(2), cirq.LineQubit(3)),
-                           cirq.CNOT.on(cirq.LineQubit(1), cirq.LineQubit(2)),
-                           cirq.CNOT.on(cirq.LineQubit(0), cirq.LineQubit(1)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(0)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(1)),
-                           cirq.H.on(cirq.LineQubit(2)),
-                           cirq.rx(np.pi * -0.5).on(cirq.LineQubit(3))]
-    ANSATZ = cirq.Circuit(*full_anstaz_circuit)
-    zz = UnitaryPartition(anti_commuting_sets, ANSATZ, S_dict={0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1,
-                                                             10: 1})
-    zz.Get_Quantum_circuits_and_constants()
-    zz.circuits_and_constants
-
-
-
-
-
-
-# X = csr_matrix(np.array([[0, 1],
-#                          [1, 0]])
-#                 )
-#
-# Y = csr_matrix(np.array([[0, -1j],
-#                          [1j, 0]])
-#                )
-#
-# Z = csr_matrix(np.array([[1, 0],
-#                         [0, -1]])
-#                )
-# I = csr_matrix(np.array([[1, 0],
-#                          [0, 1]])
-#                )
-# OperatorsKeys = {
-#     'X': X,
-#     'Y': Y,
-#     'Z': Z,
-#     'I': I,
-# }
-
-
-
-
-
-
-# class UnitaryPartition_Matrices(X_sk_terms):
-#     """
-#     Class that takes in dictionary of anti_commuting_sets of PauliStrings, full ansatz Q circuit and dictionary of
-#     Pauli_S indices (index of which term to take as PauliS in anti_commuting_sets dict).
-#
-#     Args:
-#         anti_commuting_sets (dict):
-#         S_dict (): Dictionary with keys corresponding to anti_commuting_sets (dict) with values
-#                     associated with which term to take as the Pauli_S term. If S_dict=None then takes 0th index
-#                     of all anti_commuting sets.
-#         full_anstaz_circuit (): cirq Ansatz Q circuit.
-#
-#     Attributes:
-#         X_sk_Ops ():
-#         normalised_anti_commuting_sets ():
-#         circuits_and_constants ():
-#
-#     """
-#
-#
-#     def __init__(self, anti_commuting_sets,  S_dict=None):
-#         self.anti_commuting_sets = anti_commuting_sets
-#         super().__init__(anti_commuting_sets, S_dict=S_dict)
-#         self.Get_all_X_sk_operators()
-#
-#         X = csr_matrix(np.array([[0, 1], [1, 0]]))
-#
-#         Y = csr_matrix(np.array([[0, -1j], [1j, 0]])
-#                        )
-#         Z = csr_matrix(np.array([[1, 0], [0, -1]])
-#                        )
-#         I = csr_matrix(np.array([[1, 0],
-#                                  [0, 1]]))
-#         OperatorsKeys = {
-#             'X': X,
-#             'Y': Y,
-#             'Z': Z,
-#             'I': I,
-# }
-#
-#     def Get_UP_Matrices(self):
-#
-#         output_dict={}
-#         for key in self.anti_commuting_sets:
-#             if key not in self.X_sk_Ops:
-#                 PauliWord_str = self.anti_commuting_sets[key][0][0]
-#                 constant = self.anti_commuting_sets[key][0][1]
-#
-#                 Pauli_matrices = [OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
-#                 tensored_PauliWord = reduce(kron, Pauli_matrices)
-#
-#                 output_dict[key] = {'matrix': tensored_PauliWord, 'gamma_l': constant}
-#
-#             else:
-#
-#                 R_S_DAGGER_operators = []
-#                 R_S_operators = []
-#
-#                 for DICT in self.X_sk_Ops[key]['X_sk_theta_sk']:
-#                     X_SK = DICT['X_sk']
-#                     theta_SK = DICT['theta_sk']
-#
-#                     # R_S = My_R_sk_Gate(theta_SK, dagger=False, correction_factor=X_SK[1])
-#                     # R_S_matrix = R_S._unitary_()
-#                     XS_Pauli_matrices = [OperatorsKeys[pauli[0]].todense() for pauli in X_SK[0].split(' ')]
-#                     tensored_XS = reduce(kron, XS_Pauli_matrices)
-#                     R_S_matrix = expm(theta_SK*X_SK[1]*tensored_XS)
-#                     R_S_operators.append(R_S_matrix)
-#
-#                     # R_S_DAGGER =  My_R_sk_Gate(theta_SK, dagger=True, correction_factor=X_SK[1])
-#                     # R_S_DAGGER_matrix = R_S_DAGGER._unitary_()
-#                     R_S_DAGGER_matrix = R_S_matrix.transpose().conj()
-#                     R_S_DAGGER_operators.append(R_S_DAGGER_matrix)
-#
-#                 R_S_DAGGER_matrix_FULL = reduce(np.matmul, [mat.todense() for mat in R_S_DAGGER_operators])
-#                 R_S_matrix_FULL = reduce(np.matmul, [mat.todense() for mat in R_S_operators])
-#
-#
-#                 Pauliword_S_str = self.X_sk_Ops[key]['PauliWord_S'][0]
-#                 Pauli_matrices = [OperatorsKeys[pauli[0]] for pauli in Pauliword_S_str.split(' ')]
-#                 tensored_PauliWord_S = reduce(kron, Pauli_matrices)
-#
-#
-#                 FULL_matrix = reduce(np.matmul, [R_S_DAGGER_matrix_FULL, tensored_PauliWord_S.todense(), R_S_matrix_FULL])
-#
-#                 constant_PS = self.X_sk_Ops[key]['PauliWord_S'][1]
-#                 gamma_l = constant_PS * self.X_sk_Ops[key]['gamma_l']
-#
-#                 output_dict[key] = {'matrix': FULL_matrix, 'gamma_l': gamma_l}
-#         return output_dict
-
-
-class UnitaryPartition_Matrices(X_sk_terms):
-    """
-    Class that takes in dictionary of anti_commuting_sets of PauliStrings, full ansatz Q circuit and dictionary of
-    Pauli_S indices (index of which term to take as PauliS in anti_commuting_sets dict).
-
-    Args:
-        anti_commuting_sets (dict):
-        S_dict (): Dictionary with keys corresponding to anti_commuting_sets (dict) with values
-                    associated with which term to take as the Pauli_S term. If S_dict=None then takes 0th index
-                    of all anti_commuting sets.
-        full_anstaz_circuit (): cirq Ansatz Q circuit.
-
-    Attributes:
-        X_sk_Ops ():
-        normalised_anti_commuting_sets ():
-        circuits_and_constants ():
-
-    """
-
-    def __init__(self, anti_commuting_sets, S_dict=None):
-        self.anti_commuting_sets = anti_commuting_sets
-        super().__init__(anti_commuting_sets, S_dict=S_dict)
-        self.Get_all_X_sk_operators()
-
-
-        X = csr_matrix(np.array([[0, 1],[1, 0]]))
-        Y = csr_matrix(np.array([[0, -1j],[1j, 0]]))
-        Z = csr_matrix(np.array([[1, 0],[0, -1]]))
-        I = csr_matrix(np.array([[1, 0],[0, 1]]))
-        self.OperatorsKeys = {
-            'X': X,
-            'Y': Y,
-            'Z': Z,
-            'I': I,}
-
-    def Get_UP_Matrices_as_dict(self):
-
-        output_dict = {}
-        for key in self.anti_commuting_sets:
-            if key not in self.X_sk_Ops:
-                PauliWord_str = self.anti_commuting_sets[key][0][0]
-                constant = self.anti_commuting_sets[key][0][1]
-
-                Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
-                tensored_PauliWord = reduce(kron, Pauli_matrices)
-
-                output_dict[key] = {'matrix': tensored_PauliWord, 'gamma_l': constant}
+            #                 print('')
+            #                 print('PauliWord_S = ',X_sk_dict['PauliWord_S'])
+            #                 print(exp_result, X_sk_dict['gamma_l'])
+            #                 print('')
 
             else:
+                qubitOp = self.graph_dict_sets[set_key][0]
 
-                R_S_DAGGER_operators = []
-                R_S_operators = []
+                for PauliWord, const in qubitOp.terms.items():
 
-                for DICT in self.X_sk_Ops[key]['X_sk_theta_sk']:
-                    X_SK = DICT['X_sk']
-                    theta_SK = DICT['theta_sk']
+                    #                     print('')
+                    #                     print(qubitOp)
 
-                    PauliWord_str = X_SK[0]
-                    constant = X_SK[1]
+                    if PauliWord is not ():
+                        Q_circuit = Generate_Full_Q_Circuit(self.ansatz_circuit, qubitOp)
+                        hist_key_str = Get_Histogram_key(qubitOp)
+                        int_state_counter = Simulate_Quantum_Circuit(Q_circuit, self.n_shots, hist_key_str)
+                        binary_state_counter = Return_as_binary(int_state_counter, hist_key_str)
+                        exp_result = expectation_value_by_parity(binary_state_counter)
+                        E_list.append(exp_result * const)
 
-                    Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
-                    tensored_PauliWord = reduce(kron, Pauli_matrices)
+                    #                         print(exp_result, const)
+                    #                         print('')
 
-                    R_S_DAGGER_matrix = scipy.sparse.linalg.expm(-1j * theta_SK/2 *tensored_PauliWord*constant)
-                    R_S_matrix =  R_S_DAGGER_matrix.transpose().conj()
+                    else:
+                        E_list.append(const)
 
-                    R_S_operators.append(R_S_matrix)
-                    R_S_DAGGER_operators.append(R_S_DAGGER_matrix)
+        #                         print(const)
+        #                         print('')
 
-                R_S_DAGGER_matrix_FULL = reduce(scipy.sparse.csc_matrix.multiply, R_S_DAGGER_operators)
-                R_S_matrix_FULL = reduce(scipy.sparse.csc_matrix.multiply,  R_S_operators)
+        return sum(E_list).real
 
-                Pauliword_S_str = self.X_sk_Ops[key]['PauliWord_S'][0]
-                Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in Pauliword_S_str.split(' ')]
-                tensored_PauliWord_S = reduce(kron, Pauli_matrices)
-
-
-                FULL_matrix = reduce(scipy.sparse.csc_matrix.multiply,
-                                     [R_S_matrix_FULL, tensored_PauliWord_S, R_S_DAGGER_matrix_FULL])
-
-                constant_PS = self.X_sk_Ops[key]['PauliWord_S'][1]
-                gamma_l = constant_PS * self.X_sk_Ops[key]['gamma_l']
-
-                output_dict[key] = {'matrix': FULL_matrix, 'gamma_l': gamma_l}
-        return output_dict
-
-    def Get_UP_MATRIX(self, num_qubits):
-
-        FULL_MATRIX = csr_matrix(np.zeros([2**num_qubits, 2**num_qubits]))
-
-        for key in self.anti_commuting_sets:
-            if key not in self.X_sk_Ops:
-                PauliWord_str = self.anti_commuting_sets[key][0][0]
-                constant = self.anti_commuting_sets[key][0][1]
-
-                Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
-                tensored_PauliWord = reduce(kron, Pauli_matrices)
-
-                FULL_MATRIX += tensored_PauliWord * constant
-
-            else:
-
-                R_S_DAGGER_operators = []
-                R_S_operators = []
-
-                for DICT in self.X_sk_Ops[key]['X_sk_theta_sk']:
-                    X_SK = DICT['X_sk']
-                    theta_SK = DICT['theta_sk']
-
-                    PauliWord_str = X_SK[0]
-                    constant = X_SK[1]
-
-                    Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in PauliWord_str.split(' ')]
-                    tensored_PauliWord = reduce(kron, Pauli_matrices)
-
-                    R_S_DAGGER_matrix = scipy.sparse.linalg.expm(-1j * theta_SK/2 *tensored_PauliWord*constant)
-                    R_S_matrix =  R_S_DAGGER_matrix.transpose().conj()
-
-                    R_S_operators.append(R_S_matrix)
-                    R_S_DAGGER_operators.append(R_S_DAGGER_matrix)
-
-                R_S_DAGGER_matrix_FULL = reduce(scipy.sparse.csc_matrix.multiply, R_S_DAGGER_operators)
-                R_S_matrix_FULL = reduce(scipy.sparse.csc_matrix.multiply,  R_S_operators)
-
-                Pauliword_S_str = self.X_sk_Ops[key]['PauliWord_S'][0]
-                Pauli_matrices = [self.OperatorsKeys[pauli[0]] for pauli in Pauliword_S_str.split(' ')]
-                tensored_PauliWord_S = reduce(kron, Pauli_matrices)
-
-
-                FULL_matrix = reduce(scipy.sparse.csc_matrix.multiply,
-                                     [R_S_matrix_FULL, tensored_PauliWord_S, R_S_DAGGER_matrix_FULL])
-
-                constant_PS = self.X_sk_Ops[key]['PauliWord_S'][1]
-                gamma_l = constant_PS * self.X_sk_Ops[key]['gamma_l']
-
-                FULL_MATRIX += FULL_matrix * gamma_l
-
-        return FULL_MATRIX
-
-
-if __name__ == '__main__':
-    # Test on LiH
-    from quchem.Hamiltonian_Generator_Functions import *
-    from quchem.Ansatz_Generator_Functions import *
-
-    ### Variable Parameters
-    Molecule = 'H2'
-    geometry = None
-    ####
-
-    ### Get Hamiltonian
-    Hamilt = Hamiltonian(Molecule,
-                         run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
-                         basis='sto-3g',
-                         multiplicity=1,
-                         geometry=geometry)  # normally None!
-
-    Hamilt.Get_Molecular_Hamiltonian(Get_H_matrix=False)
-    SQ_CC_ops, THETA_params = Hamilt.Get_ia_and_ijab_terms(Coupled_cluser_param=False)
-
-    # GET Qubit molecular Hamiltonian
-    HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_ops, Hamilt.molecule.n_qubits)
-    Qubit_Hamiltonian = HF_transformations.Get_Qubit_Hamiltonian_JW()  # qubit
-
-    # Get Coupled cluster terms
-    UCCSD_JW = UCCSD_Trotter_JW(SQ_CC_ops, THETA_params)
-    Second_Quant_CC_JW_OP_list = UCCSD_JW.SingleTrotterStep()
-
-    # Build Matrices
-    orbital_index_list = [0, 1]
-    XX = Ansatz_MATRIX(Second_Quant_CC_JW_OP_list, Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits,)
-    XX._Get_Basis_state_in_occ_num_basis(orbital_index_list)
-
-    state_with_T = XX.Calc_ansatz_state_WITH_trot(THETA_params)
-    # state_without_T = XX.Calc_ansatz_state_withOUT_trot(THETA_params)
-
-    from openfermion.transforms import get_sparse_operator
-    QUBIT_HAMILTONIAN_MATRIX = get_sparse_operator(Qubit_Hamiltonian)
-
-    Energy = state_with_T.transpose().conj().dot(QUBIT_HAMILTONIAN_MATRIX.dot(state_with_T)).todense()
-
-    ##### Get anti_commuting_sets
-    from quchem.Graph import *
-    QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(Qubit_Hamiltonian)
-    List_PauliWords, HamiltonainCofactors = zip(*QubitHam_PauliStr)
-
-    attribute_dictionary = {'Cofactors': HamiltonainCofactors}
-    List_of_nodes, node_attributes_dict = Get_list_of_nodes_and_attributes(List_PauliWords,
-                                                                           attribute_dictionary=attribute_dictionary)
-
-    G = Hamiltonian_Graph(List_PauliWords, attribute_dictionary=attribute_dictionary)
-    anti_commuting_sets = G.Get_Pauli_grouping('AC', Graph_colouring_strategy='largest_first', plot_graph=False)
-    anti_commuting_sets = Get_PauliWord_constant_tuples(anti_commuting_sets, dict_str_label='Cofactors')
-    #####
-
-    w = UnitaryPartition_Matrices(anti_commuting_sets,
-                                  S_dict=None)
-    test2 = w.Get_UP_Matrices_as_dict()
-
-    Energy = []
-    for key in test2:
-        Matrix = test2[key]['matrix'] * test2[key]['gamma_l']
-        Energy.append(state_with_T.transpose().conj().dot(Matrix.dot(state_with_T)).todense())
-    print(sum(Energy))
-
-    test3 = w.Get_UP_MATRIX(Hamilt.molecule.n_qubits)
-    print(state_with_T.transpose().conj().dot(test3.dot(state_with_T)).todense())
-
-
-
-    # from quchem.Scipy_Optimizer import *
-    # GG = Optimizer(YY.find_energy_WITH_trot, THETA_params, 'Nelder-Mead', store_values=True, display_iter_steps=True,
-    #                tol=1e-9,
-    #                display_convergence_message=True)
-    # GG.get_env(100)
-
-
-
-
-# theta_sk = np.pi
-# CNOT_Mat = cirq.CNOT(cirq.LineQubit(0),cirq.LineQubit(1))._unitary_()
-# R_S = My_R_sk_Gate(theta_sk, dagger=True, correction_factor=1)
-# rot = kron(np.eye(2), R_S.on(cirq.LineQubit(1))._unitary_())
-#
-# full_op = reduce(np.matmul, [CNOT_Mat, rot.todense(), CNOT_Mat])
-#
-# Pauli_matrices = [OperatorsKeys[pauli[0]] for pauli in 'Z0, Z1'.split(' ')]
-# tensored_PauliWord = reduce(kron, Pauli_matrices)
-# comp_OP = scipy.sparse.linalg.expm(-1j * theta_sk/2 *tensored_PauliWord)
-# np.array_equal(full_op, comp_OP.todense())
+    def Get_wavefunction_of_state(self, sig_figs=3):
+        return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
