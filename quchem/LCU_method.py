@@ -258,8 +258,6 @@ class Perform_modified_Pauligate(cirq.SingleQubitGate):
 
     def _unitary_(self):
 
-        from scipy.linalg import eig
-
         if self.PauliStr == 'Z':
             return cirq.Z._unitary_() * self.correction_value
 
@@ -279,7 +277,7 @@ class Perform_modified_Pauligate(cirq.SingleQubitGate):
         return 1
 
     def _circuit_diagram_info_(self, args):
-        return 'PauliMod : {} gate times {}'.format(self.PauliStr, self.correction_value)
+        return '{}*{}'.format(self.correction_value, self.PauliStr)
 
 class Perform_Modified_PauliWord(cirq.Gate):
     """
@@ -321,13 +319,35 @@ class Perform_Modified_PauliWord(cirq.Gate):
         else:
             qubitNos_list, P_strs_list = zip(*list(self.PauliQubitOp.terms.keys())[0])
 
+            #             for index, P_str in enumerate(P_strs_list):
+            #                 yield Perform_modified_Pauligate(P_str, self.correction_val).on(qubits[qubitNos_list[index]])
+
             for index, P_str in enumerate(P_strs_list):
-                yield Perform_modified_Pauligate(P_str, self.correction_val).on(qubits[qubitNos_list[index]])
+                if index == 0:
+                    yield Perform_modified_Pauligate(P_str, self.correction_val).on(qubits[qubitNos_list[index]])
+                else:
+                    if P_str == 'Z':
+                        yield cirq.Z.on(qubits[qubitNos_list[index]])
+                    elif P_str == 'Y':
+                        yield cirq.Y.on(qubits[qubitNos_list[index]])
+                    elif P_str == 'X':
+                        yield cirq.X.on(qubits[qubitNos_list[index]])
+                    elif P_str == 'I':
+                        yield cirq.I.on(qubits[qubitNos_list[index]])
+                    else:
+                        raise ValueError('Not a Pauli Operation')
 
     def _circuit_diagram_info_(self, args):
+
+        qubitNos_list, P_strs_list = zip(*list(self.PauliQubitOp.terms.keys())[0])
+
         string_list = []
-        for _ in range(self.num_qubits()):
-            string_list.append('modified P_Word gate')
+        for index, qubitNo in enumerate(qubitNos_list):
+            #             string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[index], qubitNo))
+            if index == 0:
+                string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[index], qubitNo))
+            else:
+                string_list.append('{}{}'.format(P_strs_list[index], qubitNo))
         return string_list
 
     def num_qubits(self):
