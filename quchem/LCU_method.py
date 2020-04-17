@@ -1,13 +1,12 @@
 from openfermion.ops import QubitOperator
 import numpy as np
 
-
 def Multiply_PauliQubitOps(qubitOp_1, qubitOp_2, mulitplying_const=1):
     """
 
     TODO
 
-    NOTE this function does NOT!!! repeat not multiply by the qubitOp_2 constnat!
+    NOTE this function does NOT!!! repeat not multiply by the qubitOp_2 constant!
 
     Args:
         qubitOp_1 ():
@@ -88,6 +87,7 @@ def Multiply_PauliQubitOps(qubitOp_1, qubitOp_2, mulitplying_const=1):
     New_P = QubitOperator(pauliStr_list, new_constant)
 
     return New_P
+
 
 from quchem.Unitary_partitioning import *
 def Get_X_SET(anti_commuting_set, N_index):
@@ -210,29 +210,31 @@ def absorb_complex_phases(R_linear_comb_list):
     R_linear_comb_correction_values = []
     ancilla_amplitudes = []
 
-    l2_norm = sum([abs(const) ** 2 for qubitOp in R_linear_comb_list for PauliWord, const in qubitOp.terms.items()])
-    if l2_norm > 1:
-        raise ValueError('l2_norm means correct amps not obtained')
+    l1_norm = sum([np.absolute(const) for qubitOp in R_linear_comb_list for PauliWord, const in qubitOp.terms.items()])
 
     for qubitOp in R_linear_comb_list:
         for pauliword, const in qubitOp.terms.items():
             if (isinstance(const, complex)) and (const.imag < 0):
-                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.absolute(const)))
+                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.sqrt(np.absolute(const) / l1_norm)))
                 R_linear_comb_correction_values.append(-1j)
-                ancilla_amplitudes.append(np.sqrt(const.imag ** 2))
+                ancilla_amplitudes.append(np.sqrt(np.absolute(const) / l1_norm))  # .append(np.sqrt(const.imag**2))
             elif (isinstance(const, complex)) and (const.imag != 0):
-                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.absolute(const)))
+                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.sqrt(np.absolute(const) / l1_norm)))
                 R_linear_comb_correction_values.append(1j)
-                ancilla_amplitudes.append(np.sqrt(const.imag ** 2))
+                ancilla_amplitudes.append(np.sqrt(np.absolute(const) / l1_norm))  # .append(np.sqrt(const.imag**2))
             elif const < 0:
-                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.absolute(const)))
+                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.sqrt(np.absolute(const) / l1_norm)))
                 R_linear_comb_correction_values.append(-1)
-                ancilla_amplitudes.append(np.sqrt(const ** 2))
+                ancilla_amplitudes.append(np.sqrt(np.absolute(const) / l1_norm))  # .append(np.sqrt(const**2))
             else:
-                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.absolute(const)))
+                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.sqrt(np.absolute(const) / l1_norm)))
                 R_linear_comb_correction_values.append(1)
-                ancilla_amplitudes.append(np.sqrt(const ** 2))
-    return R_linear_comb_corrected_phase, R_linear_comb_correction_values, ancilla_amplitudes
+                ancilla_amplitudes.append(np.sqrt(np.absolute(const) / l1_norm))  # .append(np.sqrt(const**2))
+
+    if not np.isclose(sum(np.absolute(amp) ** 2 for amp in ancilla_amplitudes), 1):
+        raise ValueError('ancilla amplitudes NOT normalised properly')
+
+    return R_linear_comb_corrected_phase, R_linear_comb_correction_values, ancilla_amplitudes, l1_norm
 
 class Perform_modified_Pauligate(cirq.SingleQubitGate):
     """
@@ -448,7 +450,9 @@ class Measure_system_and_ancilla(cirq.Gate):
     def num_qubits(self):
         return self.N_ancilla_qubits + self.N_system_qubits
 
-def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, Pauli_N,ansatz_circ):
+from quchem.quantum_circuit_functions import *
+def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, Pauli_N,
+                   ansatz_circ):
     ancilla_obj = prepare_arb_state(ancilla_amplitudes, N_system_qubits)
     ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
 
@@ -476,6 +480,7 @@ def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitude
         *measure_obj_circ
     ])
     return full_Q_circ
+
 
 def Get_Histogram_key_ancilla_system(qubitOperator, N_system_qubits, N_ancilla_qubits):
 
@@ -532,7 +537,6 @@ def Get_binary_dict_project(Quantum_circuit, qubitOperator, n_shots, N_system_qu
     return binary_results_dict
 
 from quchem.Simulating_Quantum_Circuit import *
-
 class VQE_Experiment_LCU_UP():
     def __init__(self,
                  anti_commting_sets,
@@ -596,6 +600,7 @@ class VQE_Experiment_LCU_UP():
                 #                 print(binary_results_dict)
                 if n_success_shots == self.n_shots:
                     break
+
         return binary_results_dict
 
     def Calc_Energy(self):
@@ -605,13 +610,12 @@ class VQE_Experiment_LCU_UP():
             if len(self.anti_commting_sets[set_key]) > 1:
 
                 if self.N_indices_dict is None:
-                    # chooses Pauli_S to be zero index!
                     R_uncorrected, Pn, gamma_l = Get_R_linear_combination(self.anti_commting_sets[set_key], 0)
-                    R_corrected_Op_list, R_corr_list, ancilla_amplitudes = absorb_complex_phases(R_uncorrected)
+                    R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
                 else:
                     R_uncorrected, Pn, gamma_l = Get_R_linear_combination(self.anti_commting_sets[set_key],
                                                                           self.N_indices_dict[set_key])
-                    R_corrected_Op_list, R_corr_list, ancilla_amplitudes = absorb_complex_phases(R_uncorrected)
+                    R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
 
                 Q_circuit = Full_Q_Circuit(Pn, R_corrected_Op_list,
                                            R_corr_list, ancilla_amplitudes,
@@ -622,11 +626,11 @@ class VQE_Experiment_LCU_UP():
                 binary_state_counter = self.Get_binary_dict_project(Q_circuit, Pn)
                 exp_result = expectation_value_by_parity(binary_state_counter)
                 #                 E_list.append(exp_result*gamma_l)
-                E_list.append(exp_result * list(Pn.terms.values())[0] * gamma_l)
+                E_list.append(exp_result * list(Pn.terms.values())[0] * gamma_l * l1_norm)
                 #                 E_list.append(exp_result*list(Pn.terms.values())[0])
                 #                 E_list.append(exp_result)
                 #                 print(Pn, list(Pn.terms.values())[0])
-                print(Pn, gamma_l, exp_result)
+                print(Pn, gamma_l, exp_result, l1_norm)
             #                 print(np.prod([i**2 for i in R_corr_list]), gamma_l, exp_result)
 
             else:
@@ -647,3 +651,4 @@ class VQE_Experiment_LCU_UP():
 
     def Get_wavefunction_of_state(self, sig_figs=3):
         return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
+
