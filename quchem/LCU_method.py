@@ -279,6 +279,7 @@ class Perform_modified_Pauligate(cirq.SingleQubitGate):
     def _circuit_diagram_info_(self, args):
         return '{}*{}'.format(self.correction_value, self.PauliStr)
 
+
 class Perform_Modified_PauliWord(cirq.Gate):
     """
     Class to generate cirq circuit as gate that performs a modified PauliWord
@@ -306,10 +307,14 @@ class Perform_Modified_PauliWord(cirq.Gate):
 
     """
 
-    def __init__(self, PauliQubitOp, correction_val):
+    def __init__(self, PauliQubitOp, correction_val, Pn):
 
         self.PauliQubitOp = PauliQubitOp
         self.correction_val = correction_val
+
+        list_of_X_qNos_Pn, list_of_Pn_ops = list(zip(*[Paulistrs for qubitOp in Pn
+                                                       for Paulistrs, const in qubitOp.terms.items()][0]))
+        self.sign_index = list_of_X_qNos_Pn[0]
 
     def _decompose_(self, qubits):
 
@@ -323,7 +328,7 @@ class Perform_Modified_PauliWord(cirq.Gate):
             #                 yield Perform_modified_Pauligate(P_str, self.correction_val).on(qubits[qubitNos_list[index]])
 
             for index, P_str in enumerate(P_strs_list):
-                if index == 0:
+                if index == self.sign_index:
                     yield Perform_modified_Pauligate(P_str, self.correction_val).on(qubits[qubitNos_list[index]])
                 else:
                     if P_str == 'Z':
@@ -344,7 +349,7 @@ class Perform_Modified_PauliWord(cirq.Gate):
         string_list = []
         for index, qubitNo in enumerate(qubitNos_list):
             #             string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[index], qubitNo))
-            if index == 0:
+            if index == self.sign_index:
                 string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[index], qubitNo))
             else:
                 string_list.append('{}{}'.format(P_strs_list[index], qubitNo))
@@ -371,12 +376,13 @@ class LCU_R_gate(cirq.Gate):
 
     """
 
-    def __init__(self, No_control_qubits, No_system_qubits, R_corrected_Op_list, R_correction_list):
+    def __init__(self, No_control_qubits, No_system_qubits, R_corrected_Op_list, R_correction_list, Pn):
 
         self.No_control_qubits = No_control_qubits
         self.No_system_qubits = No_system_qubits
         self.R_corrected_Op_list = R_corrected_Op_list
         self.R_correction_list = R_correction_list
+        self.Pn = Pn
 
     def _decompose_(self, qubits):
 
@@ -391,7 +397,7 @@ class LCU_R_gate(cirq.Gate):
                              + cirq.LineQubit.range(self.No_system_qubits)  # note control qubits first!
 
                 mod_p_word_gate = Perform_Modified_PauliWord(R_qubitOp_corrected,
-                                                             self.R_correction_list[control_state_index])
+                                                             self.R_correction_list[control_state_index], self.Pn)
 
                 yield mod_p_word_gate.controlled(num_controls=self.No_control_qubits, control_values=control_values).on(
                     *qubit_list)  # *qubit_list
@@ -471,6 +477,8 @@ class Measure_system_and_ancilla(cirq.Gate):
         return self.N_ancilla_qubits + self.N_system_qubits
 
 from quchem.quantum_circuit_functions import *
+
+
 def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, Pauli_N,
                    ansatz_circ):
     ancilla_obj = prepare_arb_state(ancilla_amplitudes, N_system_qubits)
@@ -478,7 +486,7 @@ def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitude
 
     N_ancilla_qubits = ancilla_obj.Get_max_no_ancilla_qubits()
     ancilla_prep_circ = ancilla_obj.Get_state_prep_Circuit()
-    R_circ_obj = LCU_R_gate(N_ancilla_qubits, N_system_qubits, R_corrected_Op_list, R_correction_list)
+    R_circ_obj = LCU_R_gate(N_ancilla_qubits, N_system_qubits, R_corrected_Op_list, R_correction_list, Pn)
     R_circ_circ = cirq.Circuit(
         cirq.decompose_once((R_circ_obj(*cirq.LineQubit.range(R_circ_obj.num_qubits())))))
 
