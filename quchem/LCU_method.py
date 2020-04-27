@@ -5,27 +5,36 @@ from quchem.Unitary_partitioning import *
 
 def Get_X_SET(anti_commuting_set, N_index):
     """
-    X = i ( ∑_{k=1}^{n-1} B_{k} P_{k} ) P_{n}
 
-    X =  i( ∑_{k=1}^{n-1} B_{k} P_{kn}
+    Function to get X set. Given an anti-commuting set and N index (index of term to reduce to), function calculates
+    first normalises the anti-commuting set.
 
-        where P_{ks} = P_{k} * P_{n}
+     anti_set = ∑_{i=0} 𝛼_{i} P_{i}.
+     normalised = 𝛾_{𝑙} ∑_{i=0} 𝛽_{i} P_{i}... where ∑_{i=0} 𝛽_{i}^{2} =1
 
-    note ∑_{k=1}^{n-1} B_{k}^{2} = 1
+     the 𝛽n Pn is then removed and set normalised again:
+     H_{n_1} =  Ω_{𝑙} ∑_{k=0} 𝛿_{k} P_{k} ... where k!=n
 
-    therefore have:
-    X =  gamma_l * i( ∑_{k=1}^{n-1} B_{k} P_{kn}
+    then:
+    X = i ∑_{k=0} 𝛿_{k} P_{k} P_{n} = i ∑_{k=0} 𝛿_{k} P_{kn}
+    ####
+    Paper also defines
+    H_n = cos(𝜙_{n-1}) Pn + sin(𝜙_{n-1}) H_{n_1 }
+
+    currently have:
+    H_{n}/𝛾_{𝑙} = 𝛽n Pn +  Ω_{𝑙} H_{n_1}
+
+    therefore:
+    𝜙_{n-1} = arccos(𝛽n)
+    as Ω_{𝑙} is always positive, so if 𝜙_{n-1} > 𝜋 ....THEN.... 𝜙_{n-1} = 2𝜋 - arccos(𝛽n)
 
 
     Args:
-        anti_commuting_set (list):
-        S_index (int):
-        no_qubits (int):
+        anti_commuting_set (list): list of anti-commuting qubit operators
+        N_index (int): index of term to reduce too
     Returns:
-        LCU_dict (dict): A dictionary containing the linear combination of terms required to perform R ('R_LCU')
-                         the correction fsinactors to make all real and positive ('LCU_correction')
-                         the angle to perform R gate ('alpha')
-                         the PauliS term ('P_s')
+        X_set (dict): A dictionary containing: 'X_PauliWords'= list of X (sum that makes up the operator) and the other
+                      terms: gamma_l, H_n, H_n_1, Omega_l, phi_n_1.
      """
 
     # 𝛾_𝑙 ∑ 𝛽_𝑗 𝑃_𝑗
@@ -37,30 +46,23 @@ def Get_X_SET(anti_commuting_set, N_index):
     # 𝛽_n 𝑃_n
     qubitOp_Pn_beta_n = norm_FULL_set.pop(N_index)
 
-    # Ω_𝑙 ∑ 𝛿_𝑗 𝑃_𝑗  ... note this doesn't contain 𝛽_n 𝑃_n
+    # Ω_𝑙 ∑ 𝛿_k 𝑃_k  ... note this doesn't contain 𝛽_n 𝑃_n
     H_n_1 = Get_beta_j_cofactors(norm_FULL_set)
     Omega_l = H_n_1['gamma_l']
 
     # cos(𝜙_{𝑛−1}) =𝛽_𝑛
     phi_n_1 = np.arccos(list(qubitOp_Pn_beta_n.terms.values())[0])
-    #     phi_n_1 = np.arcsin(Omega_l)
 
-    # require sine(𝜙_{𝑛−1}) to be positive... Hence if phi_n_1 is in T part of CAST diagram... need to add pi/2
-    # to brind into S part of CAST diagram (ensuring the sign term is posivite)
-    print(phi_n_1 * 360 / (2 * np.pi), list(qubitOp_Pn_beta_n.terms.values())[0])
-
+    # require sin(𝜙_{𝑛−1}) to be positive...
+    # this uses CAST diagram to ensure the sign term is positive and cos term has correct sign (can be negative)
     if (phi_n_1 > np.pi):
         # ^ as sin phi_n_1 must be positive phi_n_1 CANNOT be larger than 180 degrees!
         phi_n_1 = 2 * np.pi - phi_n_1
         print('correct quadrant found!!!')
 
-    #     print(np.arcsin(Omega_l)*360/(2*np.pi))
-    print('checking sine term: ', np.sin(phi_n_1))
-    print('checking cos term: ', np.cos(phi_n_1))
 
     # 𝑖 ∑ 𝛿_{𝑘} 𝑃_{𝑘𝑛}
     Pn = QubitOperator(list(qubitOp_Pn_beta_n.terms.keys())[0], 1)
-
     X_set = {}
     X_set['X_PauliWords'] = []
     for qubitOp_Pk in H_n_1['PauliWords']:
@@ -95,7 +97,25 @@ def Get_X_SET(anti_commuting_set, N_index):
 
 def Get_R_linear_combination(anti_commuting_set, N_index):
     """
-    """
+    Function gets the R operator as a linear combination of unitary operators.
+
+    First the X operator is found:
+    X = i ∑_{k=0} 𝛿_{k} P_{kn}
+
+    R has the definition:
+    𝑅=exp(−𝑖𝛼X/2)=cos(𝛼/2)𝟙−𝑖sin(𝛼/2)X
+    this is used to build R
+    ####
+
+    Args:
+        anti_commuting_set (list): list of anti-commuting qubit operators
+        N_index (int): index of term to reduce too
+    Returns:
+        R_linear_comb_list (list): linear combination of R operators that makes up R operator
+        X_set['P_n'] (QubitOperator): qubit operator to be reduced too (Pn)
+        X_set['gamma_l']: normalisation term (𝛾_{𝑙])
+
+         """
     X_set = Get_X_SET(anti_commuting_set, N_index)
 
     # χ = 𝑖 ∑ 𝛿_𝑘 𝑃_𝑘𝑛
@@ -104,11 +124,7 @@ def Get_R_linear_combination(anti_commuting_set, N_index):
     # 𝛼 = 𝜙_{𝑛−1}
     alpha = X_set['phi_n_1']
 
-    #     if (np.cos(alpha)<0) and (np.cos(alpha/2)>0):
-    #         alpha = 2*np.pi - alpha
-
     # 𝑅=cos(𝛼/2)𝟙−𝑖sin(𝛼/2)χ = cos(𝛼/2)𝟙−𝑖sin(𝛼/2)*(𝑖 ∑ 𝛿_𝑘 𝑃_𝑘𝑛)
-
     # cos(𝛼/2)𝟙 term
     I_term = QubitOperator('', np.cos(alpha / 2))
     R_linear_comb_list = [I_term]
@@ -127,6 +143,28 @@ def Get_R_linear_combination(anti_commuting_set, N_index):
     return R_linear_comb_list, X_set['P_n'], X_set['gamma_l']  # , X_set['Omega_l']
 
 def absorb_complex_phases(R_linear_comb_list):
+    """
+    Function absorbs phase of list of linear combination of unitary operators.
+
+    ##
+    Op = ∑_{i=0} 𝛼_{j} U_{j}
+
+    used to find:
+    l1_norm = ∑_{i=0} |𝛼_{𝑗}|
+
+    all 𝛼_{j} made positive and phase correction held in R_linear_comb_correction_values list!
+    ancilla_amplitudes = ∑_{i=0} (𝛼_{𝑗} / l1_norm)^{0.5} |j>
+
+    Args:
+        R_linear_comb_list (list): list of qubit operators
+
+    Returns:
+        R_linear_comb_correction_values (list): list of corrections to ensure all terms LCU sum are positive.
+        R_linear_comb_corrected_phase (QubitOperator): list of qubit operators for LCU method
+        ancilla_amplitudes: ancillar amplitudes for control U (LCU method)
+        l1_norm (float): l1 norm
+
+         """
     R_linear_comb_corrected_phase = []
     R_linear_comb_correction_values = []
     ancilla_amplitudes = []
@@ -160,15 +198,20 @@ def absorb_complex_phases(R_linear_comb_list):
 class Perform_modified_Pauligate(cirq.SingleQubitGate):
     """
 
-
-    The function finds eigenvalue of operator and THEN gives corresponding operator to change to Z basis for measurement!
+    Function performs a pauligate multiplied by a constant.
 
     Args:
-        LCU_PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
-        LCU_correction_value (complex):
+        PauliStr (str): string of Pauli operator to be performed
+        correction_value (complex): constant to multiply gate by
 
     Returns
         A cirq circuit object to be used by cirq.Circuit
+
+    example:
+    1: ───(-0-1j)*X───
+
+    matrix operation = array([  [0.-0.j, 0.-1.j],
+                                [0.-1.j, 0.-0.j]])
 
     """
 
@@ -200,31 +243,28 @@ class Perform_modified_Pauligate(cirq.SingleQubitGate):
     def _circuit_diagram_info_(self, args):
         return '{}*{}'.format(self.correction_value, self.PauliStr)
 
-
 class Perform_Modified_PauliWord(cirq.Gate):
     """
-    Class to generate cirq circuit as gate that performs a modified PauliWord
+    Class to generate cirq circuit as a gate that performs a modified PauliWord
 
     Args:
-        LCU_PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
-        LCU_correction_value (complex):
+        PauliQubitOp (QubitOperator): Qubit operator to perform as a circuit
+        correction_val (complex): constant to multiply qubit operator by (intended to be phase factor for LCU)
 
     Returns
         A cirq circuit object to be used by cirq.Circuit
 
-    e.g.
-        test_case = ('Y0 Z1 X2 I3', 0.00070859248123462)
-        correction_val = (-0 - 1j)
-        dag = False
+    Example:
 
-        P_circ_mod = Perform_Modified_PauliWord(test_case, correction_val, dag)
-        print(cirq.Circuit(
-        cirq.decompose_once((P_circ_mod(*cirq.LineQubit.range(P_circ_mod.num_qubits()))))))
-        >>
-                0: ───change to Z basis for modified PauliMod : Y times -1j───
-                1: ───change to Z basis for modified PauliMod : Z times -1j───
-                2: ───change to Z basis for modified PauliMod : X times -1j───
-                3: ───change to Z basis for modified PauliMod : I times -1j───
+    PauliQubitOp = QubitOperator('Y0 X1 X2 X3',1)
+    correction_val = -1j
+
+    output
+
+    0: ───(-0-1j)*Y───
+    1: ───X───────────
+    2: ───X───────────
+    3: ───X───────────
 
     """
 
@@ -298,14 +338,33 @@ class Perform_Modified_PauliWord(cirq.Gate):
 
 class LCU_R_gate(cirq.Gate):
     """
-    Function to build cirq Circuit that performs controlled modified pauligate for LCU method
+    Function to build a cirq cicuit to perform an operator as a linear combination of unitaries (LCU).
 
 
     Args:
-        circuit_param_dict (dict): A Dictionary of Tuples (qubit, control_val(int)) value is angle
+        No_control_qubits (int): number of control/ancilla qubits
+        No_system_qubits (int): number of system qubits/spin orbitals
+        R_corrected_Op_list (list): list of qubit operators... represent linear combination of unitaries
+        R_correction_list (list): list of phase corrections of LCU operator
+        Pn (QubitOperator): Qubit operator that is being reduced too
 
     Returns
         A cirq circuit object to be used by cirq.Circuit.from_ops to generate arbitrary state
+
+    example
+
+    R_ops =       [0.9407564774862406 [], 0.3390829545519511 [Y0 Y1 Y2 X3]]
+    corr_phases = [1, 1j]
+
+    0: ───1*I0───1j*Y0───
+          │      │
+    1: ───┼──────Y1──────
+          │      │
+    2: ───┼──────Y2──────
+          │      │
+    3: ───┼──────X3──────
+          │      │
+    4: ───(0)────@───────
 
     """
 
@@ -371,28 +430,31 @@ class Measure_system_and_ancilla(cirq.Gate):
     """
     Class to generate cirq circuit that measures PauliWord in Z BASIS AND ancilla line!!!!
 
-    e.g.: PauliWord_and_cofactor = ('X0 Y1 Z2 I3 Y4', -0.28527408634774526j)
-          n_ancilla_qubits = 2
-
-        gives :
-                0: ───M───
-                      │
-                1: ───M───
-                      │
-                2: ───M───
-                      │
-                4: ───M───
-                      │
-                5: ───M───
-                      │
-                6: ───M───
-
     Args:
-        PauliWord_and_cofactor (tuple): Tuple of PauliWord (str) and constant (complex) ... (PauliWord, constant)
-        n_ancilla_qubits (int): Number of ancilla qubits
+        PauliQubitOp (QubitOperator): Qubit operator to measure
+        N_ancilla_qubits (int): Number of ancilla qubits
+        N_system_qubits (int): Number of system qubits / spin orbitals
 
     Returns
         A cirq circuit object to be used by cirq.Circuit
+
+    example
+
+    N_ancilla_qubits = 2
+    N_system_qubits = 10
+    OP_to_measure = QubitOperator('X0 Z2 Y3', 0.25j)
+
+    output:
+
+    0: ────M───
+           │
+    2: ────M───
+           │
+    3: ────M───
+           │
+    10: ───M───
+           │
+    11: ───M───
 
     """
 
@@ -428,15 +490,50 @@ class Measure_system_and_ancilla(cirq.Gate):
 
 from quchem.quantum_circuit_functions import *
 
-
 def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, ansatz_circ):
+
+    """
+    class to generate full cirq circuit that prepares a quantum state (ansatz) performs R operation as LCU and finally
+    measures both the system and ancilla qubit lines in the Z basis.
+
+    Args:
+        Pn (QubitOperator): Qubit operator to measure
+        R_corrected_Op_list (list): list of LCU qubit Operators
+        R_corr_list (list): list of correction phases for LCU operators
+        ancilla_amplitudes (list): list of ancilla amplitudes
+        N_system_qubits (int): Number of system qubits / number of spin orbitals
+        ansatz_circ (cirq.Circuit): cirq ansatz quantum circuit
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit
+
+    example
+
+    Pn= QubitOperator('Z3', 1)
+    R_corrected_Op_list = [0.30200159443367586 [], 0.9533074199645766 [Y0 X1 X2 X3]]
+    R_corr_list = [1, (-0-1j)]
+    ancilla_amplitudes = [0.30200159443367586, 0.9533074199645766]
+    N_system_qubits = 4
+    ansatz_circ= Q_circuit
+
+    output:
+
+0: ───X─────────────────Rx(0.5π)───@─────────────────────────────────@───Rx(-0.5π)───I──────Y0──────────────────────────
+                                   │                                 │               │      │
+1: ───X─────────────────H──────────X───@─────────────────────────@───X───H───────────I──────X1──────────────────────────
+                                       │                         │                   │      │
+2: ───H────────────────────────────────X───@─────────────────@───X───H───────────────I──────X2──────────────────────────
+                                           │                 │                       │      │
+3: ───H────────────────────────────────────X───Rz(-1.947π)───X───H───────────────────1*I3───(-0-1j)*X3────────────────M─
+                                                                                     │      │                         │
+4: ─── U = 1.264 rad ────────────────────────────────────────────────────────────────(0)────@─── ─── U = 1.264 rad ───M─
+
+    """
+
     ancilla_obj = prepare_arb_state(ancilla_amplitudes, N_system_qubits)
     ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
+    N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
 
-    #     N_ancilla_qubits = ancilla_obj.Get_max_no_ancilla_qubits()
-    N_ancilla_qubits = N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
-
-    ancilla_prep_circ = ancilla_obj.Get_state_prep_Circuit()
     R_circ_obj = LCU_R_gate(N_ancilla_qubits, N_system_qubits, R_corrected_Op_list, R_correction_list, Pn)
     R_circ_circ = cirq.Circuit(
         cirq.decompose_once((R_circ_obj(*cirq.LineQubit.range(R_circ_obj.num_qubits())))))
@@ -461,7 +558,27 @@ def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitude
     return full_Q_circ
 
 def Get_Histogram_key_ancilla_system(qubitOperator, N_system_qubits, N_ancilla_qubits):
+    """
+    Function to give histogram key string of BOTH system and ancilla qubit lines.
 
+    Args:
+        qubitOperator (QubitOperator): Qubit operator to measure
+        N_system_qubits (int): Number of system qubits / number of spin orbitals
+        N_ancilla_qubits (int): Number of ancilla qubits
+
+    Returns
+        histogram_string (str): string of histogram key
+
+    example
+
+    x = QubitOperator('X0 Z2 Y3', 0.25j)
+    N_ancilla_qubits = 2
+    N_system_qubits = 5
+
+    output = '0,2,3,5,6'
+
+
+    """
     qubit_No, PauliStr = zip(*list(*qubitOperator.terms.keys()))
 
     histogram_string = ','.join([str(i) for i in (qubit_No)] + [str(i) for i in range(N_system_qubits, N_system_qubits + N_ancilla_qubits)])
@@ -473,12 +590,11 @@ def simulate_probabilistic_Q_circuit(probability_of_success, Quantum_circuit, n_
     raw_result = simulator.run(Quantum_circuit, repetitions=n_shots*int(np.ceil(1/probability_of_success)))
     return raw_result
 
-def Get_binary_dict_project(Quantum_circuit, qubitOperator, n_shots, N_system_qubits, ancilla_amplitudes):
+def Get_binary_dict_project(Quantum_circuit, qubitOperator, n_shots, N_system_qubits, ancilla_amplitudes, l1_norm):
     N_system_terms_measured = len(list(qubitOperator.terms.keys())[0])
     N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
     correct_ancilla_state = np.zeros([N_ancilla_qubits])
 
-    l1_norm = sum(abs(i) for i in ancilla_amplitudes)
     P_success = (1 / l1_norm) ** 2
 
     n_success_shots = 0
@@ -489,10 +605,6 @@ def Get_binary_dict_project(Quantum_circuit, qubitOperator, n_shots, N_system_qu
 
         M_results = raw_result.measurements[hist_key]
         for result in M_results:
-
-            #             print('full result: ', result)
-            #             print('correct_ancilla_state: ', correct_ancilla_state)
-            #             print('aniclla result: ', result[N_system_terms_measured::])
 
             if np.array_equal(result[N_system_terms_measured::],
                               correct_ancilla_state):  # Checks if all zero ancilla measured!
@@ -505,25 +617,23 @@ def Get_binary_dict_project(Quantum_circuit, qubitOperator, n_shots, N_system_qu
                     binary_results_dict[state_key_binary] += 1
                 n_success_shots += 1
 
-            #                 print(binary_results_dict)
-
-            #             else:
-            #                 print('fail')
-
             if n_success_shots == n_shots:
                 break
     return binary_results_dict
 
 from quchem.Simulating_Quantum_Circuit import *
 class VQE_Experiment_LCU_UP():
+    """
+    TODO doc_string
+    """
     def __init__(self,
-                 anti_commting_sets,
+                 anti_commuting_sets,
                  ansatz_circuit,
                  n_shots,
                  N_system_qubits,
                  N_indices_dict=None):
 
-        self.anti_commting_sets = anti_commting_sets
+        self.anti_commuting_sets = anti_commuting_sets
         self.ansatz_circuit = ansatz_circuit
         self.n_shots = n_shots
 
@@ -542,12 +652,11 @@ class VQE_Experiment_LCU_UP():
         raw_result = simulator.run(Quantum_circuit, repetitions=self.n_shots * int(np.ceil(1 / probability_of_success)))
         return raw_result
 
-    def Get_binary_dict_project(self, Quantum_circuit, qubitOperator, ancilla_amplitudes):
+    def Get_binary_dict_project(self, Quantum_circuit, qubitOperator, ancilla_amplitudes, l1_norm):
         N_system_terms_measured = len(list(qubitOperator.terms.keys())[0])
         N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
         correct_ancilla_state = np.zeros([N_ancilla_qubits])
 
-        l1_norm = sum(abs(i) for i in ancilla_amplitudes)
         P_success = (1 / l1_norm) ** 2
 
         n_success_shots = 0
@@ -577,39 +686,28 @@ class VQE_Experiment_LCU_UP():
     def Calc_Energy(self):
 
         E_list = []
-        for set_key in self.anti_commting_sets:
-            if len(self.anti_commting_sets[set_key]) > 1:
+        for set_key in self.anti_commuting_sets:
+            if len(self.anti_commuting_sets[set_key]) > 1:
 
                 if self.N_indices_dict is None:
-                    R_uncorrected, Pn, gamma_l = Get_R_linear_combination(self.anti_commting_sets[set_key], 0)
+                    R_uncorrected, Pn, gamma_l = Get_R_linear_combination(self.anti_commuting_sets[set_key], 0)
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
                 else:
-                    R_uncorrected, Pn, gamma_l = Get_R_linear_combination(self.anti_commting_sets[set_key],
+                    R_uncorrected, Pn, gamma_l = Get_R_linear_combination(self.anti_commuting_sets[set_key],
                                                                           self.N_indices_dict[set_key])
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
 
                 Q_circuit = Full_Q_Circuit(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
                                            self.N_system_qubits, self.ansatz_circuit)
 
-                binary_state_counter = self.Get_binary_dict_project(Q_circuit, Pn, ancilla_amplitudes)
+                binary_state_counter = self.Get_binary_dict_project(Q_circuit, Pn, ancilla_amplitudes, l1_norm)
                 exp_result = expectation_value_by_parity(binary_state_counter)
-                #                 E_list.append(exp_result*gamma_l)
 
-                #                 E_list.append(exp_result*list(Pn.terms.values())[0]*gamma_l*l1_norm)
-                #                 print(Pn, gamma_l, exp_result, l1_norm)
-                E_list.append(exp_result * gamma_l)  # *l1_norm)
-                print(Pn, gamma_l, exp_result, l1_norm)
-
-
-            #                 E_list.append(exp_result*list(Pn.terms.values())[0])
-
-            #                 E_list.append(exp_result)
-            #                 print(Pn, list(Pn.terms.values())[0])
-
-            #                 print(np.prod([i**2 for i in R_corr_list]), gamma_l, exp_result)
+                E_list.append(exp_result * gamma_l)
+                #print(Pn, gamma_l, exp_result, l1_norm)
 
             else:
-                single_PauliOp = self.anti_commting_sets[set_key][0]
+                single_PauliOp = self.anti_commuting_sets[set_key][0]
                 if list(single_PauliOp.terms.keys())[0] == ():
                     E_list.append(list(single_PauliOp.terms.values())[0])
                 else:
@@ -619,7 +717,7 @@ class VQE_Experiment_LCU_UP():
                     binary_state_counter = Return_as_binary(int_state_counter, hist_key_str)
                     exp_result = expectation_value_by_parity(binary_state_counter)
                     E_list.append(exp_result * list(single_PauliOp.terms.values())[0])
-                    print(single_PauliOp, exp_result * list(single_PauliOp.terms.values())[0])
+                    #print(single_PauliOp, exp_result * list(single_PauliOp.terms.values())[0])
 
         #         print(Q_circuit.to_text_diagram(transpose=True))
         return sum(E_list)
