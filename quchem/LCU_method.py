@@ -1,95 +1,8 @@
 from openfermion.ops import QubitOperator
 import numpy as np
 
-def Multiply_PauliQubitOps(qubitOp_1, qubitOp_2, mulitplying_const=1):
-    """
-
-    TODO
-
-    NOTE this function does NOT!!! repeat not multiply by the qubitOp_2 constant!
-
-    Args:
-        qubitOp_1 ():
-        qubitOp_2 ():
-
-    Returns:
-        tuple:
-
-
-    """
-    convert_term = {
-        'II': (1, 'I'),
-        'IX': (1, 'X'),
-        'IY': (1, 'Y'),
-        'IZ': (1, 'Z'),
-
-        'XI': (1, 'X'),
-        'XX': (1, 'I'),
-        'XY': (1j, 'Z'),
-        'XZ': (-1j, 'Y'),
-
-        'YI': (1, 'Y'),
-        'YX': (-1j, 'Z'),
-        'YY': (1, 'I'),
-        'YZ': (1j, 'X'),
-
-        'ZI': (1, 'Z'),
-        'ZX': (1j, 'Y'),
-        'ZY': (-1j, 'X'),
-        'ZZ': (1, 'I')
-    }
-
-    PauliStr_1_tuples_P1 = [tup for PauliStrs, const in qubitOp_1.terms.items() for tup in PauliStrs]
-    qubitNo_P1, PauliStr_P1 = zip(*PauliStr_1_tuples_P1)
-    qubitNo_P1 = np.array(qubitNo_P1)
-    qubitNo_P1_CONST = list(qubitOp_1.terms.values())[0]
-
-    PauliStr_tuples_P2 = [tup for PauliStrs, const in qubitOp_2.terms.items() for tup in PauliStrs]
-    qubitNo_P2, PauliStr_P2 = zip(*PauliStr_tuples_P2)
-    qubitNo_P2 = np.array(qubitNo_P2)
-    qubitNo_P2_CONST = list(qubitOp_2.terms.values())[0]
-
-    common_qubits = np.intersect1d(qubitNo_P1, qubitNo_P2)
-
-    PauliStr_P1_common = np.take(PauliStr_P1, np.where(np.isin(qubitNo_P1, common_qubits) == True)).flatten()
-    PauliStr_P2_common = np.take(PauliStr_P2, np.where(np.isin(qubitNo_P2, common_qubits) == True)).flatten()
-
-    new_paulistr_list = []
-    new_factor = []
-    for index, pauli_str_P1 in enumerate(PauliStr_P1_common):
-
-        pauli_str_P2 = PauliStr_P2_common[index]
-        qubitNo = common_qubits[index]
-
-        combined_pauli_str = pauli_str_P1 + pauli_str_P2
-
-        if convert_term[combined_pauli_str][1] != 'I':
-            new_pauli_str = convert_term[combined_pauli_str][1] + str(qubitNo)
-            new_paulistr_list.append(new_pauli_str)
-
-            new_factor.append(convert_term[combined_pauli_str][0])
-
-    new_constant = np.prod(new_factor) * qubitNo_P1_CONST * mulitplying_const  # * qubitNo_P2_CONST
-
-    for index, qubitNo in enumerate(qubitNo_P1):
-        if qubitNo not in common_qubits:
-            Paulistring_P1 = PauliStr_P1[index]
-            new_paulistr_list.append(Paulistring_P1 + str(qubitNo))
-
-    for index, qubitNo in enumerate(qubitNo_P2):
-        if qubitNo not in common_qubits:
-            Paulistring_P2 = PauliStr_P2[index]
-            new_paulistr_list.append(Paulistring_P2 + str(qubitNo))
-
-    seperator = ' '
-    pauliStr_list = seperator.join(new_paulistr_list)
-
-    New_P = QubitOperator(pauliStr_list, new_constant)
-
-    return New_P
-
-
 from quchem.Unitary_partitioning import *
+
 def Get_X_SET(anti_commuting_set, N_index):
     """
     X = i ( ∑_{k=1}^{n-1} B_{k} P_{k} ) P_{n}
@@ -132,12 +45,26 @@ def Get_X_SET(anti_commuting_set, N_index):
     phi_n_1 = np.arccos(list(qubitOp_Pn_beta_n.terms.values())[0])
     #     phi_n_1 = np.arcsin(Omega_l)
 
+    # require sine(𝜙_{𝑛−1}) to be positive... Hence if phi_n_1 is in T part of CAST diagram... need to add pi/2
+    # to brind into S part of CAST diagram (ensuring the sign term is posivite)
+    print(phi_n_1 * 360 / (2 * np.pi), list(qubitOp_Pn_beta_n.terms.values())[0])
+
+    if (phi_n_1 > np.pi):
+        # ^ as sin phi_n_1 must be positive phi_n_1 CANNOT be larger than 180 degrees!
+        phi_n_1 = 2 * np.pi - phi_n_1
+        print('correct quadrant found!!!')
+
+    #     print(np.arcsin(Omega_l)*360/(2*np.pi))
+    print('checking sine term: ', np.sin(phi_n_1))
+    print('checking cos term: ', np.cos(phi_n_1))
+
     # 𝑖 ∑ 𝛿_{𝑘} 𝑃_{𝑘𝑛}
+    Pn = QubitOperator(list(qubitOp_Pn_beta_n.terms.keys())[0], 1)
+
     X_set = {}
     X_set['X_PauliWords'] = []
     for qubitOp_Pk in H_n_1['PauliWords']:
-        new_PauliWord = Multiply_PauliQubitOps(qubitOp_Pk, qubitOp_Pn_beta_n,
-                                               mulitplying_const=1j)  # here we times by 1j due to defintion of X also we divided by B_n (as we only want to multiply by P_n B#NOT B_n P_n)
+        new_PauliWord = qubitOp_Pk * Pn * 1j
         X_set['X_PauliWords'].append(new_PauliWord)
 
     if not np.isclose(sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2 for qubitOp in X_set['X_PauliWords']), 1):
@@ -145,9 +72,9 @@ def Get_X_SET(anti_commuting_set, N_index):
             sum(list(qubitOp.terms.values())[0] ** 2 for qubitOp in X_set['X_PauliWords'])))
 
     # THIS IS NOT NEED BUT I AM USING TO CHECK
-    X_set['H_n'] = [QubitOperator(qubitOp, const * np.sin(phi_n_1))
-                    for operator in H_n_1['PauliWords'] for qubitOp, const in operator.terms.items()] + [
-                       QubitOperator(list(qubitOp_Pn_beta_n.terms.keys())[0], np.cos(phi_n_1))]
+    X_set['H_n'] = norm_FULL_set + [qubitOp_Pn_beta_n]
+    #     X_set['H_n'] = [QubitOperator(qubitOp, const*np.sin(phi_n_1))
+    #           for operator in H_n_1['PauliWords'] for qubitOp, const in operator.terms.items()]+ [QubitOperator(list(qubitOp_Pn_beta_n.terms.keys())[0], np.cos(phi_n_1))]
 
     if not np.isclose(sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2 for qubitOp in X_set['H_n']), 1):
         raise ValueError('normalisation of H_n operator incorrect: {}'.format(
@@ -157,19 +84,10 @@ def Get_X_SET(anti_commuting_set, N_index):
     if not np.isclose((list(qubitOp_Pn_beta_n.terms.values())[0] ** 2 + Omega_l ** 2), 1):
         raise ValueError('Ω^2 + 𝛽n^2 does NOT equal 1')
 
-    #     if list(qubitOp_Pn_beta_n.terms.values())[0]<0:
-    #         X_set['P_n'] = QubitOperator(list(qubitOp_Pn_beta_n.terms.keys())[0], -1)
-    #     else:
-    #         X_set['P_n'] = QubitOperator(list(qubitOp_Pn_beta_n.terms.keys())[0], 1)
-
-    X_set['P_n'] = QubitOperator(list(qubitOp_Pn_beta_n.terms.keys())[0], 1)
-
-    #     if list(qubitOp_Pn_beta_n.terms.values())[0]<0:
-    #         X_set['gamma_l'] = gamma_l *-1
-    #     else:
-    #          X_set['gamma_l'] = gamma_l
-
     X_set['gamma_l'] = gamma_l
+
+    X_set['P_n'] = Pn
+
     X_set['H_n_1'] = H_n_1['PauliWords']
     X_set['Omega_l'] = Omega_l
     X_set['phi_n_1'] = phi_n_1
@@ -186,6 +104,9 @@ def Get_R_linear_combination(anti_commuting_set, N_index):
     # 𝛼 = 𝜙_{𝑛−1}
     alpha = X_set['phi_n_1']
 
+    #     if (np.cos(alpha)<0) and (np.cos(alpha/2)>0):
+    #         alpha = 2*np.pi - alpha
+
     # 𝑅=cos(𝛼/2)𝟙−𝑖sin(𝛼/2)χ = cos(𝛼/2)𝟙−𝑖sin(𝛼/2)*(𝑖 ∑ 𝛿_𝑘 𝑃_𝑘𝑛)
 
     # cos(𝛼/2)𝟙 term
@@ -193,7 +114,7 @@ def Get_R_linear_combination(anti_commuting_set, N_index):
     R_linear_comb_list = [I_term]
 
     # −𝑖 sin(𝛼/2) * (𝑖 ∑ 𝛿_𝑘 𝑃_𝑘𝑛) terms!
-    sin_term = np.sin(alpha / 2) * -1j
+    sin_term = np.sin(alpha / 2) * 1j
     for qubitOp_P_kn in X_terms:
         for P_kn_word, constant in qubitOp_P_kn.terms.items():
             new_constant = sin_term * constant
@@ -312,15 +233,15 @@ class Perform_Modified_PauliWord(cirq.Gate):
         self.PauliQubitOp = PauliQubitOp
         self.correction_val = correction_val
 
-        list_of_X_qNos_Pn, list_of_Pn_ops = list(zip(*[Paulistrs for qubitOp in Pn
-                                                       for Paulistrs, const in qubitOp.terms.items()][0]))
-        self.sign_index = list_of_X_qNos_Pn[0]
+        self.list_of_X_qNos_Pn, list_of_Pn_ops = list(zip(*[Paulistrs for qubitOp in Pn
+                                                            for Paulistrs, const in qubitOp.terms.items()][0]))
+        self.sign_index = self.list_of_X_qNos_Pn[0]
 
     def _decompose_(self, qubits):
 
         if list(self.PauliQubitOp.terms.keys())[0] == ():
             # identity operations
-            pass
+            yield Perform_modified_Pauligate('I', self.correction_val).on(qubits[self.sign_index])
         else:
             qubitNos_list, P_strs_list = zip(*list(self.PauliQubitOp.terms.keys())[0])
 
@@ -344,21 +265,33 @@ class Perform_Modified_PauliWord(cirq.Gate):
 
     def _circuit_diagram_info_(self, args):
 
-        qubitNos_list, P_strs_list = zip(*list(self.PauliQubitOp.terms.keys())[0])
+        if list(self.PauliQubitOp.terms.keys())[0] == ():
 
-        string_list = []
-        for index, qubitNo in enumerate(qubitNos_list):
-            #             string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[index], qubitNo))
-            if index == self.sign_index:
-                string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[index], qubitNo))
-            else:
-                string_list.append('{}{}'.format(P_strs_list[index], qubitNo))
-        return string_list
+            string_list = []
+            for qubitNo in range(self.sign_index + 1):
+
+                if qubitNo == self.sign_index:
+                    string_list.append('{}*{}{}'.format(self.correction_val, 'I', self.sign_index))
+                else:
+                    string_list.append('I')
+            return string_list
+
+        else:
+
+            qubitNos_list, P_strs_list = zip(*list(self.PauliQubitOp.terms.keys())[0])
+
+            string_list = []
+            for index, qubitNo in enumerate(qubitNos_list):
+                #             string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[index], qubitNo))
+                if index == self.sign_index:
+                    string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[index], qubitNo))
+                else:
+                    string_list.append('{}{}'.format(P_strs_list[index], qubitNo))
+            return string_list
 
     def num_qubits(self):
         if list(self.PauliQubitOp.terms.keys())[0] == ():
-            # identity operations
-            return 0
+            return self.sign_index + 1
         else:
             qubitNos_list, P_strs_list = zip(*list(self.PauliQubitOp.terms.keys())[0])
             return max(qubitNos_list) + 1
@@ -389,12 +322,29 @@ class LCU_R_gate(cirq.Gate):
         for control_state_index, R_qubitOp_corrected in enumerate(self.R_corrected_Op_list):
 
             if list(R_qubitOp_corrected.terms.keys())[0] != ():
+
                 control_str = Get_state_as_str(self.No_control_qubits, control_state_index)
                 control_values = [int(bit) for bit in control_str]
 
                 #                     qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits)  # note control qubits first!
                 qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits) \
                              + cirq.LineQubit.range(self.No_system_qubits)  # note control qubits first!
+
+                mod_p_word_gate = Perform_Modified_PauliWord(R_qubitOp_corrected,
+                                                             self.R_correction_list[control_state_index], self.Pn)
+
+                yield mod_p_word_gate.controlled(num_controls=self.No_control_qubits, control_values=control_values).on(
+                    *qubit_list)  # *qubit_list
+            else:
+                control_str = Get_state_as_str(self.No_control_qubits, control_state_index)
+                control_values = [int(bit) for bit in control_str]
+
+                list_of_X_qNos_Pn, _ = list(
+                    zip(*[Paulistrs for qubitOp in self.Pn for Paulistrs, const in qubitOp.terms.items()][0]))
+                No_I_qubit_to_Operate = list_of_X_qNos_Pn[0] + 1
+
+                qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits) \
+                             + cirq.LineQubit.range(No_I_qubit_to_Operate)  # note control qubits first!
 
                 mod_p_word_gate = Perform_Modified_PauliWord(R_qubitOp_corrected,
                                                              self.R_correction_list[control_state_index], self.Pn)
@@ -479,12 +429,13 @@ class Measure_system_and_ancilla(cirq.Gate):
 from quchem.quantum_circuit_functions import *
 
 
-def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, Pauli_N,
-                   ansatz_circ):
+def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, ansatz_circ):
     ancilla_obj = prepare_arb_state(ancilla_amplitudes, N_system_qubits)
     ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
 
-    N_ancilla_qubits = ancilla_obj.Get_max_no_ancilla_qubits()
+    #     N_ancilla_qubits = ancilla_obj.Get_max_no_ancilla_qubits()
+    N_ancilla_qubits = N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
+
     ancilla_prep_circ = ancilla_obj.Get_state_prep_Circuit()
     R_circ_obj = LCU_R_gate(N_ancilla_qubits, N_system_qubits, R_corrected_Op_list, R_correction_list, Pn)
     R_circ_circ = cirq.Circuit(
@@ -494,7 +445,7 @@ def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitude
     change_to_Z_basis_circ = cirq.Circuit(
         cirq.decompose_once((change_to_Z_basis_obj(*cirq.LineQubit.range(change_to_Z_basis_obj.num_qubits())))))
 
-    measure_obj = Measure_system_and_ancilla(Pauli_N, N_ancilla_qubits, N_system_qubits)
+    measure_obj = Measure_system_and_ancilla(Pn, N_ancilla_qubits, N_system_qubits)
 
     measure_obj_circ = cirq.Circuit(
         cirq.decompose_once((measure_obj(*cirq.LineQubit.range(measure_obj.num_qubits())))))
@@ -508,7 +459,6 @@ def Full_Q_Circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitude
         *measure_obj_circ
     ])
     return full_Q_circ
-
 
 def Get_Histogram_key_ancilla_system(qubitOperator, N_system_qubits, N_ancilla_qubits):
 
@@ -570,7 +520,6 @@ class VQE_Experiment_LCU_UP():
                  anti_commting_sets,
                  ansatz_circuit,
                  n_shots,
-                 ancilla_amplitudes,
                  N_system_qubits,
                  N_indices_dict=None):
 
@@ -578,38 +527,34 @@ class VQE_Experiment_LCU_UP():
         self.ansatz_circuit = ansatz_circuit
         self.n_shots = n_shots
 
-        self.ancilla_amplitudes = ancilla_amplitudes
         self.N_system_qubits = N_system_qubits
         self.N_indices_dict = N_indices_dict
-        self.N_ancilla_qubits = int(np.ceil(np.log2(len(self.ancilla_amplitudes))))
 
-    def Get_Histogram_key_ancilla_system(self, qubitOperator):
+    def Get_Histogram_key_ancilla_system(self, qubitOperator, N_ancilla_qubits):
 
         qubit_No, PauliStr = zip(*list(*qubitOperator.terms.keys()))
-
         histogram_string = ','.join([str(i) for i in (qubit_No)] + [str(i) for i in range(self.N_system_qubits,
-                                                                                          self.N_system_qubits + self.N_ancilla_qubits)])
+                                                                                          self.N_system_qubits + N_ancilla_qubits)])
         return histogram_string
 
     def simulate_probabilistic_Q_circuit(self, probability_of_success, Quantum_circuit):
-
         simulator = cirq.Simulator()
         raw_result = simulator.run(Quantum_circuit, repetitions=self.n_shots * int(np.ceil(1 / probability_of_success)))
         return raw_result
 
-    def Get_binary_dict_project(self, Quantum_circuit, qubitOperator):
-
-        correct_ancilla_state = np.zeros([self.N_ancilla_qubits])
+    def Get_binary_dict_project(self, Quantum_circuit, qubitOperator, ancilla_amplitudes):
         N_system_terms_measured = len(list(qubitOperator.terms.keys())[0])
+        N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
+        correct_ancilla_state = np.zeros([N_ancilla_qubits])
 
-        l1_norm = sum(abs(i) for i in self.ancilla_amplitudes)
+        l1_norm = sum(abs(i) for i in ancilla_amplitudes)
         P_success = (1 / l1_norm) ** 2
 
         n_success_shots = 0
         binary_results_dict = {}
         while n_success_shots != self.n_shots:
-            hist_key = self.Get_Histogram_key_ancilla_system(qubitOperator)
-            raw_result = self.simulate_probabilistic_Q_circuit(P_success, Quantum_circuit)
+            hist_key = Get_Histogram_key_ancilla_system(qubitOperator, self.N_system_qubits, N_ancilla_qubits)
+            raw_result = simulate_probabilistic_Q_circuit(P_success, Quantum_circuit, self.n_shots)
 
             M_results = raw_result.measurements[hist_key]
             for result in M_results:
@@ -625,10 +570,8 @@ class VQE_Experiment_LCU_UP():
                         binary_results_dict[state_key_binary] += 1
                     n_success_shots += 1
 
-                #                 print(binary_results_dict)
                 if n_success_shots == self.n_shots:
                     break
-
         return binary_results_dict
 
     def Calc_Energy(self):
@@ -645,20 +588,24 @@ class VQE_Experiment_LCU_UP():
                                                                           self.N_indices_dict[set_key])
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
 
-                Q_circuit = Full_Q_Circuit(Pn, R_corrected_Op_list,
-                                           R_corr_list, ancilla_amplitudes,
-                                           self.N_system_qubits,
-                                           Pn,
-                                           self.ansatz_circuit)
+                Q_circuit = Full_Q_Circuit(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
+                                           self.N_system_qubits, self.ansatz_circuit)
 
-                binary_state_counter = self.Get_binary_dict_project(Q_circuit, Pn)
+                binary_state_counter = self.Get_binary_dict_project(Q_circuit, Pn, ancilla_amplitudes)
                 exp_result = expectation_value_by_parity(binary_state_counter)
                 #                 E_list.append(exp_result*gamma_l)
-                E_list.append(exp_result * list(Pn.terms.values())[0] * gamma_l * l1_norm)
-                #                 E_list.append(exp_result*list(Pn.terms.values())[0])
-                #                 E_list.append(exp_result)
-                #                 print(Pn, list(Pn.terms.values())[0])
+
+                #                 E_list.append(exp_result*list(Pn.terms.values())[0]*gamma_l*l1_norm)
+                #                 print(Pn, gamma_l, exp_result, l1_norm)
+                E_list.append(exp_result * gamma_l)  # *l1_norm)
                 print(Pn, gamma_l, exp_result, l1_norm)
+
+
+            #                 E_list.append(exp_result*list(Pn.terms.values())[0])
+
+            #                 E_list.append(exp_result)
+            #                 print(Pn, list(Pn.terms.values())[0])
+
             #                 print(np.prod([i**2 for i in R_corr_list]), gamma_l, exp_result)
 
             else:
