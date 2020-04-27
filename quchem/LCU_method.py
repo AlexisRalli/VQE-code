@@ -288,18 +288,19 @@ class Perform_Modified_PauliWord(cirq.Gate):
             #             for index, P_str in enumerate(P_strs_list):
             #                 yield Perform_modified_Pauligate(P_str, self.correction_val).on(qubits[qubitNos_list[index]])
 
-            for index, P_str in enumerate(P_strs_list):
-                if index == self.sign_index:
-                    yield Perform_modified_Pauligate(P_str, self.correction_val).on(qubits[qubitNos_list[index]])
+            for index, qNo in enumerate(qubitNos_list):
+                P_str = P_strs_list[index]
+                if qNo == self.sign_index:
+                    yield Perform_modified_Pauligate(P_str, self.correction_val).on(qubits[qNo])
                 else:
                     if P_str == 'Z':
-                        yield cirq.Z.on(qubits[qubitNos_list[index]])
+                        yield cirq.Z.on(qubits[qNo])
                     elif P_str == 'Y':
-                        yield cirq.Y.on(qubits[qubitNos_list[index]])
+                        yield cirq.Y.on(qubits[qNo])
                     elif P_str == 'X':
-                        yield cirq.X.on(qubits[qubitNos_list[index]])
+                        yield cirq.X.on(qubits[qNo])
                     elif P_str == 'I':
-                        yield cirq.I.on(qubits[qubitNos_list[index]])
+                        yield cirq.I.on(qubits[qNo])
                     else:
                         raise ValueError('Not a Pauli Operation')
 
@@ -308,7 +309,7 @@ class Perform_Modified_PauliWord(cirq.Gate):
         if list(self.PauliQubitOp.terms.keys())[0] == ():
 
             string_list = []
-            for qubitNo in range(self.sign_index + 1):
+            for qubitNo in range(self.num_qubits()):
 
                 if qubitNo == self.sign_index:
                     string_list.append('{}*{}{}'.format(self.correction_val, 'I', self.sign_index))
@@ -321,12 +322,16 @@ class Perform_Modified_PauliWord(cirq.Gate):
             qubitNos_list, P_strs_list = zip(*list(self.PauliQubitOp.terms.keys())[0])
 
             string_list = []
-            for index, qubitNo in enumerate(qubitNos_list):
-                #             string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[index], qubitNo))
-                if index == self.sign_index:
-                    string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[index], qubitNo))
+            for qubitNo in range(self.num_qubits()):
+                if qubitNo in qubitNos_list:
+                    P_string_index = qubitNos_list.index(qubitNo)
+                    if qubitNo == self.sign_index:
+                        string_list.append('{}*{}{}'.format(self.correction_val, P_strs_list[P_string_index], qubitNo))
+                    else:
+                        string_list.append('{}{}'.format(P_strs_list[P_string_index], qubitNo))
                 else:
-                    string_list.append('{}{}'.format(P_strs_list[index], qubitNo))
+                    string_list.append('I')
+
             return string_list
 
     def num_qubits(self):
@@ -338,33 +343,14 @@ class Perform_Modified_PauliWord(cirq.Gate):
 
 class LCU_R_gate(cirq.Gate):
     """
-    Function to build a cirq cicuit to perform an operator as a linear combination of unitaries (LCU).
+    Function to build cirq Circuit that performs controlled modified pauligate for LCU method
 
 
     Args:
-        No_control_qubits (int): number of control/ancilla qubits
-        No_system_qubits (int): number of system qubits/spin orbitals
-        R_corrected_Op_list (list): list of qubit operators... represent linear combination of unitaries
-        R_correction_list (list): list of phase corrections of LCU operator
-        Pn (QubitOperator): Qubit operator that is being reduced too
+        circuit_param_dict (dict): A Dictionary of Tuples (qubit, control_val(int)) value is angle
 
     Returns
         A cirq circuit object to be used by cirq.Circuit.from_ops to generate arbitrary state
-
-    example
-
-    R_ops =       [0.9407564774862406 [], 0.3390829545519511 [Y0 Y1 Y2 X3]]
-    corr_phases = [1, 1j]
-
-    0: ───1*I0───1j*Y0───
-          │      │
-    1: ───┼──────Y1──────
-          │      │
-    2: ───┼──────Y2──────
-          │      │
-    3: ───┼──────X3──────
-          │      │
-    4: ───(0)────@───────
 
     """
 
@@ -385,9 +371,10 @@ class LCU_R_gate(cirq.Gate):
                 control_str = Get_state_as_str(self.No_control_qubits, control_state_index)
                 control_values = [int(bit) for bit in control_str]
 
-                #                     qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits)  # note control qubits first!
+                qubitNos_list, _ = zip(*list(R_qubitOp_corrected.terms.keys())[0])
+
                 qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits) \
-                             + cirq.LineQubit.range(self.No_system_qubits)  # note control qubits first!
+                             + cirq.LineQubit.range(qubitNos_list[-1] + 1)  # note control qubits first!
 
                 mod_p_word_gate = Perform_Modified_PauliWord(R_qubitOp_corrected,
                                                              self.R_correction_list[control_state_index], self.Pn)
