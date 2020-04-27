@@ -600,7 +600,8 @@ class My_U_Gate(cirq.SingleQubitGate):
 
 def Get_control_parameters(num_qubits, Coefficient_list):
     if len(Coefficient_list) != 2 ** num_qubits:
-        raise ValueError('incorrect number of coefficients')
+        Coefficient_list = Coefficient_list + [0 for _ in range(2 ** num_qubits - len(Coefficient_list))]
+        #raise ValueError('incorrect number of coefficients')
 
     state_list = [Get_state_as_str(num_qubits, i) for i in range(2 ** num_qubits)]
 
