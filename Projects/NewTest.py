@@ -22,7 +22,7 @@ HF_transformations = Hamiltonian_Transforms(Hamilt.MolecularHamiltonian, SQ_CC_o
 
 QubitHam = HF_transformations.Get_Qubit_Hamiltonian_JW()
 #print('Qubit Hamiltonian: ', QubitHam)
-QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam)
+QubitHam_PauliStr = HF_transformations.Convert_QubitMolecularHamiltonian_To_Pauliword_Str_list(QubitHam, Hamilt.molecule.n_qubits)
 print('Qubit Hamiltonian: ', QubitHam_PauliStr)
 
 ## calc energy via Lin. Alg.
@@ -39,7 +39,7 @@ from quchem.Ansatz_Generator_Functions import *
 
 UCCSD = UCCSD_Trotter_JW(SQ_CC_ops, THETA_params)
 Second_Quant_CC_JW_OP_list = UCCSD.SingleTrotterStep()
-PauliWord_list = Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_JW_OP_list)
+PauliWord_list = Convert_QubitOperator_To_Pauliword_Str_list(Second_Quant_CC_JW_OP_list, Hamilt.molecule.n_qubits)
 HF_UCCSD_ansatz = Ansatz_Circuit(PauliWord_list, Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits)
 # THETA_params = [random.uniform(0, 2 * np.pi) for _ in range(Hamilt.num_theta_parameters)]
 ansatz_Q_cicuit = HF_UCCSD_ansatz.Get_Full_HF_UCCSD_QC(THETA_params)
@@ -76,13 +76,13 @@ xx = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
 print(xx.Calc_energy_via_parity())
 
 # ### Unitary Partitioning
-from quchem.Unitary_partitioning import *
-anti_commuting_set_stripped = Get_PauliWord_constant_tuples(anti_commuting_sets, dict_str_label='Cofactors')
-zz = UnitaryPartition(anti_commuting_set_stripped, ansatz_Q_cicuit, S_dict=None) #{0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1, 10: 1}
-zz.Get_Quantum_circuits_and_constants()
-circuits_and_constants = zz.circuits_and_constants
-yy = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
-print(yy.Calc_energy_via_parity())
+# from quchem.Unitary_partitioning import *
+# anti_commuting_set_stripped = Get_PauliWord_constant_tuples(anti_commuting_sets, dict_str_label='Cofactors')
+# zz = UnitaryPartition(anti_commuting_set_stripped, ansatz_Q_cicuit, S_dict=None) #{0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 9: 1, 10: 1}
+# zz.Get_Quantum_circuits_and_constants()
+# circuits_and_constants = zz.circuits_and_constants
+# yy = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
+# print(yy.Calc_energy_via_parity())
 
 
 ### Simulating Q Circuit
@@ -93,7 +93,7 @@ def CalcE_QC(THETA_params):
                                                                               Hamilt.molecule.n_qubits)
     xx = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
     E = xx.Calc_energy_via_parity()
-    return E
+    return E.real
 
 from quchem.Scipy_Optimizer import *
 THETA_params = [0,1,2]
@@ -195,3 +195,44 @@ GG = Optimizer(CalcE_QC_UP, THETA_params, 'Nelder-Mead', store_values=True, disp
                display_convergence_message= True)
 GG.get_env(50)
 GG.plot_convergence()
+
+
+
+
+
+
+
+
+
+### Simulating Q Circuit
+
+def H2_ansatz(theta):
+    HF_circ = [cirq.X.on(cirq.LineQubit(0)), cirq.X.on(cirq.LineQubit(1))]
+    exp_circ_obj = full_exponentiated_PauliWord_circuit(('Y0 X1 X2 X3', -1j), theta)
+
+    UCCSD_circ = cirq.Circuit(cirq.decompose_once(exp_circ_obj(*cirq.LineQubit.range(exp_circ_obj.num_qubits()))))
+
+    full_circuit = cirq.Circuit([*HF_circ, *UCCSD_circ])
+
+    return full_circuit
+
+def CalcE_QC(THETA):
+    ansatz_Q_cicuit =H2_ansatz(THETA)
+    circuits_and_constants = Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(ansatz_Q_cicuit, QubitHam_PauliStr,
+                                                                              Hamilt.molecule.n_qubits)
+    xx = Simulation_Quantum_Circuit_Dict(circuits_and_constants, num_shots)
+    E = xx.Calc_energy_via_parity()
+    return E.real
+
+from quchem.Scipy_Optimizer import *
+THETA_params = [0]
+GG = Optimizer(CalcE_QC, THETA_params, 'Nelder-Mead', store_values=True, display_iter_steps=True,  tol=1e-3,
+               display_convergence_message= True)
+GG.get_env(20)
+GG.plot_convergence()
+
+
+theta_list = np.arange(0,np.pi*2,0.1)
+E_list = [CalcE_QC(theta) for theta in theta_list]
+plt.plot(E_list)
+plt.show()
