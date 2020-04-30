@@ -127,3 +127,5 @@ if __name__ == '__main__':
                    display_convergence_message= True)
     GG.get_env(20)
     GG.plot_convergence()
+
+
