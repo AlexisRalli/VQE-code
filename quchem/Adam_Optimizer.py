@@ -1,6 +1,7 @@
 import numpy as np
 
-def Adam_Opt(X_0, gradient_function, learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-8):
+def Adam_Opt(X_0, function, gradient_function, learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-8, max_iter=500,
+             disp=False, tolerance=1e-5, store_steps=False):
     """
 
     To be passed into Scipy Minimize method
@@ -25,6 +26,8 @@ def Adam_Opt(X_0, gradient_function, learning_rate=0.001, beta_1=0.9, beta_2=0.9
         v_t (float): second moment vector
 
     """
+    input_vectors=[]
+    output_results=[]
 
     # initialization
     t=0  # timestep
@@ -32,7 +35,12 @@ def Adam_Opt(X_0, gradient_function, learning_rate=0.001, beta_1=0.9, beta_2=0.9
     v_t = 0 #2nd moment vector
     X_t = X_0
 
-    while(t<400):
+    while(t<max_iter):
+
+        if store_steps is True:
+            input_vectors.append(X_t)
+            output_results.append(function(X_t))
+
         t+=1
         g_t = gradient_function(X_t)
         m_t = beta_1*m_t + (1-beta_1)*g_t	#updates the moving averages of the gradient (biased first moment estimate)
@@ -44,10 +52,16 @@ def Adam_Opt(X_0, gradient_function, learning_rate=0.001, beta_1=0.9, beta_2=0.9
         X_t_prev = X_t
         X_t = X_t_prev - (learning_rate * m_cap) / (np.sqrt(v_cap) + epsilon)  # updates the parameters
 
-        if np.isclose(X_t, X_t_prev, atol=0.0).all(): # convergence check
-            break
+        if disp is True:
+            output = function(X_t)
+            print('step: {} input:{} obj_funct: {}'.format(t, X_t, output))
 
-    return X_t
+        if np.isclose(X_t, X_t_prev, atol=tolerance).all(): # convergence check
+            break
+    if store_steps is True:
+        return X_t, input_vectors, output_results
+    else:
+        return X_t
 
 if __name__ == '__main__':
     def Function_to_minimise(input_vect, const=2):
@@ -95,6 +109,11 @@ if __name__ == '__main__':
 
 ### for scipy ###
 
+
+# (fun, x0, args=args, jac=jac, hess=hess, hessp=hessp,
+#                       bounds=bounds, constraints=constraints,
+#                       callback=callback, **options)
+
 def fmin_ADAM(f, x0, fprime=None, args=(), gtol=1e-5,
               maxiter=500, full_output=0, disp=1, maxfev=500,
               retall=0, callback=None, learning_rate = 0.001,
@@ -119,7 +138,7 @@ def fmin_ADAM(f, x0, fprime=None, args=(), gtol=1e-5,
                      xtol=gtol, maxiter=maxiter,
                      disp=disp, maxfev=maxfev, return_all=retall,
                    learning_rate = learning_rate,
-                   beta_1 = beta_1, beta_2 = beta_2, epsilon=epsilon)
+                   beta_1 = beta_1, beta_2 = beta_2, epsilon=epsilon, **opts)
 
     if full_output:
         retlist = (res['x'], res['fun'], #res['jac'],
@@ -136,26 +155,18 @@ def fmin_ADAM(f, x0, fprime=None, args=(), gtol=1e-5,
     return result
 
 
-from scipy.optimize.optimize import OptimizeResult
-
-# standard status messages of optimizers
-_status_message = {'success': 'Optimization terminated successfully.',
-                   'maxfev': 'Maximum number of function evaluations has '
-                              'been exceeded.',
-                   'maxiter': 'Maximum number of iterations has been '
-                              'exceeded.',
-                   'pr_loss': 'Desired error not necessarily achieved due '
-                              'to precision loss.',
-                   'nan': 'NaN result encountered.'}
+from scipy.optimize.optimize import OptimizeResult, wrap_function, _status_message, _check_unknown_options
 
 
 from numpy import squeeze
 # _minimize_powell
-def _adam_minimize(func, x0, gradient_function, args=(), callback=None,
+
+
+def _adam_minimize(func, x0, args=(), jac=None, callback=None,
                      xtol=1e-8, maxiter=None, maxfev=None,
                      disp=False, return_all=False,
                    learning_rate = 0.001,
-                   beta_1 = 0.9, beta_2 = 0.999, epsilon = 1e-8):
+                   beta_1=0.9, beta_2=0.999, epsilon=1e-8, **unknown_options):
     """
     Minimization of scalar function of one or more variables using the
     modified Powell algorithm.
@@ -179,10 +190,22 @@ def _adam_minimize(func, x0, gradient_function, args=(), callback=None,
         Set to True to return a list of the best solution at each of the
         iterations.
     """
+
+    _check_unknown_options(unknown_options)
+
+    if jac is None:
+        raise ValueError('Jacobian is required for Adam-CG method')
+
+    if maxfev is None:
+        maxfev = maxiter + 10
+
+
+    _, func = wrap_function(func, args)
+
     retall = return_all
     if retall:
         allvecs = [x0]
-        all_jac_vecs=[gradient_function(x0)]
+        all_jac_vecs=[jac(x0)]
 
     fval = squeeze(func(x0))
 
@@ -195,10 +218,10 @@ def _adam_minimize(func, x0, gradient_function, args=(), callback=None,
     fcalls=0
     iter = 0
     while True:
-        fx = fval
 
+        # ADAM Algorithm
         t+=1
-        g_t = gradient_function(X_t)
+        g_t = jac(X_t)
         m_t = beta_1*m_t + (1-beta_1)*g_t	#updates the moving averages of the gradient (biased first moment estimate)
         v_t = beta_2*v_t + (1-beta_2)*(g_t*g_t)	#updates the moving averages of the squared gradient (biased 2nd
                                                 # raw moment estimate)
@@ -207,8 +230,9 @@ def _adam_minimize(func, x0, gradient_function, args=(), callback=None,
         v_cap = v_t / (1 - (beta_2 ** t))  # Compute bias-corrected second raw moment estimate
         X_t_prev = X_t
         X_t = X_t_prev - (learning_rate * m_cap) / (np.sqrt(v_cap) + epsilon)  # updates the parameters
+        # Adam END
 
-
+        # updates and termination criteria
         fcalls+=1
         fval = func(X_t)
 
@@ -219,9 +243,9 @@ def _adam_minimize(func, x0, gradient_function, args=(), callback=None,
             allvecs.append(X_t)
             all_jac_vecs.append(g_t)
 
-        if fcalls >= maxfev:
+        if fcalls >= maxfev: # max function evaluation
             break
-        if iter >= maxiter:
+        if iter >= maxiter: # max no. of iterations
             break
         if np.isclose(X_t, X_t_prev, atol=xtol).all(): # convergence check
             break
