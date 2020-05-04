@@ -183,26 +183,30 @@ class Ansatz():
 
         return Sec_Quant_CC__ia_ops, Sec_Quant_CC__ijab_ops, theta_parameters_ia, theta_parameters_ijab
 
-    def Remove_NOON_terms(self, NMO_basis=None, occ_threshold=0.98, unocc_threshold=1e-4,
+    def Remove_NOON_terms(self, NOON=None, occ_threshold=0.98, unocc_threshold=1e-4,
                           indices_to_remove_list_manual=None, single_cc_amplitudes=None,double_cc_amplitudes=None,
                           singles_hamiltonian=None, doubles_hamiltonian=None, tol_filter_small_terms=None):
 
         if indices_to_remove_list_manual:
             indices_remove = set(indices_to_remove_list_manual)
         else:
-            occupied_indices = np.where(NMO_basis>occ_threshold)[0]
-            unoccupied_indices = np.where(NMO_basis<unocc_threshold)[0]
+            occupied_indices = np.where(NOON>occ_threshold)[0]
+            occupied_indices = [index for i in occupied_indices for index in [i*2, i*2+1]]
+
+            unoccupied_indices = np.where(NOON<unocc_threshold)[0]
+            unoccupied_indices = [index for i in unoccupied_indices for index in [i * 2, i * 2 + 1]]
+
             indices_remove = set(occupied_indices)
             indices_remove.update(set(unoccupied_indices))
 
-        Sec_Quant_CC__ia_ops, Sec_Quant_CC__ijab_ops, theta_parameters_ia, theta_parameters_ijab = self.Get_ia_and_ijab_terms(single_cc_amplitudes=single_cc_amplitudes,
+        Sec_Quant_CC_ia_ops, Sec_Quant_CC__ijab_ops, theta_parameters_ia, theta_parameters_ijab = self.Get_ia_and_ijab_terms(single_cc_amplitudes=single_cc_amplitudes,
                                                                                                                               double_cc_amplitudes=double_cc_amplitudes,
                                                                                                                               singles_hamiltonian=singles_hamiltonian,
                                                                                                                               doubles_hamiltonian=doubles_hamiltonian,
                                                                                                                               tol_filter_small_terms = tol_filter_small_terms)
         reduced_Sec_Quant_CC_ops_ia = []
         reduced_theta_parameters_ia=[]
-        for index, excitation in enumerate(Sec_Quant_CC__ia_ops):
+        for index, excitation in enumerate(Sec_Quant_CC_ia_ops):
             #each term made up of two parts: -1.0 [2^ 3^ 10 11] + 1.0 [11^ 10^ 3 2]
             first_term, second_term = excitation.terms.items()
 

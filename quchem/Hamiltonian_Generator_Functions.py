@@ -164,42 +164,35 @@ class Hamiltonian():
         """
         See https://journals.aps.org/prx/pdf/10.1103/PhysRevX.8.031022 appendix C for further details
 
-        Diagonalizing the 1-RDM (in the canonical orbital basis from a CISD calculation) gives the 1-RDM
-        fermionic natural molecular orbitals (NMO) basis, which are arranged as "spin-up, spin-down, spin-up, spin-down..."
-
-        The value of each entry gives the natural orbital occupation number (NOON). Therefore orbitals with a
-        small NOON can be assumed to be UNFILLED and REMOVED from the Hamiltonian!
+        Taking the 1-RDM (in the canonical orbital basis from a CISD calculation) which are arranged as "spin-up,
+        spin-down, spin-up, spin-down..." combining the spin up and down terms. Diagnoalizing the resultant matrix
+        gives the 1-RDM fermionic natural molecular orbitals (NMO) basis. Eigenvalues of this matrix are the
+        natural orbital occupation number (NOON). Orbitals with a small NOON can be assumed to be UNFILLED and REMOVED
+        from the Hamiltonian! Orbitals with large NOON (close to 2) can assumed to be FILLED and also removed!
 
 
         returns:
-            NOON_spins_combined (np.array): NOON with same spin-up and spin-down spatial orbitals combined
+            NOON (np.array): natural orbital occupation number
+            NMO_basis (np.array): natural molecular orbitals (NMO) basis
 
          e.g. for LiH with a bond length of 1.45 A:
-         NMO_basis =
-                        array([
-                               9.99961301e-01, 9.81031486e-01,
-                               9.99961301e-01, 9.81031486e-01,
-                               1.72719307e-02, 1.72719307e-02,
-                               2.38704909e-05, 2.38704909e-05,
-                               8.55705967e-04, 8.55705967e-04,
-                               8.55705967e-04, 8.55705967e-04
-                             ])
 
-         NOON_spins_combined =
-                               array([
-                                   1.98099279e+00,
-                                   1.98099279e+00,
-                                   3.45438614e-02,
-                                   4.77409818e-05,
-                                   1.71141193e-03,
-                                   1.71141193e-03
-                               ])
-         therefore here can see that for orbitals with index 0 and 1 have NOON close to TWO, therefore can consider it
+         NOON =
+                        array([1.99991759e+00,
+                               1.96200679e+00,
+                               3.45854731e-02,
+                               4.91748520e-05,
+                               1.72048547e-03,
+                               1.72048547e-03])
+
+         shows natural orbital occupation!
+
+         therefore here can see that for orbitals with index 0, close to TWO, therefore can consider it
          always doubly occupied... so can remove any terms in the hamiltonian containing: a†0 ,a0, a†1, a1.
 
-         Also have a look at indices 6,7 ... occupation is: 4.77409818e-05 ... VERY SMALL NOON... therefore can assume
+         Also have a look at indix 3... occupation is: 4.91748520e-05 ... VERY SMALL NOON... therefore can assume
          these orbitals are never occupied. Again can remove the fermion operators from the Hamiltonian too:
-         a†6 ,a6, a†8, a7.
+         a†6 ,a6, a†7, a7.
 
         """
         if self.molecule is None:
@@ -208,22 +201,29 @@ class Hamiltonian():
         # one_RDM = self.molecule.cisd_one_rdm
         one_RDM = self.molecule.fci_one_rdm
 
-        # THIS is wrong:
-        # from numpy import diag
-        # NMO_basis = diag(one_RDM)
+        one_rdm_a = one_RDM[np.arange(0, self.molecule.n_qubits, 2)][:, np.arange(0, self.molecule.n_qubits, 2)]
+        one_rdm_b = one_RDM[np.arange(1, self.molecule.n_qubits, 2)][:, np.arange(1, self.molecule.n_qubits, 2)]
 
+        one_RDM_combined = one_rdm_a + one_rdm_b #spin up + spin down
         from numpy.linalg import eig
-        NMO_basis, eig_vectors = eig(one_RDM)
+        #  diagonalizing gives  1-RDM in terms of natural molecular orbitals (NMOs)
+        NOON, NMO_basis = eig(one_RDM_combined) # NOON = natural orbital occupation numbers = eigenvalues
 
-        # # adding each pair of entries
+        # ordering
+        idx = NOON.argsort()[::-1]
+        NOON_ordered = NOON[idx]
+        NMO_basis_ordered = NMO_basis[:, idx]
 
-        # TODO this is wrong I think
-        # NOON_spins_combined = np.add.reduceat(NMO_basis, np.arange(0, len(NMO_basis), 2))
 
-        #think this is correct
-        NOON_spins_combined = [NMO_basis[i*2] + NMO_basis[i*2+1] for i in range(int(len(NMO_basis) / 2))]
+        # Diag_matix = C^{-1} A C
+        # Diag_matix = np.dot(np.linalg.inv(NMO_basis_ordered) , np.dot(np.diag(one_RDM_combined), NMO_basis_ordered))
 
-        return NMO_basis, NOON_spins_combined
+        # basis_transformation_matrix = eig_vectors.transpose() #<--- here!
+        # The Molecular Hamiltonian must also be rotated, using the  same unitary matrixused to diagonalise the 1 - RDM.
+        # equivalent to performing a change of basis, from the canonical orbital basis to the natural molecular orbital basis
+
+
+        return NOON_ordered, NMO_basis_ordered#, basis_transformation_matrix
 
     def Get_Fermionic_Hamiltonian(self):
 

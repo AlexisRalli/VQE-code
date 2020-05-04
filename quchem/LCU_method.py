@@ -636,7 +636,9 @@ class VQE_Experiment_LCU_UP():
 
     def simulate_probabilistic_Q_circuit(self, probability_of_success, Quantum_circuit):
         simulator = cirq.Simulator()
-        raw_result = simulator.run(Quantum_circuit, repetitions=self.n_shots * int(np.ceil(1 / probability_of_success)))
+        raw_result = simulator.run(Quantum_circuit, repetitions=10*self.n_shots * int(np.ceil(1 / probability_of_success)))
+        # TODO note extra 1000 here in no.  of shots (due to only certain exp results taken when projected)
+        # TODO could make an optional parameter
         return raw_result
 
     def Get_binary_dict_project(self, Quantum_circuit, qubitOperator, ancilla_amplitudes, l1_norm):
