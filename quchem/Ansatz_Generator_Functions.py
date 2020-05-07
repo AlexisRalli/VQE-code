@@ -1012,7 +1012,7 @@ class BK_Qubit_Reduction(Ansatz):
 
         return Sec_Quant_CC__ia_ops, Sec_Quant_CC__ijab_ops, theta_parameters_ia, theta_parameters_ijab
 
-    def Remove_indices_from_Hamiltonian(self, list_of_qubit_indices_to_remove, list_of_correction_vals):
+    def Remove_indices_from_Hamiltonian_manual(self, list_of_qubit_indices_to_remove, list_of_correction_vals):
 
         from openfermion.ops import QubitOperator
         new_Hamiltonian = QubitOperator()
@@ -1039,6 +1039,44 @@ class BK_Qubit_Reduction(Ansatz):
                     QubitNo_list = np.delete(QubitNo_list, indices_to_remove)
                     PauliStr_list = np.delete(PauliStr_list, indices_to_remove)
                     new_pauli_word = list(zip(QubitNo_list.tolist(), PauliStr_list.tolist()))
+                    new_Hamiltonian += QubitOperator(new_pauli_word, const)
+        return new_Hamiltonian
+
+    def Remove_indices_from_Hamiltonian(self, list_of_qubit_indices_to_remove):
+
+        BK_State = self.Get_BK_HF_state_in_OCC_basis()
+        from openfermion.ops import QubitOperator
+        new_Hamiltonian = QubitOperator()
+
+        for Op in self.BK_QubitHamiltonian:
+            for PauliWord, const in Op.terms.items():
+                if PauliWord == ():
+                    new_Hamiltonian += Op
+                else:
+                    QubitNo_list, PauliStr_list = zip(*PauliWord)
+                    QubitNo_list = np.array(QubitNo_list)
+                    PauliStr_list = np.array(PauliStr_list)
+
+                    indices_to_remove = np.where(np.isin(QubitNo_list, list_of_qubit_indices_to_remove) == True)[0]
+
+                    # note indexing slightly different for BK state (as always whole)
+                    # some op start at non-zero qubitNo (e.g. X2 Y2)
+                    BK_State_being_lost= np.take(BK_State, list(set(QubitNo_list).intersection(list_of_qubit_indices_to_remove)))
+                    PauliStr_corresponding = np.take(PauliStr_list, indices_to_remove)
+
+                    for i, bit in enumerate(BK_State_being_lost):
+                        if int(bit) ==1:
+                            if PauliStr_corresponding[i]=='Y':
+                                # as Y|1> = -i |0> ### BUT we only measure -1... don't see phase of i!
+                                const = const*-1
+                            elif PauliStr_corresponding[i]=='Z':
+                                # as Z|1> = -1 |1>
+                                const = const*-1
+
+                    QubitNo_list = np.delete(QubitNo_list, indices_to_remove)
+                    PauliStr_list = np.delete(PauliStr_list, indices_to_remove)
+                    new_pauli_word = list(zip(QubitNo_list.tolist(), PauliStr_list.tolist()))
+
                     new_Hamiltonian += QubitOperator(new_pauli_word, const)
         return new_Hamiltonian
 
@@ -1292,7 +1330,7 @@ class Ansatz_Circuit(Ansatz):
 
     """
     def __init__(self, Qubit_Op_list_Second_Quant_CC_Ops_ia, Qubit_Op_list_Second_Quant_CC_Ops_ijab,
-                 n_orbitals, n_electrons):
+                 n_orbitals, n_electrons, manual_HF_state=None):
 
         super().__init__(n_electrons, n_orbitals)
 
@@ -1301,15 +1339,22 @@ class Ansatz_Circuit(Ansatz):
         self.n_orbitals = n_orbitals
         self.n_electrons = n_electrons
 
+        # TODO consider changing this
+        self.manual_HF_state = manual_HF_state
+
         self.HF_QCirc = None
 
     def _Get_HF_Quantum_Circuit(self, transformation='JW'):
-        if transformation=='JW':
-            HF_state_occ_basis = self.Get_JW_HF_state_in_OCC_basis()
-        elif transformation=='BK':
-            HF_state_occ_basis = self.Get_BK_HF_state_in_OCC_basis()
+
+        if self.manual_HF_state is not None:
+            HF_state_occ_basis = self.manual_HF_state
         else:
-            raise ValueError('unknown transformation')
+            if transformation=='JW':
+                HF_state_occ_basis = self.Get_JW_HF_state_in_OCC_basis()
+            elif transformation=='BK':
+                HF_state_occ_basis = self.Get_BK_HF_state_in_OCC_basis()
+            else:
+                raise ValueError('unknown transformation')
 
         HF_state_prep = State_Prep(HF_state_occ_basis)
         HF_state_prep_circuit = cirq.Circuit(cirq.decompose_once(
