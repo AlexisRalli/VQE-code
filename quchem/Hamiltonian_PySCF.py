@@ -1,7 +1,8 @@
 import numpy as np
 
 from openfermion.hamiltonians import MolecularData
-from openfermionpsi4 import run_psi4
+from openfermionpyscf import run_pyscf
+
 
 class Hamiltonian():
     """
@@ -37,7 +38,7 @@ class Hamiltonian():
                  run_scf = 1, run_mp2 = 1, run_cisd = 1, run_ccsd = 1, run_fci=1,
                  basis='sto-3g', multiplicity=1, geometry=None, delete_input=False, delete_output=False):
 
-        # basis = 'cc-pvtz'
+        #basis = 'cc-pvtz'
 
         self.MoleculeName = MoleculeName
         self.run_scf = bool(run_scf)
@@ -54,32 +55,27 @@ class Hamiltonian():
         self.num_theta_parameters = None
         self.MolecularHamiltonianMatrix = None
 
-    def Run_Psi4(self):
+    def Run_PySCF(self):
 
         if self.geometry is None:
             self.Get_Geometry()
 
-        # input
+        # INPUT
         self.molecule = MolecularData(
             self.geometry,
             self.basis,
             self.multiplicity,
             description=self.MoleculeName)
 
-        #output file
-        self.molecule.filename = self.MoleculeName
 
-        # Run Psi4.
-        self.molecule = run_psi4(self.molecule,
+        # Run PySCF.
+        self.molecule = run_pyscf(self.molecule,
                             run_scf=self.run_scf,
                             run_mp2=self.run_mp2,
                             run_cisd=self.run_cisd,
                             run_ccsd=self.run_ccsd,
                             run_fci=self.run_fci,
-                            delete_input=False,
-                            delete_output=False)
-        # note template: ~/envs/ENV_NAME/lib/python3.7/site-packages/openfermionpsi4 : _psi4_template
-        # https://github.com/quantumlib/OpenFermion-Psi4/blob/master/openfermionpsi4/_psi4_template
+                            verbose=False)
 
     def Get_Geometry(self):
 
@@ -91,7 +87,7 @@ class Hamiltonian():
 
     def PrintInfo(self):
         if self.molecule is None:
-            self.Run_Psi4()
+            self.Run_PySCF()
 
         print('Geometry: ', self.geometry)
         print('No Qubits: ', self.molecule.n_qubits)
@@ -115,7 +111,7 @@ class Hamiltonian():
 
         """
         if self.molecule is None:
-            self.Run_Psi4()
+            self.Run_PySCF()
 
         # H = constant + ∑_pq (h_pq a†_p a_q) + ∑_pqrs (h_pqrs a†_p a†_q a_r a_s)
         self.MolecularHamiltonian = self.molecule.get_molecular_hamiltonian() # instance of the MolecularOperator class
@@ -140,14 +136,10 @@ class Hamiltonian():
         from openfermionpsi4._psi4_conversion_functions import parse_psi4_ccsd_amplitudes
         # https://github.com/quantumlib/OpenFermion-Psi4/blob/master/openfermionpsi4/_psi4_conversion_functions.py
         if self.molecule is None:
-            self.Run_Psi4()
+            self.Run_PySCF()
 
-        self.molecule.single_cc_amplitudes, self.molecule.double_cc_amplitudes = (
-                                                                    parse_psi4_ccsd_amplitudes(
-                                                                        2 * self.molecule.n_orbitals,
-                                                                        self.molecule.get_n_alpha_electrons(),
-                                                                        self.molecule.get_n_beta_electrons(),
-                                                                        self.molecule.filename + ".out"))
+        self.molecule.single_cc_amplitudes = self.molecule.ccsd_single_amps
+        self.molecule.double_cc_amplitudes = self.molecule.ccsd_double_amps
 
     def Get_FCI_from_MolecularHamialtonian(self):
 
@@ -198,24 +190,14 @@ class Hamiltonian():
 
         """
         if self.molecule is None:
-            self.Run_Psi4()
+            self.Run_PySCF()
 
         # one_RDM = self.molecule.cisd_one_rdm
         one_RDM = self.molecule.fci_one_rdm
 
-        one_rdm_a = one_RDM[np.arange(0, self.molecule.n_qubits, 2)][:, np.arange(0, self.molecule.n_qubits, 2)]
-        one_rdm_b = one_RDM[np.arange(1, self.molecule.n_qubits, 2)][:, np.arange(1, self.molecule.n_qubits, 2)]
-
-        one_RDM_combined = one_rdm_a + one_rdm_b #spin up + spin down
         from numpy.linalg import eig
         #  diagonalizing gives  1-RDM in terms of natural molecular orbitals (NMOs)
-        NOON, NMO_basis = eig(one_RDM_combined) # NOON = natural orbital occupation numbers = eigenvalues
-
-        # # ordering
-        # idx = NOON.argsort()[::-1]
-        # NOON_ordered = NOON[idx]
-        # NMO_basis_ordered = NMO_basis[:, idx]
-
+        NOON, NMO_basis = eig(one_RDM) # NOON = natural orbital occupation numbers = eigenvalues
 
         # Diag_matix = C^{-1} A C
         # Diag_matix = np.dot(np.linalg.inv(NMO_basis_ordered) , np.dot(np.diag(one_RDM_combined), NMO_basis_ordered))
@@ -225,7 +207,7 @@ class Hamiltonian():
         # equivalent to performing a change of basis, from the canonical orbital basis to the natural molecular orbital basis
 
 
-        return NOON, NMO_basis #NOON_ordered, NMO_basis_ordered#, basis_transformation_matrix
+        return NOON, NMO_basis #, basis_transformation_matrix
 
     def Get_Fermionic_Hamiltonian(self):
 
@@ -291,6 +273,11 @@ class Hamiltonian():
             from openfermion.transforms import bravyi_kitaev
             QubitHamiltonian = bravyi_kitaev(FermionicHamiltonian)
 
+        elif transformation == 'BK_tree':
+            from openfermion.transforms import bravyi_kitaev_tree
+            QubitHamiltonian = bravyi_kitaev_tree(FermionicHamiltonian)
+        else:
+            raise ValueError('unknown transformation')
 
         if threshold is None:
             return QubitHamiltonian
