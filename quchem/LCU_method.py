@@ -71,7 +71,7 @@ def Get_X_SET(anti_commuting_set, N_index):
 
     if not np.isclose(sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2 for qubitOp in X_set['X_PauliWords']), 1):
         raise ValueError('normalisation of X operator incorrect: {}'.format(
-            sum(list(qubitOp.terms.values())[0] ** 2 for qubitOp in X_set['X_PauliWords'])))
+            sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2 for qubitOp in X_set['X_PauliWords'])))
 
     # THIS IS NOT NEED BUT I AM USING TO CHECK
     X_set['H_n'] = norm_FULL_set + [qubitOp_Pn_beta_n]
