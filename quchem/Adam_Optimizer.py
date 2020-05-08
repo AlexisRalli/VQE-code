@@ -211,8 +211,8 @@ def _adam_minimize(func, x0, args=(), jac=None, callback=None,
 
     # initialization
     t=0  # timestep
-    m_t = 0 #1st moment vector
-    v_t = 0 #2nd moment vector
+    m_t = 0 # 1st moment vector
+    v_t = 0 # 2nd moment vector
     X_t = x0
 
     fcalls=0
