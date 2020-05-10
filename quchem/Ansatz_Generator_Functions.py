@@ -46,9 +46,9 @@ class Ansatz():
         alph_noccs = [k for k in orbitals_index if k % 2 == 0 and k >= self.n_electrons] # spin down occupied
         beta_noccs = [k for k in orbitals_index if k % 2 == 1 and k >= self.n_electrons] # spin up UN-occupied
 
-        Sec_Quant_CC__ia_ops = [] # second quantised single e- CC operators
+        Sec_Quant_CC_ia_ops = [] # second quantised single e- CC operators
         theta_parameters_ia = []
-        Sec_Quant_CC__ijab_ops =[] # second quantised two e- CC operators
+        Sec_Quant_CC_ijab_ops =[] # second quantised two e- CC operators
         theta_parameters_ijab =[]
 
 
@@ -63,7 +63,7 @@ class Ansatz():
                         else:
                             theta_parameters_ia.append(0)
 
-                        Sec_Quant_CC__ia_ops.append(one_elec)
+                        Sec_Quant_CC_ia_ops.append(one_elec)
                 else:
                     # NO filtering
                     one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
@@ -72,7 +72,7 @@ class Ansatz():
                     else:
                         theta_parameters_ia.append(0)
 
-                    Sec_Quant_CC__ia_ops.append(one_elec)
+                    Sec_Quant_CC_ia_ops.append(one_elec)
 
         # SINGLE electron excitation: spin DOWN transition
         for i in beta_occs:
@@ -86,7 +86,7 @@ class Ansatz():
                         else:
                             theta_parameters_ia.append(0)
 
-                        Sec_Quant_CC__ia_ops.append(one_elec)
+                        Sec_Quant_CC_ia_ops.append(one_elec)
                 else:
                     # NO filtering
                     one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
@@ -95,7 +95,7 @@ class Ansatz():
                     else:
                         theta_parameters_ia.append(0)
 
-                    Sec_Quant_CC__ia_ops.append(one_elec)
+                    Sec_Quant_CC_ia_ops.append(one_elec)
 
         # DOUBLE excitation: UP + UP
         for i in alph_occs:
@@ -109,10 +109,10 @@ class Ansatz():
                                 two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
                                            FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
                                 if double_cc_amplitudes is not None:
-                                    theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
+                                    theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
                                 else:
                                     theta_parameters_ijab.append(0)
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
+                            Sec_Quant_CC_ijab_ops.append(two_elec)
                         else:
                             # NO filtering
                             two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
@@ -123,7 +123,7 @@ class Ansatz():
                             else:
                                 theta_parameters_ijab.append(0)
 
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
+                            Sec_Quant_CC_ijab_ops.append(two_elec)
 
         # DOUBLE excitation: DOWN + DOWN
         for i in beta_occs:
@@ -137,21 +137,21 @@ class Ansatz():
                                 two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
                                            FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
                                 if double_cc_amplitudes is not None:
-                                    theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
+                                    theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
                                 else:
                                     theta_parameters_ijab.append(0)
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
+                            Sec_Quant_CC_ijab_ops.append(two_elec)
                         else:
                             # NO filtering
                             two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
                                        FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
 
                             if double_cc_amplitudes is not None:
-                                theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
+                                theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
                             else:
                                 theta_parameters_ijab.append(0)
 
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
+                            Sec_Quant_CC_ijab_ops.append(two_elec)
 
         # DOUBLE excitation: up + DOWN
         for i in alph_occs:
@@ -165,25 +165,25 @@ class Ansatz():
                                 two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
                                            FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
                                 if double_cc_amplitudes is not None:
-                                    theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
+                                    theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
                                 else:
                                     theta_parameters_ijab.append(0)
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
+                            Sec_Quant_CC_ijab_ops.append(two_elec)
                         else:
                             # NO filtering
                             two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
                                        FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
 
                             if double_cc_amplitudes is not None:
-                                theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
+                                theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
                             else:
                                 theta_parameters_ijab.append(0)
 
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
+                            Sec_Quant_CC_ijab_ops.append(two_elec)
 
-        return Sec_Quant_CC__ia_ops, Sec_Quant_CC__ijab_ops, theta_parameters_ia, theta_parameters_ijab
+        return Sec_Quant_CC_ia_ops, Sec_Quant_CC_ijab_ops, theta_parameters_ia, theta_parameters_ijab
 
-    def Remove_NOON_terms(self, NOON=None, occ_threshold=0.98, unocc_threshold=1e-4,
+    def Remove_NOON_terms(self, NOON=None, occ_threshold=1.99999, unocc_threshold=1e-5,
                           indices_to_remove_list_manual=None, single_cc_amplitudes=None,double_cc_amplitudes=None,
                           singles_hamiltonian=None, doubles_hamiltonian=None, tol_filter_small_terms=None):
 
@@ -738,7 +738,6 @@ class BK_Qubit_Reordering(Ansatz):
                     new_Hamiltonian += new_QubitOp
         return new_Hamiltonian
 
-
     def New_BK_HF_state(self):
         """
         Function to re-arrange  | ↑ ↓  ↑ ↓...> state too | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...>
@@ -842,175 +841,93 @@ class BK_Qubit_Reduction(Ansatz):
 
         self.BK_QubitHamiltonian=BK_QubitHamiltonian
 
-    def Get_ia_and_ijab_terms_BK_ordering(self, single_cc_amplitudes=None, double_cc_amplitudes=None, singles_hamiltonian=None,
-                              doubles_hamiltonian=None, tol_filter_small_terms=None):
+    def Get_Reordered_Hamiltonian_2_qubits_removed_TODO(self):
         """
-        state encoded as: | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...> (M spin orbitals)
+        Under BK transform IF state is a power of 2 then one can re-arrange orbitals as spin up then spin down:
+        | ↑ ↓  ↑ ↓...> to | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...> with (M spin orbitals) then look at BK matrix:
 
-        not | ↑ ↓  ↑ ↓ ↑ ↓...>
+        matrix([[1., 0., 0., 0., 0., 0., 0., 0.],
+                [1., 1., 0., 0., 0., 0., 0., 0.],
+                [0., 0., 1., 0., 0., 0., 0., 0.],
+                [1., 1., 1., 1., 0., 0., 0., 0.],
+                [0., 0., 0., 0., 1., 0., 0., 0.],
+                [0., 0., 0., 0., 1., 1., 0., 0.],
+                [0., 0., 0., 0., 0., 0., 1., 0.],
+                [1., 1., 1., 1., 1., 1., 1., 1.]])
+
+        can see for M/2 (number of spin up electrons) and M (number of spin up and spin down electrons)
+        the matrix is has leading 1 values.
+
+        As the electron number is conserved by the Hamiltonian, these qubits are only actedo n  by  the  identity
+        or  PauliZ operators.
+
+        we can re-place these operators by their corresponding eigenvalues(+1  for  the  identity,  +1  for Z_{M−1} if
+        the  total  number of electrons is EVEN, and −1 if total number of electrons is ODD,
+
+        +1 for Z{M/2−1} if the number of SPIN-UP electrons is EVEN and −1 if  ODD).
+        The  Hamiltonian  then  only  acts on (M−2) qubits, so two qubits can be removed from the  simulation.
+
         """
+        pass
 
+    def Get_Reordered_BF_HF_state_2_qubits_removed_TODO(self):
+        """
+        Under BK transform IF state is a power of 2 then one can re-arrange orbitals as spin up then spin down:
+        | ↑ ↓  ↑ ↓...> to | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...> with (M spin orbitals) then look at BK matrix:
 
-        from openfermion.ops import FermionOperator
+        matrix([[1., 0., 0., 0., 0., 0., 0., 0.],
+                [1., 1., 0., 0., 0., 0., 0., 0.],
+                [0., 0., 1., 0., 0., 0., 0., 0.],
+                [1., 1., 1., 1., 0., 0., 0., 0.],
+                [0., 0., 0., 0., 1., 0., 0., 0.],
+                [0., 0., 0., 0., 1., 1., 0., 0.],
+                [0., 0., 0., 0., 0., 0., 1., 0.],
+                [1., 1., 1., 1., 1., 1., 1., 1.]])
 
-        alph_occs = np.arange(0, self.n_electrons / 2, dtype=int)  # spin up occupied
-        beta_occs = np.arange(self.n_orbitals / 2, self.n_orbitals / 2 + self.n_electrons / 2, dtype=int)  # spin down occupied
-        alph_noccs = np.arange(self.n_electrons / 2, self.n_orbitals / 2, dtype=int)  # spin up un-occupied
-        beta_noccs = np.arange(self.n_orbitals / 2 + self.n_electrons / 2, self.n_orbitals, dtype=int)  # spin down UN-occupied
+        can see for M/2 (number of spin up electrons) and M (number of spin up and spin down electrons)
+        the matrix is has leading 1 values.
 
-        Sec_Quant_CC__ia_ops = []  # second quantised single e- CC operators
-        theta_parameters_ia = []
-        Sec_Quant_CC__ijab_ops = []  # second quantised two e- CC operators
-        theta_parameters_ijab = []
+        As the electron number is conserved by the Hamiltonian, these qubits are only actedo n  by  the  identity
+        or  PauliZ operators.
 
-        # SINGLE electron excitation: spin UP transition
-        for i in alph_occs:
-            i = int(i)
-            for a in alph_noccs:
-                a=int(a)
-                if tol_filter_small_terms:
-                    if abs(singles_hamiltonian[i][a]) > tol_filter_small_terms or abs(
-                            singles_hamiltonian[a][i]) > tol_filter_small_terms:
-                        one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-                        if single_cc_amplitudes is not None:
-                            theta_parameters_ia.append(single_cc_amplitudes[a][i])
-                        else:
-                            theta_parameters_ia.append(0)
+        we can re-place these operators by their corresponding eigenvalues(+1  for  the  identity,  +1  for Z_{M−1} if
+        the  total  number of electrons is EVEN, and −1 if total number of electrons is ODD,
 
-                        Sec_Quant_CC__ia_ops.append(one_elec)
-                else:
-                    # NO filtering
-                    one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-                    if single_cc_amplitudes is not None:
-                        theta_parameters_ia.append(single_cc_amplitudes[a][i])
-                    else:
-                        theta_parameters_ia.append(0)
+        +1 for Z{M/2−1} if the number of SPIN-UP electrons is EVEN and −1 if  ODD).
+        The  Hamiltonian  then  only  acts on (M−2) qubits, so two qubits can be removed from the  simulation.
 
-                    Sec_Quant_CC__ia_ops.append(one_elec)
+        """
+        pass
 
-        # SINGLE electron excitation: spin DOWN transition
-        for i in beta_occs:
-            i = int(i)
-            for a in beta_noccs:
-                a = int(a)
-                if tol_filter_small_terms:
-                    # uses Hamiltonian to ignore small terms!
-                    if abs(singles_hamiltonian[i][a]) > tol_filter_small_terms or abs(
-                            singles_hamiltonian[a][i]) > tol_filter_small_terms:
-                        one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-                        if single_cc_amplitudes is not None:
-                            theta_parameters_ia.append(single_cc_amplitudes[a][i])
-                        else:
-                            theta_parameters_ia.append(0)
+    def Get_Reordered_ia_and_ijab_terms_2_qubits_removed_TODO(self):
+        """
+        Under BK transform IF state is a power of 2 then one can re-arrange orbitals as spin up then spin down:
+        | ↑ ↓  ↑ ↓...> to | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...> with (M spin orbitals) then look at BK matrix:
 
-                        Sec_Quant_CC__ia_ops.append(one_elec)
-                else:
-                    # NO filtering
-                    one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-                    if single_cc_amplitudes is not None:
-                        theta_parameters_ia.append(single_cc_amplitudes[a][i])
-                    else:
-                        theta_parameters_ia.append(0)
+        matrix([[1., 0., 0., 0., 0., 0., 0., 0.],
+                [1., 1., 0., 0., 0., 0., 0., 0.],
+                [0., 0., 1., 0., 0., 0., 0., 0.],
+                [1., 1., 1., 1., 0., 0., 0., 0.],
+                [0., 0., 0., 0., 1., 0., 0., 0.],
+                [0., 0., 0., 0., 1., 1., 0., 0.],
+                [0., 0., 0., 0., 0., 0., 1., 0.],
+                [1., 1., 1., 1., 1., 1., 1., 1.]])
 
-                    Sec_Quant_CC__ia_ops.append(one_elec)
+        can see for M/2 (number of spin up electrons) and M (number of spin up and spin down electrons)
+        the matrix is has leading 1 values.
 
-        # DOUBLE excitation: UP + UP
-        for i in alph_occs:
-            i = int(i)
-            for j in [k for k in alph_occs if k > i]:
-                j = int(j)
-                for a in alph_noccs:
-                    a = int(a)
-                    for b in [k for k in alph_noccs if k > a]:
-                        b = int(b)
-                        if tol_filter_small_terms:
-                            # uses Hamiltonian to ignore small terms!
-                            if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(
-                                    doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
-                                two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                           FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-                                if double_cc_amplitudes is not None:
-                                    theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-                                else:
-                                    theta_parameters_ijab.append(0)
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
-                        else:
-                            # NO filtering
-                            two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                       FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
+        As the electron number is conserved by the Hamiltonian, these qubits are only actedo n  by  the  identity
+        or  PauliZ operators.
 
-                            if double_cc_amplitudes is not None:
-                                theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-                            else:
-                                theta_parameters_ijab.append(0)
+        we can re-place these operators by their corresponding eigenvalues(+1  for  the  identity,  +1  for Z_{M−1} if
+        the  total  number of electrons is EVEN, and −1 if total number of electrons is ODD,
 
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
+        +1 for Z{M/2−1} if the number of SPIN-UP electrons is EVEN and −1 if  ODD).
+        The  Hamiltonian  then  only  acts on (M−2) qubits, so two qubits can be removed from the  simulation.
 
-        # DOUBLE excitation: DOWN + DOWN
-        for i in beta_occs:
-            i = int(i)
-            for j in [k for k in beta_occs if k > i]:
-                j = int(j)
-                for a in beta_noccs:
-                    a = int(a)
-                    for b in [k for k in beta_noccs if k > a]:
-                        b = int(b)
-                        if tol_filter_small_terms:
-                            # uses Hamiltonian to ignore small terms!
-                            if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(
-                                    doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
-                                two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                           FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-                                if double_cc_amplitudes is not None:
-                                    theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-                                else:
-                                    theta_parameters_ijab.append(0)
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
-                        else:
-                            # NO filtering
-                            two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                       FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
+        """
+        pass
 
-                            if double_cc_amplitudes is not None:
-                                theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-                            else:
-                                theta_parameters_ijab.append(0)
-
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
-
-        # DOUBLE excitation: up + DOWN
-        for i in alph_occs:
-            i = int(i)
-            for j in [k for k in beta_occs if k > i]:
-                j = int(j)
-                for a in alph_noccs:
-                    a = int(a)
-                    for b in [k for k in beta_noccs if k > a]:
-                        b = int(b)
-                        if tol_filter_small_terms:
-                            # uses Hamiltonian to ignore small terms!
-                            if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(
-                                    doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
-                                two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                           FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-                                if double_cc_amplitudes is not None:
-                                    theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-                                else:
-                                    theta_parameters_ijab.append(0)
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
-                        else:
-                            # NO filtering
-                            two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                       FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-
-                            if double_cc_amplitudes is not None:
-                                theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-                            else:
-                                theta_parameters_ijab.append(0)
-
-                            Sec_Quant_CC__ijab_ops.append(two_elec)
-
-        return Sec_Quant_CC__ia_ops, Sec_Quant_CC__ijab_ops, theta_parameters_ia, theta_parameters_ijab
 
     def Remove_indices_from_Hamiltonian_manual(self, list_of_qubit_indices_to_remove, list_of_correction_vals):
 

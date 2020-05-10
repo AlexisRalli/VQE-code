@@ -6,7 +6,8 @@ from openfermionpsi4 import run_psi4
 class Hamiltonian():
     """
 
-    The UCC_Terms object calculates and retains all the unitary coupled cluster terms.
+    Object that can perform PSI4 quantum chemistry calculation and converts results for use
+    on quantum computer.
 
     Args:
         MoleculeName (str): Name of Molecule
@@ -15,7 +16,7 @@ class Hamiltonian():
         run_cisd (int): Boolean to run CISD calculation.
         run_ccsd (int): Boolean to run CCSD calculation.
         run_fci (int): Boolean to FCI calculation.
-        multiplicity_(int): Multiplicity of molecule (1=singlet, 2=doublet ... etc)
+        multiplicity(int): Multiplicity of molecule (1=singlet, 2=doublet ... etc)
         geometry (list, optional): Geometry of Molecule (if None will find it online)
         delete_input (bool, optional): Optional boolean to delete psi4 input file.
         delete_output: Optional boolean to delete psi4 output file
@@ -83,6 +84,18 @@ class Hamiltonian():
 
     def Get_Geometry(self):
 
+        """
+        Function to get molecule's geometry from the PubChem database.
+
+        Args:
+            MoleculeName: a string giving the molecule's name as required by the PubChem
+                database.
+
+        Returns:
+            geometry: a list of tuples giving the coordinates of each atom with
+            distances in Angstrom.
+        """
+
         from openfermion.utils import geometry_from_pubchem
         self.geometry = geometry_from_pubchem(self.MoleculeName)
 
@@ -112,7 +125,6 @@ class Hamiltonian():
             MolecularHamiltonian (openfermion.ops._interaction_operator.InteractionOperator):
             MolecularHamiltonianMatrix (scipy.sparse.csc.csc_matrix): Sparse matrix of Molecular Hamiltonian
 
-
         """
         if self.molecule is None:
             self.Run_Psi4()
@@ -135,6 +147,12 @@ class Hamiltonian():
         note that:
             - single amplitudes: h_pq is a (n_qubits x n_qubits) numpy array
             - doubles amplitudes: h_pqrs is a (n_qubits x n_qubits x n_qubits x n_qubits) numpy array
+
+        indexing for single_cc_amplitudes = a, i --> (un_occupied=a and occupied=i)
+        indexing for molecule = a,i, b,j --> (occupied=i,j and un_occupied=a,b)
+
+        e.g. for H2 expect double_cc_amplitudes[2,0,3,1] (e- excited from 0-->2 and 1-->3)
+
         """
 
         from openfermionpsi4._psi4_conversion_functions import parse_psi4_ccsd_amplitudes
@@ -260,7 +278,7 @@ class Hamiltonian():
 
         """
         Returns the second quantised Qubit Molecular Hamiltonian of the Molecular Hamiltonian using the
-        JORDAN WIGNER transformation. First gets the fermionic Hamiltonian and than performs JW.
+        Jordan Wigner / Bravyi kitaev transformation. First gets the fermionic Hamiltonian and than performs transform.
 
         e.g. H = h0 I + h1 Z0 + h2 Z1 +h3 Z2 + h4 Z3 + h5 Z0Z1 ... etc etc
         note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
