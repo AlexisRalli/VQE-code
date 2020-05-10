@@ -254,9 +254,7 @@ class NEW_Optimizer:
 
     def plot_convergence(self):  # , file):
 
-        if self.store_values is False:
-            raise NotImplementedError('Cannot plot convergence as values at each opt. step NOT stored')
-        else:
+        if self.display_steps is True:
             # dir_path = os.path.dirname(os.path.realpath(__file__))
             plt.figure()
             x = list(range(len(self.obj_fun_output_values)))
@@ -264,6 +262,9 @@ class NEW_Optimizer:
             plt.xlabel('iterations')
             plt.ylabel('objective function value')
             # plt.savefig(dir_path + '/' + file)
+        else:
+            raise NotImplementedError('Cannot plot convergence as values at each opt. step NOT stored')
+
 
 
 ## CUSTOM ADAM OPTIMIZER
@@ -314,14 +315,16 @@ def _minimize_Adam(func, x0, args=(), jac=None, bounds=None, constraints=None,
     num_FUNCT_eval, FUNCT = wrap_function(func, args)
 
     if jac is None:
+        num_JAC_eval=0
         def funct_and_grad(x):
             f = FUNCT(x, *args)
             g = _approx_fprime_helper(x, FUNCT, delta)
             return f, g
     else:
+        num_JAC_eval, FPRIME = wrap_function(jac, args)
         def funct_and_grad(x):
             f = FUNCT(x, *args)
-            g = jac(x, *args)
+            g = FPRIME(x, *args)
             return f,g
 
     # initialization
@@ -390,9 +393,9 @@ def _minimize_Adam(func, x0, args=(), jac=None, bounds=None, constraints=None,
             print("         Current function value: %f" % f_t[0])
             print("         Iterations: %d" % n_iterations)
             print("         Function evaluations: %d" % num_FUNCT_eval[0])
-            # print("         Function evaluations: %d" % num_jac_eval[0])
+            print("         Function evaluations:{}".format(num_JAC_eval))
 
-    result = OptimizeResult(fun=f_t, nit=n_iterations, nfev=num_FUNCT_eval, #njev=num_jac_eval,
+    result = OptimizeResult(fun=f_t, nit=n_iterations, nfev=num_FUNCT_eval, njev=num_JAC_eval,
                             status=warnflag, success=(warnflag == 0),
                             message=msg, x=X_t)
     return result
@@ -429,107 +432,107 @@ if __name__ == '__main__':
 
 
 
-def Adam_Opt(X_0, function, gradient_function, learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-8, max_iter=500,
-             disp=False, tolerance=1e-5, store_steps=False):
-    """
-
-    To be passed into Scipy Minimize method
-
-    https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize
-
-
-    https://github.com/sagarvegad/Adam-optimizer/blob/master/Adam.py
-    https://arxiv.org/abs/1412.6980
-    Args:
-        function (callable): Stochastic objective function
-        gradient_function (callable): function to obtain gradient of Stochastic objective
-        X0 (np.array):  Initial guess
-        learning_rate (float): Step size
-        beta_1 (float): The exponential decay rate for the 1st moment estimates.
-        beta_2 (float):  The exponential decay rate for the 2nd moment estimates.
-        epsilon (float):  Constant (small) for numerical stability
-
-    Attributes:
-        t (int): Timestep
-        m_t (float): first moment vector
-        v_t (float): second moment vector
-
-    """
-    input_vectors=[]
-    output_results=[]
-
-    # initialization
-    t=0  # timestep
-    m_t = 0 #1st moment vector
-    v_t = 0 #2nd moment vector
-    X_t = X_0
-
-    while(t<max_iter):
-
-        if store_steps is True:
-            input_vectors.append(X_t)
-            output_results.append(function(X_t))
-
-        t+=1
-        g_t = gradient_function(X_t)
-        m_t = beta_1*m_t + (1-beta_1)*g_t	#updates the moving averages of the gradient (biased first moment estimate)
-        v_t = beta_2*v_t + (1-beta_2)*(g_t*g_t)	#updates the moving averages of the squared gradient (biased 2nd
-                                                # raw moment estimate)
-
-        m_cap = m_t / (1 - (beta_1 ** t))  # Compute bias-corrected first moment estimate
-        v_cap = v_t / (1 - (beta_2 ** t))  # Compute bias-corrected second raw moment estimate
-        X_t_prev = X_t
-        X_t = X_t_prev - (learning_rate * m_cap) / (np.sqrt(v_cap) + epsilon)  # updates the parameters
-
-        if disp is True:
-            output = function(X_t)
-            print('step: {} input:{} obj_funct: {}'.format(t, X_t, output))
-
-        if np.isclose(X_t, X_t_prev, atol=tolerance).all(): # convergence check
-            break
-    if store_steps is True:
-        return X_t, input_vectors, output_results
-    else:
-        return X_t
-
-if __name__ == '__main__':
-    def Function_to_minimise(input_vect, const=2):
-        # z = x^2 + y^2 + constant
-        x = input_vect[0]
-        y = input_vect[1]
-        z = x ** 2 + y ** 2 + const
-        return z
-
-    def calc_grad(input_vect):
-        # z = 2x^2 + y^2 + constant
-        x = input_vect[0]
-        y = input_vect[1]
-
-        dz_dx = 2 * x
-        dz_dy = 2 * y
-        return np.array([dz_dx, dz_dy])
-
-    X0 = np.array([1,2])
-    GG = Adam_Opt(X0, calc_grad,
-                  learning_rate=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
-
-
-    print(Function_to_minimise(GG))
-
-    import matplotlib.pyplot as plt
-    from matplotlib import cm
-    from mpl_toolkits.mplot3d import Axes3D
-    import numpy as np
-
-    x = np.arange(-10, 10, 0.25)
-    y = np.arange(-10, 10, 0.25)
-    const = 2
-
-    x, y = np.meshgrid(x, y)
-    z = x ** 2 + y ** 2 + const
-
-    fig = plt.figure()
-    ax = Axes3D(fig)
-    ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap=cm.viridis)
-    plt.show()
-    print('Minimum should be:', 2.0)
+# def Adam_Opt(X_0, function, gradient_function, learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-8, max_iter=500,
+#              disp=False, tolerance=1e-5, store_steps=False):
+#     """
+#
+#     To be passed into Scipy Minimize method
+#
+#     https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy.optimize.minimize
+#
+#
+#     https://github.com/sagarvegad/Adam-optimizer/blob/master/Adam.py
+#     https://arxiv.org/abs/1412.6980
+#     Args:
+#         function (callable): Stochastic objective function
+#         gradient_function (callable): function to obtain gradient of Stochastic objective
+#         X0 (np.array):  Initial guess
+#         learning_rate (float): Step size
+#         beta_1 (float): The exponential decay rate for the 1st moment estimates.
+#         beta_2 (float):  The exponential decay rate for the 2nd moment estimates.
+#         epsilon (float):  Constant (small) for numerical stability
+#
+#     Attributes:
+#         t (int): Timestep
+#         m_t (float): first moment vector
+#         v_t (float): second moment vector
+#
+#     """
+#     input_vectors=[]
+#     output_results=[]
+#
+#     # initialization
+#     t=0  # timestep
+#     m_t = 0 #1st moment vector
+#     v_t = 0 #2nd moment vector
+#     X_t = X_0
+#
+#     while(t<max_iter):
+#
+#         if store_steps is True:
+#             input_vectors.append(X_t)
+#             output_results.append(function(X_t))
+#
+#         t+=1
+#         g_t = gradient_function(X_t)
+#         m_t = beta_1*m_t + (1-beta_1)*g_t	#updates the moving averages of the gradient (biased first moment estimate)
+#         v_t = beta_2*v_t + (1-beta_2)*(g_t*g_t)	#updates the moving averages of the squared gradient (biased 2nd
+#                                                 # raw moment estimate)
+#
+#         m_cap = m_t / (1 - (beta_1 ** t))  # Compute bias-corrected first moment estimate
+#         v_cap = v_t / (1 - (beta_2 ** t))  # Compute bias-corrected second raw moment estimate
+#         X_t_prev = X_t
+#         X_t = X_t_prev - (learning_rate * m_cap) / (np.sqrt(v_cap) + epsilon)  # updates the parameters
+#
+#         if disp is True:
+#             output = function(X_t)
+#             print('step: {} input:{} obj_funct: {}'.format(t, X_t, output))
+#
+#         if np.isclose(X_t, X_t_prev, atol=tolerance).all(): # convergence check
+#             break
+#     if store_steps is True:
+#         return X_t, input_vectors, output_results
+#     else:
+#         return X_t
+#
+# if __name__ == '__main__':
+#     def Function_to_minimise(input_vect, const=2):
+#         # z = x^2 + y^2 + constant
+#         x = input_vect[0]
+#         y = input_vect[1]
+#         z = x ** 2 + y ** 2 + const
+#         return z
+#
+#     def calc_grad(input_vect):
+#         # z = 2x^2 + y^2 + constant
+#         x = input_vect[0]
+#         y = input_vect[1]
+#
+#         dz_dx = 2 * x
+#         dz_dy = 2 * y
+#         return np.array([dz_dx, dz_dy])
+#
+#     X0 = np.array([1,2])
+#     GG = Adam_Opt(X0, calc_grad,
+#                   learning_rate=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-8)
+#
+#
+#     print(Function_to_minimise(GG))
+#
+#     import matplotlib.pyplot as plt
+#     from matplotlib import cm
+#     from mpl_toolkits.mplot3d import Axes3D
+#     import numpy as np
+#
+#     x = np.arange(-10, 10, 0.25)
+#     y = np.arange(-10, 10, 0.25)
+#     const = 2
+#
+#     x, y = np.meshgrid(x, y)
+#     z = x ** 2 + y ** 2 + const
+#
+#     fig = plt.figure()
+#     ax = Axes3D(fig)
+#     ax.plot_surface(x, y, z, rstride=1, cstride=1, cmap=cm.viridis)
+#     plt.show()
+#     print('Minimum should be:', 2.0)
