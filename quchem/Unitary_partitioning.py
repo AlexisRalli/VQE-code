@@ -277,3 +277,112 @@ class VQE_Experiment_UP():
 
     def Get_wavefunction_of_state(self, sig_figs=3):
         return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
+
+
+# lin alg approach:
+
+def Generate_Full_Q_Circuit_unitary_part_NO_M_gates(Full_Ansatz_Q_Circuit, normalised_anticommuting_set_X_sk_DICT):
+    """
+     TODO
+
+    Args:
+
+
+    Returns:
+        full_circuit (cirq.circuits.circuit.Circuit): Full cirq VQE circuit
+
+    """
+
+    Reduction_circuit_obj = Build_reduction_circuit(normalised_anticommuting_set_X_sk_DICT)
+    Reduction_circuit_circ = cirq.Circuit(Reduction_circuit_obj)
+
+    full_circuit = cirq.Circuit(
+        [
+            Full_Ansatz_Q_Circuit.all_operations(),
+            *Reduction_circuit_circ.all_operations(),
+        ]
+    )
+    return full_circuit
+class VQE_Experiment_UP_lin_alg():
+    def __init__(self, graph_dict_sets, ansatz_circuit,N_system_qubits, S_key_dict=None):
+        self.graph_dict_sets = graph_dict_sets
+        self.ansatz_circuit = ansatz_circuit
+        self.S_key_dict = S_key_dict
+        self.N_system_qubits = N_system_qubits
+
+        self.pauliDict = {'X': np.array([[0, 1], [1, 0]]),
+                          'Y': np.array([[0, -1j], [1j, 0]]),
+                          'Z': np.array([[1, 0], [0, -1]]),
+                          'I': np.eye(2)}
+
+        self.zero_state = np.array([[1], [0]])
+
+    def Get_output_ket(self, Q_circuit_no_M_gates):
+
+        input_state = [self.zero_state for _ in range(len(Q_circuit_no_M_gates.all_qubits()))]
+        input_ket = reduce(kron, input_state)
+        circuit_matrix = Q_circuit_no_M_gates.unitary()
+
+        output_ket = circuit_matrix.dot(input_ket.todense())
+
+        if not np.isclose(sum([i**2 for i in output_ket]), 1):
+            raise ValueError('output ket is not normalised properly')
+
+        return np.array(output_ket) #.reshape([(2 ** len(self.ansatz_circuit.all_qubits())), 1])
+
+    def Get_pauli_matrix(self, PauliOp):
+
+        list_Q_nos, list_P_strs = list(zip(*[Paulistrs for Paulistrs, const in PauliOp.terms.items()][0]))
+
+        list_of_ops = []
+        for i in range(self.N_system_qubits):
+            if i not in list_Q_nos:
+                list_of_ops.append(self.pauliDict['I'])
+            else:
+                index = list_Q_nos.index(i)
+                list_of_ops.append(self.pauliDict[list_P_strs[index]])
+        matrix = reduce(kron, list_of_ops)
+
+        return matrix
+
+    def Calc_Energy(self):
+
+        E_list = []
+        for set_key in self.graph_dict_sets:
+
+            if len(self.graph_dict_sets[set_key]) > 1:
+
+                normalised_set = Get_beta_j_cofactors(self.graph_dict_sets[set_key])
+
+                if self.S_key_dict is None:
+                    X_sk_dict = Get_X_sk_operators(normalised_set, S=0)
+                else:
+                    X_sk_dict = Get_X_sk_operators(normalised_set, S=self.S_key_dict[set_key])
+
+                Q_circuit = Generate_Full_Q_Circuit_unitary_part_NO_M_gates(self.ansatz_circuit, X_sk_dict)
+
+                state_ket = self.Get_output_ket(Q_circuit)
+                state_bra = state_ket.transpose().conj()
+                H_sub_term_matrix = self.Get_pauli_matrix(X_sk_dict['PauliWord_S'])
+
+                energy = state_bra.dot(H_sub_term_matrix.dot(state_ket))
+                E_list.append(energy[0][0] * X_sk_dict['gamma_l'])
+
+            else:
+                single_PauliOp = self.graph_dict_sets[set_key][0]
+
+                if list(single_PauliOp.terms.keys())[0] == ():
+                    E_list.append(list(single_PauliOp.terms.values())[0])
+                else:
+                    state_ket = self.Get_output_ket(self.ansatz_circuit)
+                    state_bra = state_ket.transpose().conj()
+                    # H_sub_term_matrix = get_sparse_operator(single_PauliOp, n_qubits=self.N_system_qubits)
+                    H_sub_term_matrix = self.Get_pauli_matrix(single_PauliOp)
+                    energy = state_bra.dot(H_sub_term_matrix.dot(state_ket))
+                    E_list.append(energy[0][0] * list(single_PauliOp.terms.values())[0])
+
+        return sum(E_list).real
+
+    def Get_wavefunction_of_state(self, sig_figs=3):
+        return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
+
