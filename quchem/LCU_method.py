@@ -716,7 +716,7 @@ class VQE_Experiment_LCU_UP():
 
 
 ####
-def Full_Q_Circuit_NO_M_gates(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, ansatz_circ):
+def Full_Q_Circuit_NO_M_gates_and_no_Pn(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, ansatz_circ):
 
     """
     class to generate full cirq circuit that prepares a quantum state (ansatz) performs R operation as LCU and finally
@@ -831,13 +831,22 @@ class VQE_Experiment_LCU_UP_lin_alg():
 
             if binary_string[-1*n_ancilla:] == correct_ancilla_state:
                 new_index = int(binary_string[:self.N_system_qubits], 2)
-                projected_ket[new_index, 0] += val
+                # projected_ket[new_index, 0] += val
+                # TODO check this part of the code!
+                if bool(np.sign(projected_ket[new_index, 0])):
+                    projected_ket[new_index, 0] = np.sqrt(val**2 + projected_ket[new_index, 0]**2) * np.sign(val) * np.sign(projected_ket[new_index, 0])
+                else:
+                    projected_ket[new_index, 0] = val
 
-        normalising_factor = sum([amp ** 2 for amp in projected_ket])
+
+        # normalising_factor = 1/sum([np.abs(prob) for prob in projected_ket])
+        # normalised_projected_ket = np.sqrt(normalising_factor*projected_ket)
+        normalising_factor = sum([np.abs(amp) ** 2 for amp in projected_ket])
         normalised_projected_ket = projected_ket/np.sqrt(normalising_factor)
 
-        if not np.isclose(sum([i**2 for i in normalised_projected_ket]), 1):
-            raise ValueError('output ket is not normalised properly')
+        if not np.isclose(sum([np.abs(i)**2 for i in normalised_projected_ket]), 1):
+            raise ValueError('output ket is not normalised properly {}'.format(sum([np.abs(i)**2 for i in
+                                                                                    normalised_projected_ket])))
 
         return np.array(normalised_projected_ket)
 
@@ -887,15 +896,40 @@ class VQE_Experiment_LCU_UP_lin_alg():
                                                                           self.N_indices_dict[set_key])
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
 
-                Q_circuit = Full_Q_Circuit_NO_M_gates(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
+                ### checking ancilla line!
+                N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
+                ancilla_obj = prepare_arb_state(ancilla_amplitudes, N_ancilla_qubits)
+                ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
+
+                simulator = cirq.Simulator()
+                output_ket = simulator.compute_amplitudes(ancilla_circ,
+                                                      bitstrings=[i for i in range(2 ** N_ancilla_qubits)])
+                # print(ancilla_amplitudes)
+                # print(output_ket[:len(ancilla_amplitudes)])
+                # print(np.allclose(ancilla_amplitudes, output_ket[:len(ancilla_amplitudes)]))
+                # print('###########')
+                if not np.allclose(ancilla_amplitudes, output_ket[:len(ancilla_amplitudes)]):
+                    print('MISTAKE ON ANCILLA LINE!!!!!!!!!!')
+
+
+
+                # gives R|ψ〉
+                Q_circuit = Full_Q_Circuit_NO_M_gates_and_no_Pn(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
                                            self.N_system_qubits, self.ansatz_circuit)
 
-                state_ket = self.Get_projected_normalised_ket(Q_circuit)
-                state_bra = state_ket.transpose().conj()
+                # print(Q_circuit.to_text_diagram(transpose=True))
+                # print('')
+                # print('##')
+
+                state_ket = self.Get_projected_normalised_ket(Q_circuit) # gives R|ψ〉
+                state_bra = state_ket.transpose().conj() # gives 〈ψ|R†
 
                 # H_sub_term_matrix = get_sparse_operator(Pn, n_qubits=self.N_system_qubits)
+
+                # E=〈ψ | H | ψ〉= ∑_j  αj〈ψA | R† Pn R | ψA〉 #### where RQR = Ps
                 H_sub_term_matrix = self.Get_pauli_matrix(Pn)
 
+                #〈ψ|R† Pn R| ψ〉
                 energy = state_bra.dot(H_sub_term_matrix.dot(state_ket))
                 E_list.append(energy[0][0] * gamma_l)
 
@@ -907,6 +941,8 @@ class VQE_Experiment_LCU_UP_lin_alg():
                     state_ket = self.Get_standard_ket()
                     state_bra = state_ket.transpose().conj()
                     # H_sub_term_matrix = get_sparse_operator(single_PauliOp, n_qubits=self.N_system_qubits)
+
+                    # E=〈ψ | H | ψ〉= ∑_j  αj〈ψ | Pj | ψ〉
                     H_sub_term_matrix = self.Get_pauli_matrix(single_PauliOp)
                     energy = state_bra.dot(H_sub_term_matrix.dot(state_ket))
                     E_list.append(energy[0][0] * list(single_PauliOp.terms.values())[0])
