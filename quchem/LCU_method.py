@@ -805,50 +805,39 @@ class VQE_Experiment_LCU_UP_lin_alg():
         self.zero_state = np.array([[1], [0]])
 
 
-    def Get_projected_normalised_ket(self, Q_circuit_no_M_gates):
+    def Get_parital_system_density_matrix(self, Q_circuit_no_M_gates):
 
-        input_state = [self.zero_state for _ in range(len(Q_circuit_no_M_gates.all_qubits()))]
-        input_ket = reduce(kron, input_state)
-        circuit_matrix = Q_circuit_no_M_gates.unitary()
 
-        output_ket = circuit_matrix.dot(input_ket.todense())
+        simulator = cirq.Simulator()
+        output_ket = simulator.compute_amplitudes(Q_circuit_no_M_gates,
+                                              bitstrings=[i for i in range(2 ** len(Q_circuit_no_M_gates.all_qubits()))])
 
-        # simulator = cirq.Simulator()
-        # output_ket = simulator.compute_amplitudes(Q_circuit_no_M_gates,
-        #                                       bitstrings=[i for i in range(2 ** )])
-        #
 
+        full_density_matrix = np.outer(output_ket, output_ket)
+
+        ## First project state onto all zero ancilla state using POVM
         n_qubits = len(Q_circuit_no_M_gates.all_qubits())
         n_ancilla = n_qubits - self.N_system_qubits
 
-        ancilla_check = ['0' for _ in range(n_ancilla)]
-        correct_ancilla_state = ''.join(ancilla_check)
+        I_system_operator = np.eye(2**(n_qubits-n_ancilla))
 
-        projected_ket = np.zeros([2 ** self.N_system_qubits, 1], dtype='complex')
+        ancilla_0_state_list = [self.zero_state for _ in range(n_ancilla)]
+        ancilla_0_state = reduce(np.kron, ancilla_0_state_list)
+        ancilla_0_projector = np.outer(ancilla_0_state, ancilla_0_state)
 
-        for qubit_state_number, val in enumerate(output_ket):
-            binary_string = Get_state_as_str(n_qubits, qubit_state_number)
+        POVM_0_ancilla = np.kron(I_system_operator, ancilla_0_projector)
+        Kraus_Op_0 = POVM_0_ancilla.copy()
 
-            if binary_string[-1*n_ancilla:] == correct_ancilla_state:
-                new_index = int(binary_string[:self.N_system_qubits], 2)
-                # projected_ket[new_index, 0] += val
-                # TODO check this part of the code!
-                if bool(np.sign(projected_ket[new_index, 0])):
-                    projected_ket[new_index, 0] = np.sqrt(val**2 + projected_ket[new_index, 0]**2) * np.sign(val) * np.sign(projected_ket[new_index, 0])
-                else:
-                    projected_ket[new_index, 0] = val
+        term = Kraus_Op_0.dot(full_density_matrix.dot(Kraus_Op_0.transpose().conj()))
+        projected_density_matrix = term/np.trace(term) # projected into correct ancilla space!
 
+        ## Next get partial density matrix over system qubits # aka partial trace!
+        # https://scicomp.stackexchange.com/questions/27496/calculating-partial-trace-of-array-in-numpy
+        reshaped_dm = projected_density_matrix.reshape([2 ** self.N_system_qubits, 2 ** n_ancilla,
+                                                        2 ** self.N_system_qubits, 2 ** n_ancilla])
+        reduced_dm = np.einsum('jiki->jk', reshaped_dm)
 
-        # normalising_factor = 1/sum([np.abs(prob) for prob in projected_ket])
-        # normalised_projected_ket = np.sqrt(normalising_factor*projected_ket)
-        normalising_factor = sum([np.abs(amp) ** 2 for amp in projected_ket])
-        normalised_projected_ket = projected_ket/np.sqrt(normalising_factor)
-
-        if not np.isclose(sum([np.abs(i)**2 for i in normalised_projected_ket]), 1):
-            raise ValueError('output ket is not normalised properly {}'.format(sum([np.abs(i)**2 for i in
-                                                                                    normalised_projected_ket])))
-
-        return np.array(normalised_projected_ket)
+        return reduced_dm
 
     def Get_standard_ket(self):
         # simulator = cirq.Simulator()
@@ -921,17 +910,14 @@ class VQE_Experiment_LCU_UP_lin_alg():
                 # print('')
                 # print('##')
 
-                state_ket = self.Get_projected_normalised_ket(Q_circuit) # gives R|ψ〉
-                state_bra = state_ket.transpose().conj() # gives 〈ψ|R†
+                partial_density_matrix = self.Get_parital_system_density_matrix(Q_circuit)
 
-                # H_sub_term_matrix = get_sparse_operator(Pn, n_qubits=self.N_system_qubits)
-
-                # E=〈ψ | H | ψ〉= ∑_j  αj〈ψA | R† Pn R | ψA〉 #### where RQR = Ps
                 H_sub_term_matrix = self.Get_pauli_matrix(Pn)
+                # # E=〈ψ | H | ψ〉= ∑_j  αj〈ψA | R† Pn R | ψA〉 #### where RQR = Pn
 
-                #〈ψ|R† Pn R| ψ〉
-                energy = state_bra.dot(H_sub_term_matrix.dot(state_ket))
-                E_list.append(energy[0][0] * gamma_l)
+                # E= Tr(Pn rho)
+                energy = np.trace(H_sub_term_matrix.dot(partial_density_matrix))
+                E_list.append(energy * gamma_l)
 
             else:
                 single_PauliOp = self.anti_commuting_sets[set_key][0]
