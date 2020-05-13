@@ -390,7 +390,7 @@ def _minimize_Adam(func, x0, args=(), jac=None, bounds=None, constraints=None,
         if disp:
             msg = _status_message['success']
             print(msg)
-            print("         Current function value: %f" % f_t[0])
+            print("         Current function value: {}".format(f_t))
             print("         Iterations: %d" % n_iterations)
             print("         Function evaluations: %d" % num_FUNCT_eval[0])
             print("         Function evaluations:{}".format(num_JAC_eval))

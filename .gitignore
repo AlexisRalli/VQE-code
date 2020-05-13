@@ -15,6 +15,7 @@ quchem/*.hdf5
 quchem/*.inp
 quchem/*.out
 
+Projects/tmp*
 Projects/*.hdf5
 Projects/*.inp
 Projects/*.out
