@@ -829,7 +829,7 @@ class VQE_Experiment_LCU_UP_lin_alg():
         Kraus_Op_0 = POVM_0_ancilla.copy()
 
         term = Kraus_Op_0.dot(full_density_matrix.dot(Kraus_Op_0.transpose().conj()))
-        projected_density_matrix = term/np.trace(term) # projected into correct ancilla space!
+        projected_density_matrix = term/np.trace(term) # projected into correct space using POVM ancilla measurement!
 
         ## Next get partial density matrix over system qubits # aka partial trace!
         # https://scicomp.stackexchange.com/questions/27496/calculating-partial-trace-of-array-in-numpy
@@ -850,8 +850,8 @@ class VQE_Experiment_LCU_UP_lin_alg():
 
         output_ket = circuit_matrix.dot(input_ket.todense())
 
-        if not np.isclose(sum([i**2 for i in output_ket]), 1):
-            raise ValueError('output ket is not normalised properly')
+        if not np.isclose(sum([np.abs(i)**2 for i in output_ket]), 1):
+            raise ValueError('output ket is not normalised properly {}'.format(sum([np.abs(i)**2 for i in output_ket])))
 
         return np.array(output_ket) #.reshape([(2 ** len(self.ansatz_circuit.all_qubits())), 1])
 

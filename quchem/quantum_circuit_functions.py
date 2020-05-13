@@ -19,7 +19,7 @@ class State_Prep(cirq.Gate):
     """
     def __init__(self, initial_state):
 
-        self.state = initial_state
+        self.state = np.asarray(initial_state, dtype=int)
 
 
     def _decompose_(self, qubits):
@@ -34,31 +34,30 @@ class State_Prep(cirq.Gate):
             cirq.circuits.circuit.Circuit: cirq circuit generator!
         """
 
-        for i in range(len(self.state)):
-            state = self.state[i]
-            qubitNo = i
+        #for i in range(len(self.state)):
+        for qubit_index, qubit_state in enumerate(self.state):
+            if qubit_state == 1:
+                yield cirq.X(qubits[qubit_index])
 
-            if state == 1:
-                yield cirq.X(qubits[qubitNo])
-
-            if state != 0 and state !=1:
+            elif qubit_state == 0:
+                yield cirq.I(qubits[qubit_index])
+            else:
                 raise ValueError('initial state not in correct format... qubit {} has value {} ' \
-                                 '[instead of 0 or 1]'.format(i, state))
+                                 '[instead of 0 or 1]'.format(qubit_index, qubit_state))
 
     def num_qubits(self):
         return len(self.state)
 
     def _circuit_diagram_info_(self, args):
         state_prep_list = []
-        for i in range(len(self.state)):
-            state = self.state[i]
-            if state == 1:
+        for qubit_index, qubit_state in enumerate(self.state):
+            if qubit_state == 1:
                 state_prep_list.append('state_prep: |1> ')
-            elif state == 0:
+            elif qubit_state == 0:
                 state_prep_list.append('state_prep: |0> ')
             else:
-                raise ValueError('state needs to be list of 0 or 1 s ' \
-                                 'qubit {} has value {}'.format(i, state))
+                raise ValueError('initial state not in correct format... qubit {} has value {} ' \
+                                 '[instead of 0 or 1]'.format(qubit_index, qubit_state))
         return state_prep_list
 
 
