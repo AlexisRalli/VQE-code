@@ -228,10 +228,10 @@ class Hamiltonian():
         #  diagonalizing gives  1-RDM in terms of natural molecular orbitals (NMOs)
         NOON, NMO_basis = eig(one_RDM_combined) # NOON = natural orbital occupation numbers = eigenvalues
 
-        # # ordering
-        # idx = NOON.argsort()[::-1]
-        # NOON_ordered = NOON[idx]
-        # NMO_basis_ordered = NMO_basis[:, idx]
+        # ordering
+        idx = NOON.argsort()[::-1]
+        NOON_ordered = NOON[idx]
+        NMO_basis_ordered = NMO_basis[:, idx]
 
 
         # Diag_matix = C^{-1} A C
@@ -242,7 +242,7 @@ class Hamiltonian():
         # equivalent to performing a change of basis, from the canonical orbital basis to the natural molecular orbital basis
 
 
-        return NOON, NMO_basis #NOON_ordered, NMO_basis_ordered#, basis_transformation_matrix
+        return NOON_ordered, NMO_basis_ordered #NOON, NMO_basis #NOON_ordered, NMO_basis_ordered#, basis_transformation_matrix
 
     def Get_Fermionic_Hamiltonian(self):
 
@@ -540,6 +540,11 @@ class Hamiltonian_PySCF():
         #  diagonalizing gives  1-RDM in terms of natural molecular orbitals (NMOs)
         NOON, NMO_basis = eig(one_RDM) # NOON = natural orbital occupation numbers = eigenvalues
 
+        # ordering
+        idx = NOON.argsort()[::-1]
+        NOON_ordered = NOON[idx]
+        NMO_basis_ordered = NMO_basis[:, idx]
+
         # Diag_matix = C^{-1} A C
         # Diag_matix = np.dot(np.linalg.inv(NMO_basis_ordered) , np.dot(np.diag(one_RDM_combined), NMO_basis_ordered))
 
@@ -548,7 +553,7 @@ class Hamiltonian_PySCF():
         # equivalent to performing a change of basis, from the canonical orbital basis to the natural molecular orbital basis
 
 
-        return NOON, NMO_basis #, basis_transformation_matrix
+        return NOON_ordered, NMO_basis_ordered#NOON, NMO_basis #, basis_transformation_matrix
 
     def Get_Fermionic_Hamiltonian(self):
 

@@ -994,26 +994,48 @@ class BK_Qubit_Reduction(Ansatz):
         """
         Function get new BK state
         """
-        # BK_state = self.Get_BK_HF_state_in_OCC_basis() # in form | ↑ ↓  ↑ ↓ ↑ ↓...>
-        # reduced_BK_state=np.delete(BK_state, list_of_qubit_indices_to_remove)
-        # return reduced_BK_state
+        BK_state = self.Get_BK_HF_state_in_OCC_basis() # in form | ↑ ↓  ↑ ↓ ↑ ↓...>
+        reduced_BK_state=np.delete(BK_state, list_of_qubit_indices_to_remove)
 
-        # note occupation: |f_{0} f_{1}...  f_{n-1)>
-        JW_state = self.Get_JW_HF_state_in_OCC_basis()
+        # # note occupation: |f_{0} f_{1}...  f_{n-1)>
+        # JW_state = self.Get_JW_HF_state_in_OCC_basis()
+        #
+        # # remove qubits with indices defined
+        # reduced_JW_state = np.delete(JW_state, list_of_qubit_indices_to_remove)
+        #
+        # #Get BK transform
+        # BK_mat_transform = self._Beta_BK_matrix_transform(n_orbitals=len(reduced_JW_state))
+        #
+        #
+        # Hartree_Fock_JW_occ_basis_state_reduced = np.array(reduced_JW_state).reshape([len(reduced_JW_state),1])
+        # HF_state_BK_basis = BK_mat_transform.dot(Hartree_Fock_JW_occ_basis_state_reduced) % 2
+        # # modulo two very important!
+        #
+        # return HF_state_BK_basis.reshape([1, HF_state_BK_basis.shape[0]])[0] # note occupation: |b_{0} b_{1} ... b_{n-1)>
 
-        # remove qubits with indices defined
-        reduced_JW_state = np.delete(JW_state, list_of_qubit_indices_to_remove)
+        return reduced_BK_state
 
-        #Get BK transform
-        BK_mat_transform = self._Beta_BK_matrix_transform(n_orbitals=len(reduced_JW_state))
+    def Find_Qubits_only_acted_on_by_I_or_Z(self, qubit_operator_list):
 
+        # qubit_operator_list is intended to be either list of ia_CC_terms or ijab_CC_terms
+        # finds terms that don't change initial state!
 
-        Hartree_Fock_JW_occ_basis_state_reduced = np.array(reduced_JW_state).reshape([len(reduced_JW_state),1])
-        HF_state_BK_basis = BK_mat_transform.dot(Hartree_Fock_JW_occ_basis_state_reduced) % 2
-        # modulo two very important!
+        # Generate list of qubits
+        qubits_to_remove = np.arange(0, self.n_orbitals, 1)
 
-        return HF_state_BK_basis.reshape([1, HF_state_BK_basis.shape[0]])[0] # note occupation: |b_{0} b_{1} ... b_{n-1)>
+        for term in qubit_operator_list:
+            for op in term:
+                for PauliWord, const in op.terms.items():
+                    qubitNos, PauliStrs = list(zip(*PauliWord))
 
+                    # find where non I or Z terms are
+                    indices_to_remove = np.where(np.isin(PauliStrs, ['X', 'Y']) == True)[0]
+                    qubitNo_to_remove = np.take(qubitNos, indices_to_remove)
+
+                    i_remove = np.where(np.isin(qubits_to_remove, qubitNo_to_remove) == True)[0]
+                    qubits_to_remove = np.delete(qubits_to_remove, i_remove)
+
+        return qubits_to_remove
 
     def Remove_indices_from_CC_qubit_operators(self, CC_qubit_operator_list,
                                                              list_of_qubit_indices_to_remove):
@@ -1033,10 +1055,6 @@ class BK_Qubit_Reduction(Ansatz):
                         PauliStr_list = np.array(PauliStr_list)
 
                         indices_to_remove = np.where(np.isin(QubitNo_list, list_of_qubit_indices_to_remove) == True)[0]
-
-                        #             const_corr = [list_of_correction_vals[index] for index, i_remove in enumerate(indices_to_remove) if i_remove in QubitNo_list]
-                        #             if const_corr:
-                        #                 const = np.prod(const_corr) * const
 
                         QubitNo_list = np.delete(QubitNo_list, indices_to_remove)
                         PauliStr_list = np.delete(PauliStr_list, indices_to_remove)
