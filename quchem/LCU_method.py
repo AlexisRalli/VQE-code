@@ -716,12 +716,14 @@ class VQE_Experiment_LCU_UP():
 
 
 ####
-def Full_Q_Circuit_NO_M_gates_and_no_Pn(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, ansatz_circ):
+def Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, ansatz_circ):
 
     """
-    class to generate full cirq circuit that prepares a quantum state (ansatz) performs R operation as LCU and finally
-    measures both the system and ancilla qubit lines in the Z basis.
+    Generate cirq circuit doing the following:
 
+     R U_{CC} U_{HF} |0〉_system x U_{LCU}|0〉_ancilla
+
+    overall HF state, UCC ansatz and then R circuit with ancilla control performed.
     Args:
         Pn (QubitOperator): Qubit operator to measure
         R_corrected_Op_list (list): list of LCU qubit Operators
@@ -752,7 +754,7 @@ def Full_Q_Circuit_NO_M_gates_and_no_Pn(Pn, R_corrected_Op_list, R_correction_li
                                            │                 │                       │      │
 3: ───H────────────────────────────────────X───Rz(-1.947π)───X───H───────────────────1*I3───(-0-1j)*X3──────────────
                                                                                      │      │
-4: ─── U = 1.264 rad ────────────────────────────────────────────────────────────────(0)────@─── ─── U = 1.264 rad ─
+4: ─── U = 1.264 rad ────────────────────────────────────────────────────────────────(0)────@───────────────────────
 
     """
 
@@ -772,7 +774,7 @@ def Full_Q_Circuit_NO_M_gates_and_no_Pn(Pn, R_corrected_Op_list, R_correction_li
         *ansatz_circ.all_operations(),
         *ancilla_circ.all_operations(),
         *R_circ_circ.all_operations(),
-        *list(ancilla_circ.all_operations())[::-1],
+        # *list(ancilla_circ.all_operations())[::-1],
 #         *change_to_Z_basis_circ.all_operations(),
     ])
     return full_Q_circ
@@ -807,19 +809,24 @@ class VQE_Experiment_LCU_UP_lin_alg():
 
     def Get_parital_system_density_matrix(self, Q_circuit_no_M_gates):
 
+        input_state = [self.zero_state for _ in range(len(Q_circuit_no_M_gates.all_qubits()))]
+        input_ket = reduce(kron, input_state)
+        circuit_matrix = Q_circuit_no_M_gates.unitary()
 
-        simulator = cirq.Simulator()
-        output_ket = simulator.compute_amplitudes(Q_circuit_no_M_gates,
-                                              bitstrings=[i for i in range(2 ** len(Q_circuit_no_M_gates.all_qubits()))])
+        ansatz_state_ket = circuit_matrix.dot(input_ket.todense())
+        full_density_matrix = np.outer(ansatz_state_ket[:,0], ansatz_state_ket[:,0])
 
-
-        full_density_matrix = np.outer(output_ket, output_ket)
+        # simulator = cirq.Simulator()
+        # output_ket = simulator.compute_amplitudes(Q_circuit_no_M_gates,
+        #                                       bitstrings=[i for i in range(2 ** len(Q_circuit_no_M_gates.all_qubits()))])
+        #
+        # full_density_matrix = np.outer(output_ket, output_ket)
 
         ## First project state onto all zero ancilla state using POVM
         n_qubits = len(Q_circuit_no_M_gates.all_qubits())
         n_ancilla = n_qubits - self.N_system_qubits
 
-        I_system_operator = np.eye(2**(n_qubits-n_ancilla))
+        I_system_operator = np.eye((2**self.N_system_qubits))
 
         ancilla_0_state_list = [self.zero_state for _ in range(n_ancilla)]
         ancilla_0_state = reduce(np.kron, ancilla_0_state_list)
@@ -833,9 +840,14 @@ class VQE_Experiment_LCU_UP_lin_alg():
 
         ## Next get partial density matrix over system qubits # aka partial trace!
         # https://scicomp.stackexchange.com/questions/27496/calculating-partial-trace-of-array-in-numpy
+
+        # reshape to do the partial trace easily using np.einsum
         reshaped_dm = projected_density_matrix.reshape([2 ** self.N_system_qubits, 2 ** n_ancilla,
                                                         2 ** self.N_system_qubits, 2 ** n_ancilla])
         reduced_dm = np.einsum('jiki->jk', reshaped_dm)
+
+        if not np.isclose(np.trace(reduced_dm), 1):
+            raise ValueError('partial density matrix is not normalised properly {}'.format(np.trace(reduced_dm)))
 
         return reduced_dm
 
@@ -848,24 +860,28 @@ class VQE_Experiment_LCU_UP_lin_alg():
         input_ket = reduce(kron, input_state)
         circuit_matrix = self.ansatz_circuit.unitary()
 
-        output_ket = circuit_matrix.dot(input_ket.todense())
+        ansatz_state_ket = circuit_matrix.dot(input_ket.todense())
 
-        if not np.isclose(sum([np.abs(i)**2 for i in output_ket]), 1):
-            raise ValueError('output ket is not normalised properly {}'.format(sum([np.abs(i)**2 for i in output_ket])))
+        if not np.isclose(sum([np.abs(i)**2 for i in ansatz_state_ket]), 1):
+            raise ValueError('output ket is not normalised properly {}'.format(sum([np.abs(i)**2 for i in ansatz_state_ket])))
 
-        return np.array(output_ket) #.reshape([(2 ** len(self.ansatz_circuit.all_qubits())), 1])
+        return np.array(ansatz_state_ket) #.reshape([(2 ** len(self.ansatz_circuit.all_qubits())), 1])
 
     def Get_pauli_matrix(self, PauliOp):
-
         list_Q_nos, list_P_strs = list(zip(*[Paulistrs for Paulistrs, const in PauliOp.terms.items()][0]))
 
         list_of_ops = []
+        # list_of_ops_print=[]
         for i in range(self.N_system_qubits):
-            if i not in list_Q_nos:
-                list_of_ops.append(self.pauliDict['I'])
-            else:
+            if i in list_Q_nos:
                 index = list_Q_nos.index(i)
                 list_of_ops.append(self.pauliDict[list_P_strs[index]])
+                # list_of_ops_print.append('{}{}'.format(list_P_strs[index], i))
+            else:
+                list_of_ops.append(self.pauliDict['I'])
+                # list_of_ops_print.append('I{}'.format(i))
+
+        # print(list_of_ops_print, PauliOp)
         matrix = reduce(kron, list_of_ops)
 
         return matrix
@@ -903,7 +919,7 @@ class VQE_Experiment_LCU_UP_lin_alg():
 
 
                 # gives R|ψ〉
-                Q_circuit = Full_Q_Circuit_NO_M_gates_and_no_Pn(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
+                Q_circuit = Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
                                            self.N_system_qubits, self.ansatz_circuit)
 
                 # print(Q_circuit.to_text_diagram(transpose=True))
@@ -916,7 +932,8 @@ class VQE_Experiment_LCU_UP_lin_alg():
                 # # E=〈ψ | H | ψ〉= ∑_j  αj〈ψA | R† Pn R | ψA〉 #### where RQR = Pn
 
                 # E= Tr(Pn rho)
-                energy = np.trace(H_sub_term_matrix.dot(partial_density_matrix))
+                energy = np.trace(partial_density_matrix.dot(H_sub_term_matrix.todense()))
+                # energy = np.trace(H_sub_term_matrix.dot(partial_density_matrix))
                 E_list.append(energy * gamma_l)
 
             else:
@@ -924,13 +941,13 @@ class VQE_Experiment_LCU_UP_lin_alg():
                 if list(single_PauliOp.terms.keys())[0] == ():
                     E_list.append(list(single_PauliOp.terms.values())[0])
                 else:
-                    state_ket = self.Get_standard_ket()
-                    state_bra = state_ket.transpose().conj()
+                    ansatz_state_ket = self.Get_standard_ket()
+                    ansatz_state_bra = ansatz_state_ket.transpose().conj()
                     # H_sub_term_matrix = get_sparse_operator(single_PauliOp, n_qubits=self.N_system_qubits)
 
                     # E=〈ψ | H | ψ〉= ∑_j  αj〈ψ | Pj | ψ〉
                     H_sub_term_matrix = self.Get_pauli_matrix(single_PauliOp)
-                    energy = state_bra.dot(H_sub_term_matrix.dot(state_ket))
+                    energy = ansatz_state_bra.dot(H_sub_term_matrix.todense().dot(ansatz_state_ket))
                     E_list.append(energy[0][0] * list(single_PauliOp.terms.values())[0])
 
         return sum(E_list)
