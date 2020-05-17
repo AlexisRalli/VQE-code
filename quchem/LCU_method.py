@@ -754,7 +754,7 @@ def Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_correction_list
                                            │                 │                       │      │
 3: ───H────────────────────────────────────X───Rz(-1.947π)───X───H───────────────────1*I3───(-0-1j)*X3──────────────
                                                                                      │      │
-4: ─── U = 1.264 rad ────────────────────────────────────────────────────────────────(0)────@───────────────────────
+4: ─── U = 1.264 rad ────────────────────────────────────────────────────────────────(0)────@─────── U = 1.264 rad ─
 
     """
 
@@ -774,7 +774,7 @@ def Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_correction_list
         *ansatz_circ.all_operations(),
         *ancilla_circ.all_operations(),
         *R_circ_circ.all_operations(),
-        # *list(ancilla_circ.all_operations())[::-1],
+        *list(ancilla_circ.all_operations())[::-1],
 #         *change_to_Z_basis_circ.all_operations(),
     ])
     return full_Q_circ
@@ -813,8 +813,8 @@ class VQE_Experiment_LCU_UP_lin_alg():
         input_ket = reduce(kron, input_state)
         circuit_matrix = Q_circuit_no_M_gates.unitary()
 
-        ansatz_state_ket = circuit_matrix.dot(input_ket.todense())
-        full_density_matrix = np.outer(ansatz_state_ket[:,0], ansatz_state_ket[:,0])
+        ansatz_state_ket = circuit_matrix.dot(input_ket)
+        full_density_matrix = np.outer(ansatz_state_ket, ansatz_state_ket)
 
         # simulator = cirq.Simulator()
         # output_ket = simulator.compute_amplitudes(Q_circuit_no_M_gates,
