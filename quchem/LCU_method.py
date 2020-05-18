@@ -813,7 +813,8 @@ class VQE_Experiment_LCU_UP_lin_alg():
         input_ket = reduce(kron, input_state)
         circuit_matrix = Q_circuit_no_M_gates.unitary()
 
-        ansatz_state_ket = circuit_matrix.dot(input_ket)
+        ansatz_state_ket = circuit_matrix.dot(input_ket.todense())
+
         full_density_matrix = np.outer(ansatz_state_ket, ansatz_state_ket)
 
         # simulator = cirq.Simulator()
