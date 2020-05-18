@@ -3,12 +3,21 @@ import numpy as np
 
 from quchem.Unitary_partitioning import *
 
-def Get_X_SET(anti_commuting_set, N_index):
+
+
+def Get_R_op_list(anti_commuting_set, N_index):
     """
 
-    Function to get X set. Given an anti-commuting set and N index (index of term to reduce to), function calculates
-    first normalises the anti-commuting set.
+    Function gets the R operator as a linear combination of unitary operators.
 
+    First the X operator is found:
+    X = i ∑_{k=0} 𝛿_{k} P_{kn}
+
+    R has the definition:
+    𝑅=exp(−𝑖𝛼X/2)=cos(𝛼/2)𝟙−𝑖sin(𝛼/2)X
+    this is used to build R
+
+    ###
      anti_set = ∑_{i=0} 𝛼_{i} P_{i}.
      normalised = 𝛾_{𝑙} ∑_{i=0} 𝛽_{i} P_{i}... where ∑_{i=0} 𝛽_{i}^{2} =1
 
@@ -33,8 +42,9 @@ def Get_X_SET(anti_commuting_set, N_index):
         anti_commuting_set (list): list of anti-commuting qubit operators
         N_index (int): index of term to reduce too
     Returns:
-        X_set (dict): A dictionary containing: 'X_PauliWords'= list of X (sum that makes up the operator) and the other
-                      terms: gamma_l, H_n, H_n_1, Omega_l, phi_n_1.
+        R_linear_comb_list (list): linear combination of R operators that makes up R operator
+        P_n: (QubitOperator): qubit operator to be reduced too (Pn)
+        gamma_l (float): normalisation term (𝛾_{𝑙])
      """
 
     # 𝛾_𝑙 ∑ 𝛽_𝑗 𝑃_𝑗
@@ -50,6 +60,8 @@ def Get_X_SET(anti_commuting_set, N_index):
     H_n_1 = Get_beta_j_cofactors(norm_FULL_set)
     Omega_l = H_n_1['gamma_l']
 
+    ##
+
     # cos(𝜙_{𝑛−1}) =𝛽_𝑛
     phi_n_1 = np.arccos(list(qubitOp_Pn_beta_n.terms.values())[0])
 
@@ -60,87 +72,60 @@ def Get_X_SET(anti_commuting_set, N_index):
         phi_n_1 = 2 * np.pi - phi_n_1
         print('correct quadrant found!!!')
 
+    #     𝑅=exp(−𝑖𝛼 X/2)=cos(𝛼/2)𝟙 − 𝑖sin(𝛼/2)X = cos(𝛼/2)𝟙 − 𝑖sin(𝛼/2)(i∑𝛿𝑘 𝑃𝑘𝑃𝑛)
+    #     𝑅=exp(−𝑖𝛼 X/2)=cos(𝛼/2)𝟙 − 𝑖sin(𝛼/2)X = cos(𝛼/2)𝟙 + sin(𝛼/2)(∑𝛿𝑘 𝑃𝑘𝑃𝑛) #<--- note sign here!
+    Pn = QubitOperator(list(qubitOp_Pn_beta_n.terms.keys())[0],
+                       1)  # np.sign(list(qubitOp_Pn_beta_n.terms.values())[0]))
 
-    # 𝑖 ∑ 𝛿_{𝑘} 𝑃_{𝑘𝑛}
-    Pn = QubitOperator(list(qubitOp_Pn_beta_n.terms.keys())[0], 1)
-    X_set = {}
-    X_set['X_PauliWords'] = []
-    for qubitOp_Pk in H_n_1['PauliWords']:
-        new_PauliWord = qubitOp_Pk * Pn * 1j
-        X_set['X_PauliWords'].append(new_PauliWord)
+    alpha = phi_n_1.copy()
+    #     print('alpha/2 =', (alpha/(2*np.pi))*360/2)
 
-    if not np.isclose(sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2 for qubitOp in X_set['X_PauliWords']), 1):
-        raise ValueError('normalisation of X operator incorrect: {}'.format(
-            sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2 for qubitOp in X_set['X_PauliWords'])))
-
-    # THIS IS NOT NEED BUT I AM USING TO CHECK
-    X_set['H_n'] = norm_FULL_set + [qubitOp_Pn_beta_n]
-    #     X_set['H_n'] = [QubitOperator(qubitOp, const*np.sin(phi_n_1))
-    #           for operator in H_n_1['PauliWords'] for qubitOp, const in operator.terms.items()]+ [QubitOperator(list(qubitOp_Pn_beta_n.terms.keys())[0], np.cos(phi_n_1))]
-
-    if not np.isclose(sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2 for qubitOp in X_set['H_n']), 1):
-        raise ValueError('normalisation of H_n operator incorrect: {}'.format(
-            sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2 for qubitOp in X_set['H_n'])))
-    # THIS IS NOT NEED BUT I AM USING TO CHECK
-
-    if not np.isclose((list(qubitOp_Pn_beta_n.terms.values())[0] ** 2 + Omega_l ** 2), 1):
-        raise ValueError('Ω^2 + 𝛽n^2 does NOT equal 1')
-
-    X_set['gamma_l'] = gamma_l
-
-    X_set['P_n'] = Pn
-
-    X_set['H_n_1'] = H_n_1['PauliWords']
-    X_set['Omega_l'] = Omega_l
-    X_set['phi_n_1'] = phi_n_1
-    return X_set
-
-def Get_R_linear_combination(anti_commuting_set, N_index):
-    """
-    Function gets the R operator as a linear combination of unitary operators.
-
-    First the X operator is found:
-    X = i ∑_{k=0} 𝛿_{k} P_{kn}
-
-    R has the definition:
-    𝑅=exp(−𝑖𝛼X/2)=cos(𝛼/2)𝟙−𝑖sin(𝛼/2)X
-    this is used to build R
-    ####
-
-    Args:
-        anti_commuting_set (list): list of anti-commuting qubit operators
-        N_index (int): index of term to reduce too
-    Returns:
-        R_linear_comb_list (list): linear combination of R operators that makes up R operator
-        X_set['P_n'] (QubitOperator): qubit operator to be reduced too (Pn)
-        X_set['gamma_l']: normalisation term (𝛾_{𝑙])
-
-         """
-    X_set = Get_X_SET(anti_commuting_set, N_index)
-
-    # χ = 𝑖 ∑ 𝛿_𝑘 𝑃_𝑘𝑛
-    X_terms = X_set['X_PauliWords']
-
-    # 𝛼 = 𝜙_{𝑛−1}
-    alpha = X_set['phi_n_1']
-
-    # 𝑅=cos(𝛼/2)𝟙−𝑖sin(𝛼/2)χ = cos(𝛼/2)𝟙−𝑖sin(𝛼/2)*(𝑖 ∑ 𝛿_𝑘 𝑃_𝑘𝑛)
-    # cos(𝛼/2)𝟙 term
     I_term = QubitOperator('', np.cos(alpha / 2))
     R_linear_comb_list = [I_term]
 
-    # −𝑖 sin(𝛼/2) * (𝑖 ∑ 𝛿_𝑘 𝑃_𝑘𝑛) terms!
-    sin_term = np.sin(alpha / 2) * 1j
-    for qubitOp_P_kn in X_terms:
-        for P_kn_word, constant in qubitOp_P_kn.terms.items():
-            new_constant = sin_term * constant
-            R_linear_comb_list.append(QubitOperator(P_kn_word, new_constant))
+    sin_term = -np.sin(alpha / 2)
+
+    for qubitOp_Pk in H_n_1['PauliWords']:
+        PkPn = qubitOp_Pk * Pn
+        R_linear_comb_list.append(sin_term * PkPn)
 
     if not np.isclose(sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2 for qubitOp in R_linear_comb_list), 1):
-        raise ValueError('normalisation of R operator incorrect: {}'.format(
-            sum(list(qubitOp.terms.values())[0] ** 2 for qubitOp in R_linear_comb_list)))
+        raise ValueError(
+            'normalisation of X operator incorrect: {}'.format(sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2
+                                                                   for qubitOp in R_linear_comb_list)))
 
-    return R_linear_comb_list, X_set['P_n'], X_set['gamma_l']  # , X_set['Omega_l']
+    #     # 𝐻𝑛= B𝑛𝑃𝑛+ Ω 𝑙∑𝛿𝑃𝑗
+    #     print('Hn =',qubitOp_Pn_beta_n, '+', Omega_l,' * ', H_n_1['PauliWords'])
+    #     #𝐻𝑛= cos(𝜙_{n-1}) Pn + sin(𝜙_{n-1}) H_{n_1 }
+    #     print('Hn =',np.cos(phi_n_1),Pn, '+', np.sin(phi_n_1),' * ', H_n_1['PauliWords'])
+    #     Hn_list = [qubitOp_Pn_beta_n] + [Omega_l* op for op in  H_n_1['PauliWords']]
+
+    #     print('')
+    #     print('R = ', R_linear_comb_list)
+    #     #R= cos(𝛼/2)𝟙-sin(𝛼/2)(∑𝛿_{𝑘}𝑃_{𝑘𝑛})
+    #     print('R = ', np.cos(alpha/2), 'I', '+',np.sin(alpha/2), [dkPk*Pn for dkPk in H_n_1['PauliWords']])
+
+    #     ### CHECKING need to comment out as expensive!
+    #     R = QubitOperator()
+    #     for op in R_linear_comb_list:
+    #         R += op
+
+    #     R_dag = QubitOperator()
+    #     for op in R:
+    #         if list(op.terms.keys())[0]==():
+    #             R_dag+= QubitOperator('', list(op.terms.values())[0])
+    #         else:
+    #             R_dag+=op*-1   #  note sign!!!
+
+    #     H_n = QubitOperator()
+    #     for op in Hn_list:
+    #         H_n += op
+
+    #     print('Pn= R*H_n*R_dag ', Pn, ' = ', R*H_n*R_dag)
+    # #     print('H_n= R_dag*Pn*R ', H_n, ' = ', R_dag*Pn*R)
+
+    return R_linear_comb_list, Pn, gamma_l  # , H_n_1['PauliWords'], phi_n_1, Hn_list
+
 
 def absorb_complex_phases(R_linear_comb_list):
     """
@@ -679,10 +664,10 @@ class VQE_Experiment_LCU_UP():
             if len(self.anti_commuting_sets[set_key]) > 1:
 
                 if self.N_indices_dict is None:
-                    R_uncorrected, Pn, gamma_l = Get_R_linear_combination(self.anti_commuting_sets[set_key], 0)
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key], 0)
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
                 else:
-                    R_uncorrected, Pn, gamma_l = Get_R_linear_combination(self.anti_commuting_sets[set_key],
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key],
                                                                           self.N_indices_dict[set_key])
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
 
@@ -895,10 +880,10 @@ class VQE_Experiment_LCU_UP_lin_alg():
             if len(self.anti_commuting_sets[set_key]) > 1:
 
                 if self.N_indices_dict is None:
-                    R_uncorrected, Pn, gamma_l = Get_R_linear_combination(self.anti_commuting_sets[set_key], 0)
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key], 0)
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
                 else:
-                    R_uncorrected, Pn, gamma_l = Get_R_linear_combination(self.anti_commuting_sets[set_key],
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key],
                                                                           self.N_indices_dict[set_key])
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
 
