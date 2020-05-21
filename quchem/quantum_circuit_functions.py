@@ -547,6 +547,116 @@ def Generate_Full_Q_Circuit_of_Molecular_Hamiltonian(Full_Ansatz_Q_Circuit, Qubi
 
     return dic_holder
 
+### gate count
+
+def Total_Gate_Count(Q_Circuit, M_gates_included=True, only_one_two_qubit_gates=False):
+    """
+    Function to count number of gates in a cirq quantum circuit
+
+    note how decomposed quantum circuit matters!
+    e.g.
+         ──X0────                  ─────────────────────X0──
+           │                                            │
+         ──Y1────                  ───────────────Y1────────
+           │                                      │     │
+         ──Y2────           vs     ─────────Y2──────────────
+           │                                │     │     │
+         ──1j*Y3─                  ──1j*Y3──────────────────
+           │                         │      │     │     │
+         ──@─────                  ──@──────@─────@─────@───
+
+      one * 5 qubit gate    VS        four * 2 qubit gates
+
+    for example:
+
+    0: ───X──────────────Rx(0.5π)───@──────────────────────────────@───Rx(-0.5π)──I──────X0────────────────────
+                                    │                              │              │      │
+    1: ───X──────────────H──────────X───@──────────────────────@───X───H──────────I──────Y1────────────────────
+                                        │                      │                  │      │
+    2: ───H─────────────────────────────X───@──────────────@───X───H──────────────I──────Y2────────────────────
+                                            │              │                      │      │
+    3: ───H─────────────────────────────────X───Rz(2.0π)───X───H──────────────────1*I3───1j*Y3───────────────M─
+                                                                                  │      │                   │
+    4: ─── U = 1.17 rad ──────────────────────────────────────────────────────────(0)────@──── U = 1.17 rad ─M─
+
+    gives:
+            single and double =  ({1: 13, 2: 14}, 41)
+                            aka 13 single qubit gates and 14 two qubit gates
+            OR
+
+            multi =  ({1: 13, 2: 6, 5: 2}, 35)
+    """
+    counter = {}
+
+    if only_one_two_qubit_gates:
+        ############################ decompose into only one and two qubit gates
+        if M_gates_included:
+            for op in list(Q_Circuit.all_operations())[:-1]:
+                num_qubits = len(op.qubits)
+                n_gates = 1
+
+                if num_qubits > 2:
+                    n_gates = num_qubits - 1
+                    num_qubits = 2
+                if num_qubits not in counter.keys():
+                    counter[num_qubits] = n_gates
+                else:
+                    counter[num_qubits] += n_gates
+        else:
+            for op in Q_Circuit.all_operations():
+                num_qubits = len(op.qubits)
+                n_gates = 1
+
+                if num_qubits > 2:
+                    n_gates = num_qubits - 1
+                    num_qubits = 2
+                if num_qubits not in counter.keys():
+                    counter[num_qubits] = n_gates
+                else:
+                    counter[num_qubits] += n_gates
+    else:
+        ########################### decompose into only any multi-qubit gate
+        if M_gates_included:
+            for op in list(Q_Circuit.all_operations())[:-1]:
+                num_qubits = len(op.qubits)
+
+                if num_qubits not in counter.keys():
+                    counter[num_qubits] = 1
+                else:
+                    counter[num_qubits] += 1
+        else:
+            for op in Q_Circuit.all_operations():
+                num_qubits = len(op.qubits)
+                if num_qubits not in counter.keys():
+                    counter[num_qubits] = 1
+                else:
+                    counter[num_qubits] += 1
+
+    total_gates = sum(key * value for key, value in counter.items())
+
+    return counter, total_gates
+
+def Gate_Type_Count(Q_Circuit, M_gates_included=True):
+    # note need __repr__ in custom gate classes to be defined!
+
+    counter = {}
+    if M_gates_included:
+        for op in list(Q_Circuit.all_operations())[:-1]:
+            gate = str(op.gate)
+
+            if gate not in counter.keys():
+                counter[gate] = 1
+            else:
+                counter[gate] += 1
+    else:
+        for op in Q_Circuit.all_operations():
+            gate = str(op.gate)
+            if gate not in counter.keys():
+                counter[gate] = 1
+            else:
+                counter[gate] += 1
+    return counter
+
 
 #### Prepare arb state ###
 
@@ -596,6 +706,12 @@ class My_U_Gate(cirq.SingleQubitGate):
         # return cirq.CircuitDiagramInfo(
         #     wire_symbols=tuple([*['@' for _ in range(self.num_control_qubits-1)],' U = {} rad '.format(self.theta.__round__(4))]),exponent=1)
         return ' U = {} rad '.format(self.theta.__round__(4))
+
+    def __str__(self):
+        return ' U = {} rad '.format(self.theta.__round__(4))
+
+    def __repr__(self):
+        return ' U_arb_state_prep'
 
 def Get_control_parameters(num_qubits, Coefficient_list):
     if len(Coefficient_list) != 2 ** num_qubits:
@@ -677,8 +793,6 @@ def Get_control_parameters(num_qubits, Coefficient_list):
         alpha_j_dict[0] = [{'control_state': '', 'angle': theta}]
 
         return alpha_j_dict
-
-
 
 class State_Prep_Circuit(cirq.Gate):
     """

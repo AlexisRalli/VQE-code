@@ -94,35 +94,35 @@ def Get_R_op_list(anti_commuting_set, N_index):
             'normalisation of X operator incorrect: {}'.format(sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2
                                                                    for qubitOp in R_linear_comb_list)))
 
-    #     # 𝐻𝑛= B𝑛𝑃𝑛+ Ω 𝑙∑𝛿𝑃𝑗
-    #     print('Hn =',qubitOp_Pn_beta_n, '+', Omega_l,' * ', H_n_1['PauliWords'])
-    #     #𝐻𝑛= cos(𝜙_{n-1}) Pn + sin(𝜙_{n-1}) H_{n_1 }
-    #     print('Hn =',np.cos(phi_n_1),Pn, '+', np.sin(phi_n_1),' * ', H_n_1['PauliWords'])
-    #     Hn_list = [qubitOp_Pn_beta_n] + [Omega_l* op for op in  H_n_1['PauliWords']]
-
-    #     print('')
-    #     print('R = ', R_linear_comb_list)
-    #     #R= cos(𝛼/2)𝟙-sin(𝛼/2)(∑𝛿_{𝑘}𝑃_{𝑘𝑛})
-    #     print('R = ', np.cos(alpha/2), 'I', '+',np.sin(alpha/2), [dkPk*Pn for dkPk in H_n_1['PauliWords']])
-
-    #     ### CHECKING need to comment out as expensive!
-    #     R = QubitOperator()
-    #     for op in R_linear_comb_list:
-    #         R += op
-
-    #     R_dag = QubitOperator()
-    #     for op in R:
-    #         if list(op.terms.keys())[0]==():
-    #             R_dag+= QubitOperator('', list(op.terms.values())[0])
-    #         else:
-    #             R_dag+=op*-1   #  note sign!!!
-
-    #     H_n = QubitOperator()
-    #     for op in Hn_list:
-    #         H_n += op
-
-    #     print('Pn= R*H_n*R_dag ', Pn, ' = ', R*H_n*R_dag)
-    # #     print('H_n= R_dag*Pn*R ', H_n, ' = ', R_dag*Pn*R)
+# # #     # 𝐻𝑛= B𝑛𝑃𝑛+ Ω 𝑙∑𝛿𝑃𝑗
+# # #     print('Hn =',qubitOp_Pn_beta_n, '+', Omega_l,' * ', H_n_1['PauliWords'])
+# # #     #𝐻𝑛= cos(𝜙_{n-1}) Pn + sin(𝜙_{n-1}) H_{n_1 }
+# # #     print('Hn =',np.cos(phi_n_1),Pn, '+', np.sin(phi_n_1),' * ', H_n_1['PauliWords'])
+#     Hn_list = [qubitOp_Pn_beta_n] + [Omega_l* op for op in  H_n_1['PauliWords']]
+# #
+# # #     print('')
+# # #     print('R = ', R_linear_comb_list)
+# # #     #R= cos(𝛼/2)𝟙-sin(𝛼/2)(∑𝛿_{𝑘}𝑃_{𝑘𝑛})
+# # #     print('R = ', np.cos(alpha/2), 'I', '+',np.sin(alpha/2), [dkPk*Pn for dkPk in H_n_1['PauliWords']])
+#
+#     ### CHECKING need to comment out as expensive!
+#     R = QubitOperator()
+#     for op in R_linear_comb_list:
+#         R += op
+#
+#     R_dag = QubitOperator()
+#     for op in R:
+#         if list(op.terms.keys())[0]==():
+#             R_dag+= QubitOperator('', list(op.terms.values())[0])
+#         else:
+#             R_dag+=op*-1   #  note sign!!!
+#
+#     H_n = QubitOperator()
+#     for op in Hn_list:
+#         H_n += op
+#
+#     print('Pn= R*H_n*R_dag ', Pn, ' = ', R*H_n*R_dag)
+# #     print('H_n= R_dag*Pn*R ', H_n, ' = ', R_dag*Pn*R)
 
     return R_linear_comb_list, Pn, gamma_l  # , H_n_1['PauliWords'], phi_n_1, Hn_list
 
@@ -261,6 +261,9 @@ class Perform_Modified_PauliWord(cirq.Gate):
         self.list_of_X_qNos_Pn, list_of_Pn_ops = list(zip(*[Paulistrs for qubitOp in Pn
                                                             for Paulistrs, const in qubitOp.terms.items()][0]))
         self.sign_index = self.list_of_X_qNos_Pn[0]
+
+    def __repr__(self):
+        return 'LCU_Pauli_Word_Gates'
 
     def _decompose_(self, qubits):
 
@@ -915,6 +918,7 @@ class VQE_Experiment_LCU_UP_lin_alg():
                 partial_density_matrix = self.Get_parital_system_density_matrix(Q_circuit)
 
                 H_sub_term_matrix = self.Get_pauli_matrix(Pn)
+                # H_sub_term_matrix = get_sparse_operator(Pn, n_qubits=self.N_system_qubits)
                 # # E=〈ψ | H | ψ〉= ∑_j  αj〈ψA | R† Pn R | ψA〉 #### where RQR = Pn
 
                 # E= Tr(Pn rho)
@@ -933,6 +937,7 @@ class VQE_Experiment_LCU_UP_lin_alg():
 
                     # E=〈ψ | H | ψ〉= ∑_j  αj〈ψ | Pj | ψ〉
                     H_sub_term_matrix = self.Get_pauli_matrix(single_PauliOp)
+                    # H_sub_term_matrix = get_sparse_operator(single_PauliOp, n_qubits=self.N_system_qubits)
                     energy = ansatz_state_bra.dot(H_sub_term_matrix.todense().dot(ansatz_state_ket))
                     E_list.append(energy[0][0] * list(single_PauliOp.terms.values())[0])
 
