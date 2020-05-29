@@ -5,7 +5,7 @@ from quchem.Unitary_partitioning import *
 
 
 
-def Get_R_op_list(anti_commuting_set, N_index):
+def Get_R_op_list(anti_commuting_set, N_index, check_operator=False):
     """
 
     Function gets the R operator as a linear combination of unitary operators.
@@ -93,36 +93,39 @@ def Get_R_op_list(anti_commuting_set, N_index):
         raise ValueError(
             'normalisation of X operator incorrect: {}'.format(sum(np.absolute(list(qubitOp.terms.values())[0]) ** 2
                                                                    for qubitOp in R_linear_comb_list)))
+    if check_operator:
+    # #     # 𝐻𝑛= B𝑛𝑃𝑛+ Ω 𝑙∑𝛿𝑃𝑗
+    # #     print('Hn =',qubitOp_Pn_beta_n, '+', Omega_l,' * ', H_n_1['PauliWords'])
+    # #     #𝐻𝑛= cos(𝜙_{n-1}) Pn + sin(𝜙_{n-1}) H_{n_1 }
+    # #     print('Hn =',np.cos(phi_n_1),Pn, '+', np.sin(phi_n_1),' * ', H_n_1['PauliWords'])
+        Hn_list = [qubitOp_Pn_beta_n] + [Omega_l* op for op in  H_n_1['PauliWords']]
+    #
+    # #     print('')
+    # #     print('R = ', R_linear_comb_list)
+    # #     #R= cos(𝛼/2)𝟙-sin(𝛼/2)(∑𝛿_{𝑘}𝑃_{𝑘𝑛})
+    # #     print('R = ', np.cos(alpha/2), 'I', '+',np.sin(alpha/2), [dkPk*Pn for dkPk in H_n_1['PauliWords']])
 
-# # #     # 𝐻𝑛= B𝑛𝑃𝑛+ Ω 𝑙∑𝛿𝑃𝑗
-# # #     print('Hn =',qubitOp_Pn_beta_n, '+', Omega_l,' * ', H_n_1['PauliWords'])
-# # #     #𝐻𝑛= cos(𝜙_{n-1}) Pn + sin(𝜙_{n-1}) H_{n_1 }
-# # #     print('Hn =',np.cos(phi_n_1),Pn, '+', np.sin(phi_n_1),' * ', H_n_1['PauliWords'])
-#     Hn_list = [qubitOp_Pn_beta_n] + [Omega_l* op for op in  H_n_1['PauliWords']]
-# #
-# # #     print('')
-# # #     print('R = ', R_linear_comb_list)
-# # #     #R= cos(𝛼/2)𝟙-sin(𝛼/2)(∑𝛿_{𝑘}𝑃_{𝑘𝑛})
-# # #     print('R = ', np.cos(alpha/2), 'I', '+',np.sin(alpha/2), [dkPk*Pn for dkPk in H_n_1['PauliWords']])
-#
-#     ### CHECKING need to comment out as expensive!
-#     R = QubitOperator()
-#     for op in R_linear_comb_list:
-#         R += op
-#
-#     R_dag = QubitOperator()
-#     for op in R:
-#         if list(op.terms.keys())[0]==():
-#             R_dag+= QubitOperator('', list(op.terms.values())[0])
-#         else:
-#             R_dag+=op*-1   #  note sign!!!
-#
-#     H_n = QubitOperator()
-#     for op in Hn_list:
-#         H_n += op
-#
-#     print('Pn= R*H_n*R_dag ', Pn, ' = ', R*H_n*R_dag)
-# #     print('H_n= R_dag*Pn*R ', H_n, ' = ', R_dag*Pn*R)
+        ### CHECKING need to comment out as expensive!
+        R = QubitOperator()
+        for op in R_linear_comb_list:
+            R += op
+
+        R_dag = QubitOperator()
+        for op in R:
+            if list(op.terms.keys())[0]==():
+                R_dag+= QubitOperator('', list(op.terms.values())[0])
+            else:
+                R_dag+=op*-1   #  note sign!!!
+
+        H_n = QubitOperator()
+        for op in Hn_list:
+            H_n += op
+
+        print('Pn= R*H_n*R_dag ')
+        print('Pn=', Pn)
+        print('R*H_n*R_dag = ', R * H_n * R_dag)
+            # print('Pn= R*H_n*R_dag ', Pn, ' = ', R*H_n*R_dag)
+        #     print('H_n= R_dag*Pn*R ', H_n, ' = ', R_dag*Pn*R)
 
     return R_linear_comb_list, Pn, gamma_l  # , H_n_1['PauliWords'], phi_n_1, Hn_list
 
@@ -260,7 +263,15 @@ class Perform_Modified_PauliWord(cirq.Gate):
 
         self.list_of_X_qNos_Pn, list_of_Pn_ops = list(zip(*[Paulistrs for qubitOp in Pn
                                                             for Paulistrs, const in qubitOp.terms.items()][0]))
-        self.sign_index = self.list_of_X_qNos_Pn[0]
+        # self.sign_index = self.list_of_X_qNos_Pn[0]
+
+        if list(PauliQubitOp.terms.keys())[0]!=():
+            PauliQubitOp_Qnumbers, _ = list(zip(*[Paulistrs for qubitOp in PauliQubitOp
+                                    for Paulistrs, const in qubitOp.terms.items()][0]))
+
+            self.sign_index = np.intersect1d(self.list_of_X_qNos_Pn, PauliQubitOp_Qnumbers)[0]
+        else:
+            self.sign_index = self.list_of_X_qNos_Pn[0]
 
     def __repr__(self):
         return 'LCU_Pauli_Word_Gates'
