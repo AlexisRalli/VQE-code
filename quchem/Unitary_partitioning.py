@@ -5,6 +5,28 @@ import numpy as np
 
 
 from openfermion.ops import QubitOperator
+
+
+def Get_pauli_matrix(PauliOp, N_system_qubits):
+    pauliDict = {'X': np.array([[0, 1], [1, 0]]),
+                 'Y': np.array([[0, -1j], [1j, 0]]),
+                 'Z': np.array([[1, 0], [0, -1]]),
+                 'I': np.eye(2)}
+
+    list_Q_nos, list_P_strs = list(zip(*[Paulistrs for Paulistrs, const in PauliOp.terms.items()][0]))
+
+    list_of_ops = []
+    for i in range(N_system_qubits):
+        if i in list_Q_nos:
+            index = list_Q_nos.index(i)
+            list_of_ops.append(pauliDict[list_P_strs[index]])
+        else:
+            list_of_ops.append(pauliDict['I'])
+
+    matrix = reduce(kron, list_of_ops)
+
+    return matrix
+
 def Get_beta_j_cofactors(qubitOp_list):
     """
     Function takes in list of QubitOperators and returns a dictionary containing the normalised set of QubitOperators
@@ -23,185 +45,138 @@ def Get_beta_j_cofactors(qubitOp_list):
 
     return {'PauliWords': normalised_qubitOp_list, 'gamma_l': np.sqrt(factor)}
 
-def Get_X_sk(qubitOp_Ps, qubitOp_Pk):
+def Get_Xsk_op_list(anti_commuting_set, S_index):
     """
-    Function takes in two QubitOperators (P_s, and P_k) and returns the QubitOperator X_sk (= i P_s P_k)
-
+    Function to give all X_sk operators from a given anti_commuting set and S_index
 
     Args:
-        qubitOp_Ps (QubitOperator): QubitOperator of P_s
-        qubitOp_Pk (QubitOperator): QubitOperator of P_k
+        anti_commuting_set(list): list of anti commuting QubitOperators
+        S_index(int): index for Ps in anti_commuting_set list
 
-    Returns:
-        X_sk (QubitOperator): QubitOperator of X_sk
-
-    """
-    convert_term = {
-        'II': (1, 'I'),
-        'IX': (1, 'X'),
-        'IY': (1, 'Y'),
-        'IZ': (1, 'Z'),
-
-        'XI': (1, 'X'),
-        'XX': (1, 'I'),
-        'XY': (1j, 'Z'),
-        'XZ': (-1j, 'Y'),
-
-        'YI': (1, 'Y'),
-        'YX': (-1j, 'Z'),
-        'YY': (1, 'I'),
-        'YZ': (1j, 'X'),
-
-        'ZI': (1, 'Z'),
-        'ZX': (1j, 'Y'),
-        'ZY': (-1j, 'X'),
-        'ZZ': (1, 'I')
-    }
-
-    PauliStr_tuples_Ps = [tup for PauliStrs, const in qubitOp_Ps.terms.items() for tup in PauliStrs]
-    qubitNo_Ps, PauliStr_Ps = zip(*PauliStr_tuples_Ps)
-    qubitNo_Ps = np.array(qubitNo_Ps)
-
-    PauliStr_tuples_Pk = [tup for PauliStrs, const in qubitOp_Pk.terms.items() for tup in PauliStrs]
-    qubitNo_Pk, PauliStr_Pk = zip(*PauliStr_tuples_Pk)
-    qubitNo_Pk = np.array(qubitNo_Pk)
-
-    common_qubits = np.intersect1d(qubitNo_Ps, qubitNo_Pk)
-
-    PauliStr_Ps_common = np.take(PauliStr_Ps, np.where(np.isin(qubitNo_Ps, common_qubits) == True)).flatten()
-    PauliStr_Pk_common = np.take(PauliStr_Pk, np.where(np.isin(qubitNo_Pk, common_qubits) == True)).flatten()
-
-    new_paulistr_list = []
-    new_factor = []
-    for index, pauli_str_Ps in enumerate(PauliStr_Ps_common):
-
-        pauli_str_Pk = PauliStr_Pk_common[index]
-        qubitNo = common_qubits[index]
-
-        combined_pauli_str = pauli_str_Ps + pauli_str_Pk
-
-        if convert_term[combined_pauli_str][1] != 'I':
-            new_pauli_str = convert_term[combined_pauli_str][1] + str(qubitNo)
-            new_paulistr_list.append(new_pauli_str)
-
-            new_factor.append(convert_term[combined_pauli_str][0])
-
-    new_constant = np.prod(new_factor)
-
-    for index, qubitNo in enumerate(qubitNo_Ps):
-        if qubitNo not in common_qubits:
-            Paulistring_Ps = PauliStr_Ps[index]
-            new_paulistr_list.append(Paulistring_Ps + str(qubitNo))
-
-    for index, qubitNo in enumerate(qubitNo_Pk):
-        if qubitNo not in common_qubits:
-            Paulistring_Pk = PauliStr_Pk[index]
-            new_paulistr_list.append(Paulistring_Pk + str(qubitNo))
-
-    seperator = ' '
-    pauliStr_list = seperator.join(new_paulistr_list)
-
-    X_sk = QubitOperator(pauliStr_list, 1j * new_constant)
-
-    return X_sk
-
-def Get_X_sk_operators(normalised_anticommuting_set_DICT, S=0):  #
-    """
-
-TODO
+    returns:
+        X_sk_theta_sk(list): list of tuples containing X_sk QubitOperator and Theta_sk value
+        normalised_FULL_set(dict): 'PauliWords' key gives NORMALISED terms that make up anti_commuting set
+                                    'gamma_l' key gives normalization term
+        Ps (QubitOperator): Pauli_S operator with cofactor of 1!
+        gamma_l (float): normalization term
 
     """
+    # 𝛾_𝑙 ∑ 𝛽_𝑗 𝑃_𝑗
+    normalised_FULL_set = Get_beta_j_cofactors(anti_commuting_set)
+    gamma_l = normalised_FULL_set['gamma_l']
 
-    qubit_Op_list_normalisted = normalised_anticommuting_set_DICT['PauliWords'].copy()
+    # ∑ 𝛽_𝑗 𝑃_𝑗
+    norm_FULL_set = normalised_FULL_set['PauliWords'].copy()
+    Pauli_S = norm_FULL_set.pop(S_index)  # removed from list!
 
-    if len(qubit_Op_list_normalisted) > 1:
+    Ps = QubitOperator(list(Pauli_S.terms.keys())[0], 1)
+    beta_S = list(Pauli_S.terms.values())[0]
 
-        PauliS = qubit_Op_list_normalisted.pop(S)
-        beta_S = list(PauliS.terms.values())[0]
+    X_sk_theta_sk = []
+    for i, BetaK_Pk in enumerate(norm_FULL_set):
+        Pk, BetaK = zip(*list(BetaK_Pk.terms.items()))
 
-        Op_list = []
-        running_total = 0
-        for index, PauliK in enumerate(qubit_Op_list_normalisted):
-            if index == 0:
-                X_sk_op = Get_X_sk(PauliS, PauliK)
-                beta_K = list(PauliK.terms.values())[0]
-                theta_sk = np.arctan(beta_K / beta_S)
+        X_sk = 1j * Ps * QubitOperator(Pk[0], 1)
 
-                if beta_S.real < 0:
-                    theta_sk = theta_sk + np.pi
+        if i < 1:
+            theta_sk = np.arctan(BetaK[0] / beta_S)
+            if beta_S.real < 0:
+                # print('correcting quadrant')
+                theta_sk = theta_sk + np.pi
 
-            else:
-                beta_K = list(PauliK.terms.values())[0]
-                running_total += beta_K ** 2
-                theta_sk = np.arctan(beta_K / np.sqrt(beta_S ** 2 + running_total))
+            X_sk_theta_sk.append((X_sk, theta_sk))
 
-            Op_list.append({'X_sk': X_sk_op,
-                            'theta_sk_over2': theta_sk / 2})  # , 'factor': normalised_anti_commuting_sets[key]['factor']})
+            beta_S_new = np.sqrt(BetaK[0] ** 2 + beta_S ** 2)
 
-        #         if beta_S<0: # if list(PauliS.terms.values())[0] < 0:
-        #             sign_gamma_l = -1
-        #         else:
-        #             sign_gamma_l = 1
+            if not np.isclose((BetaK[0] * np.cos(theta_sk) - beta_S * np.sin(theta_sk)), 0):
+                raise ValueError('mistake for choice of theta_sk')
 
-        return {'X_sk_and_theta_terms': Op_list, 'PauliWord_S': QubitOperator(list(PauliS.terms.keys())[0], 1),
-                'gamma_l': normalised_anticommuting_set_DICT['gamma_l']}  # *sign_gamma_l}
+        else:
 
-# ANDREW CODE:
-# def thetasFromOplist(normalisedOplist):
-#     betas = [x for x in normalisedOplist]
-#     squaredBetas = [x**2 for x in betas]
-#
-#     runningTotal = squaredBetas[-1]
-#     squaredBetaSums = [runningTotal]
-#     for i in range(1,len(normalisedOplist)-1):
-#         runningTotal += squaredBetas[i-1]
-#         squaredBetaSums.append(runningTotal)
-#
-#     l2Betas = [x**(1./2.) for x in squaredBetaSums]
-#     l2Betas[0] = betas[-1]
-#     thetas = [np.arctan(betas[i]/l2Betas[i]) for i in range(len(l2Betas))]
-#     if betas[-1].real < 0.:
-#         thetas[0] = thetas[0] + np.pi
-#     return thetas
-#
-# thetasFromOplist([0.9668047296891765, -0.25551636865500044])
-from quchem.quantum_circuit_functions import full_exponentiated_PauliWord_circuit
-from openfermion.ops import QubitOperator
-import cirq
+            theta_sk = np.arctan(BetaK[0] / beta_S_new)
+            X_sk_theta_sk.append((X_sk, theta_sk))
 
-def Build_reduction_circuit(normalised_anticommuting_set_X_sk_DICT):
-    for term in normalised_anticommuting_set_X_sk_DICT['X_sk_and_theta_terms']:
-        pauliword_X_sk = list(term['X_sk'].terms.keys())[0]
-        const_X_sk = list(term['X_sk'].terms.values())[0]
+            if not np.isclose((BetaK[0] * np.cos(theta_sk) - beta_S_new * np.sin(theta_sk)), 0):
+                raise ValueError('mistake for choice of theta_sk')
 
-        theta_sk_over2 = term['theta_sk_over2']
+            beta_S_new = np.sqrt(BetaK[0] ** 2 + beta_S_new ** 2)
+
+    return X_sk_theta_sk, normalised_FULL_set, Ps, gamma_l
+
+from quchem.quantum_circuit_functions import *
+def Build_reduction_circuit(anti_commuting_set, S_index, check_reduction=False):
+    """
+    Function to build R_S (make up of all R_SK terms)
+
+    Args:
+        anti_commuting_set(list): list of anti commuting QubitOperators
+        S_index(int): index for Ps in anti_commuting_set list
+        check_reduction (optional, bool): use linear algebra to check that 𝑅s† 𝐻s 𝑅s == 𝑃s
+    returns:
+        full_RS_circuit(cirq.Circuit): Q_circuit for R_s operator
+        Ps (QubitOperator): Pauli_S operator with cofactor of 1!
+        gamma_l (float): normalization term
+
+    """
+    X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(anti_commuting_set, S_index)
+
+    circuit_list = []
+    for X_sk_Op, theta_sk in X_sk_theta_sk_list:
+        pauliword_X_sk = list(X_sk_Op.terms.keys())[0]
+        const_X_sk = list(X_sk_Op.terms.values())[0]
 
         full_exp_circ_obj = full_exponentiated_PauliWord_circuit(QubitOperator(pauliword_X_sk, -1j),
-                                                                 theta_sk_over2 * const_X_sk)
+                                                                 theta_sk / 2 * const_X_sk)
 
         circuit = cirq.Circuit(
             cirq.decompose_once((full_exp_circ_obj(*cirq.LineQubit.range(full_exp_circ_obj.num_qubits())))))
 
-        yield circuit
+        circuit_list.append(circuit)
 
-from quchem.quantum_circuit_functions import change_pauliword_to_Z_basis_then_measure
-def Generate_Full_Q_Circuit_unitary_part(Full_Ansatz_Q_Circuit, normalised_anticommuting_set_X_sk_DICT):
+    full_RS_circuit = cirq.Circuit(circuit_list)
+
+    if check_reduction:
+
+        H_S = QubitOperator()
+        for QubitOp in full_normalised_set['PauliWords']:
+            H_S += QubitOp
+        from openfermion import qubit_operator_sparse
+        H_S_matrix = qubit_operator_sparse(H_S)
+
+        n_qubits =  int(np.log2(qubit_operator_sparse(H_S).todense().shape[0]))
+        qbits = cirq.LineQubit.range(n_qubits)
+
+        R_S_matrix = full_RS_circuit.unitary(qubits_that_should_be_present=qbits)
+
+        Ps_mat = Get_pauli_matrix(Ps, len(qbits))
+
+        reduction_mat = R_S_matrix.dot(H_S_matrix.dot(R_S_matrix.conj().transpose()))
+
+        if not (np.allclose(Ps_mat.todense(), reduction_mat)):
+            print('reduction circuit incorrect...   𝑅s 𝐻s 𝑅s† != 𝑃s')
+
+    return full_RS_circuit, Ps, gamma_l
+
+
+def Generate_Full_Q_Circuit_conj(Full_Ansatz_Q_Circuit, anti_commuting_set, S_index, check_reduction=False):
     """
-     TODO
+    Function to build full Q Circuit... ansatz circuit + R_S
 
     Args:
-
-
-    Returns:
-        full_circuit (cirq.circuits.circuit.Circuit): Full cirq VQE circuit
+        Full_Ansatz_Q_Circuit (cirq.Circuit): ansatz quantum circuit
+        anti_commuting_set(list): list of anti commuting QubitOperators
+        S_index(int): index for Ps in anti_commuting_set list
+        check_reduction (optional, bool): use linear algebra to check that 𝑅s† 𝐻s 𝑅s == 𝑃s
+    returns:
+        full_RS_circuit(cirq.Circuit): Q_circuit for R_s operator
+        Ps (QubitOperator): Pauli_S operator with cofactor of 1!
+        gamma_l (float): normalization term
 
     """
+    Reduction_circuit_circ, Ps, gamma_l = Build_reduction_circuit(anti_commuting_set, S_index,
+                                                                  check_reduction=check_reduction)
 
-    Reduction_circuit_obj = Build_reduction_circuit(normalised_anticommuting_set_X_sk_DICT)
-    Reduction_circuit_circ = cirq.Circuit(Reduction_circuit_obj)
-
-    measure_PauliS_in_Z_basis_obj = change_pauliword_to_Z_basis_then_measure(
-        normalised_anticommuting_set_X_sk_DICT['PauliWord_S'])
+    measure_PauliS_in_Z_basis_obj = change_pauliword_to_Z_basis_then_measure(Ps)
     measure_PauliS_in_Z_basis_Q_circ = cirq.Circuit(cirq.decompose_once(
         (measure_PauliS_in_Z_basis_obj(*cirq.LineQubit.range(measure_PauliS_in_Z_basis_obj.num_qubits())))))
 
@@ -212,12 +187,14 @@ def Generate_Full_Q_Circuit_unitary_part(Full_Ansatz_Q_Circuit, normalised_antic
             *measure_PauliS_in_Z_basis_Q_circ.all_operations(),
         ]
     )
-    return full_circuit
+    return full_circuit, Ps, gamma_l
+
 
 from quchem.Simulating_Quantum_Circuit import *
-class VQE_Experiment_UP():
-    def __init__(self, graph_dict_sets, ansatz_circuit, n_shots, S_key_dict=None):
-        self.graph_dict_sets = graph_dict_sets
+class VQE_Experiment_Conj_UP():
+
+    def __init__(self, anti_commuting_sets, ansatz_circuit, n_shots, S_key_dict=None):
+        self.anti_commuting_sets = anti_commuting_sets
         self.ansatz_circuit = ansatz_circuit
         self.S_key_dict = S_key_dict
         self.n_shots = n_shots
@@ -225,37 +202,38 @@ class VQE_Experiment_UP():
     def Calc_Energy(self):
 
         E_list = []
-        for set_key in self.graph_dict_sets:
+        for set_key in self.anti_commuting_sets:
 
-            if len(self.graph_dict_sets[set_key]) > 1:
+            anti_commuting_set = self.anti_commuting_sets[set_key]
 
-                normalised_set = Get_beta_j_cofactors(self.graph_dict_sets[set_key])
+            if len(anti_commuting_set) > 1:
 
                 if self.S_key_dict is None:
-                    X_sk_dict = Get_X_sk_operators(normalised_set, S=0)
-                else:
-                    X_sk_dict = Get_X_sk_operators(normalised_set, S=self.S_key_dict[set_key])
+                    Q_circuit, Ps, gamma_l = Generate_Full_Q_Circuit_conj(self.ansatz_circuit,
+                                                                          anti_commuting_set,
+                                                                          0,  # <- S_index set to 0
+                                                                          check_reduction=False)
 
-                Q_circuit = Generate_Full_Q_Circuit_unitary_part(self.ansatz_circuit, X_sk_dict)
-                hist_key_str = Get_Histogram_key(X_sk_dict['PauliWord_S'])
+                else:
+                    Q_circuit, Ps, gamma_l = Generate_Full_Q_Circuit_conj(self.ansatz_circuit,
+                                                                          anti_commuting_set,
+                                                                          self.S_key_dict[set_key],
+                                                                          # <- S_index set to 0
+                                                                          check_reduction=False)
+
+                hist_key_str = Get_Histogram_key(Ps)
                 int_state_counter = Simulate_Quantum_Circuit(Q_circuit, self.n_shots, hist_key_str)
                 binary_state_counter = Return_as_binary(int_state_counter, hist_key_str)
                 exp_result = expectation_value_by_parity(binary_state_counter)
-                E_list.append(exp_result * X_sk_dict['gamma_l'])
 
-            #                 print('')
-            #                 print('PauliWord_S = ',X_sk_dict['PauliWord_S'])
-            #                 print(exp_result, X_sk_dict['gamma_l'])
-            #                 print('')
+                E_list.append(exp_result * gamma_l)
+
+
 
             else:
-                qubitOp = self.graph_dict_sets[set_key][0]
+                qubitOp = anti_commuting_set[0]
 
                 for PauliWord, const in qubitOp.terms.items():
-
-                    #                     print('')
-                    #                     print(qubitOp)
-
                     if PauliWord is not ():
                         Q_circuit = Generate_Full_Q_Circuit(self.ansatz_circuit, qubitOp)
                         hist_key_str = Get_Histogram_key(qubitOp)
@@ -264,37 +242,30 @@ class VQE_Experiment_UP():
                         exp_result = expectation_value_by_parity(binary_state_counter)
                         E_list.append(exp_result * const)
 
-                    #                         print(exp_result, const)
-                    #                         print('')
-
                     else:
                         E_list.append(const)
 
-        #                         print(const)
-        #                         print('')
-
         return sum(E_list).real
 
-    def Get_wavefunction_of_state(self, sig_figs=3):
-        return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
+########## Linear Algebra approach
 
-
-# lin alg approach:
-
-def Generate_Full_Q_Circuit_unitary_part_NO_M_gates(Full_Ansatz_Q_Circuit, normalised_anticommuting_set_X_sk_DICT):
+def Generate_Full_Q_Circuit_Conj_NO_M_gates(Full_Ansatz_Q_Circuit, anti_commuting_set, S_index, check_reduction=False):
     """
-     TODO
-
+    Function to build full Q Circuit... ansatz circuit + R_S
+    But with NO measurement process!
     Args:
-
-
-    Returns:
-        full_circuit (cirq.circuits.circuit.Circuit): Full cirq VQE circuit
+        Full_Ansatz_Q_Circuit (cirq.Circuit): ansatz quantum circuit
+        anti_commuting_set(list): list of anti commuting QubitOperators
+        S_index(int): index for Ps in anti_commuting_set list
+        check_reduction (optional, bool): use linear algebra to check that 𝑅s† 𝐻s 𝑅s == 𝑃s
+    returns:
+        full_RS_circuit(cirq.Circuit): Q_circuit for R_s operator
+        Ps (QubitOperator): Pauli_S operator with cofactor of 1!
+        gamma_l (float): normalization term
 
     """
-
-    Reduction_circuit_obj = Build_reduction_circuit(normalised_anticommuting_set_X_sk_DICT)
-    Reduction_circuit_circ = cirq.Circuit(Reduction_circuit_obj)
+    Reduction_circuit_circ, Ps, gamma_l = Build_reduction_circuit(anti_commuting_set, S_index,
+                                                                  check_reduction=check_reduction)
 
     full_circuit = cirq.Circuit(
         [
@@ -302,87 +273,67 @@ def Generate_Full_Q_Circuit_unitary_part_NO_M_gates(Full_Ansatz_Q_Circuit, norma
             *Reduction_circuit_circ.all_operations(),
         ]
     )
-    return full_circuit
-class VQE_Experiment_UP_lin_alg():
-    def __init__(self, graph_dict_sets, ansatz_circuit,N_system_qubits, S_key_dict=None):
-        self.graph_dict_sets = graph_dict_sets
+    return full_circuit, Ps, gamma_l
+
+class VQE_Experiment_Conj_UP_lin_alg():
+
+    def __init__(self, anti_commuting_sets, ansatz_circuit, S_key_dict=None):
+        self.anti_commuting_sets = anti_commuting_sets
         self.ansatz_circuit = ansatz_circuit
         self.S_key_dict = S_key_dict
-        self.N_system_qubits = N_system_qubits
 
-        self.pauliDict = {'X': np.array([[0, 1], [1, 0]]),
-                          'Y': np.array([[0, -1j], [1j, 0]]),
-                          'Z': np.array([[1, 0], [0, -1]]),
-                          'I': np.eye(2)}
-
-        self.zero_state = np.array([[1], [0]])
-
-    def Get_output_ket(self, Q_circuit_no_M_gates):
-
-        input_state = [self.zero_state for _ in range(len(Q_circuit_no_M_gates.all_qubits()))]
-        input_ket = reduce(kron, input_state)
-        circuit_matrix = Q_circuit_no_M_gates.unitary()
-
-        output_ket = circuit_matrix.dot(input_ket.todense())
-
-        if not np.isclose(sum([i**2 for i in output_ket]), 1):
-            raise ValueError('output ket is not normalised properly')
-
-        return np.array(output_ket) #.reshape([(2 ** len(self.ansatz_circuit.all_qubits())), 1])
-
-    def Get_pauli_matrix(self, PauliOp):
-
-        list_Q_nos, list_P_strs = list(zip(*[Paulistrs for Paulistrs, const in PauliOp.terms.items()][0]))
-
-        list_of_ops = []
-        for i in range(self.N_system_qubits):
-            if i not in list_Q_nos:
-                list_of_ops.append(self.pauliDict['I'])
-            else:
-                index = list_Q_nos.index(i)
-                list_of_ops.append(self.pauliDict[list_P_strs[index]])
-        matrix = reduce(kron, list_of_ops)
-
-        return matrix
+        input_state = [np.array([[1], [0]]) for _ in range(len(ansatz_circuit.all_qubits()))]
+        self.input_ket = reduce(kron, input_state).todense()
 
     def Calc_Energy(self):
 
         E_list = []
-        for set_key in self.graph_dict_sets:
+        for set_key in self.anti_commuting_sets:
 
-            if len(self.graph_dict_sets[set_key]) > 1:
+            anti_commuting_set = self.anti_commuting_sets[set_key]
 
-                normalised_set = Get_beta_j_cofactors(self.graph_dict_sets[set_key])
-
+            if len(anti_commuting_set) > 1:
                 if self.S_key_dict is None:
-                    X_sk_dict = Get_X_sk_operators(normalised_set, S=0)
+                    Q_circuit, Ps, gamma_l = Generate_Full_Q_Circuit_Conj_NO_M_gates(self.ansatz_circuit,
+                                                                                     anti_commuting_set,
+                                                                                     0,  # <- S_index set to 0
+                                                                                     check_reduction=False)
+
                 else:
-                    X_sk_dict = Get_X_sk_operators(normalised_set, S=self.S_key_dict[set_key])
+                    Q_circuit, Ps, gamma_l = Generate_Full_Q_Circuit_Conj_NO_M_gates(self.ansatz_circuit,
+                                                                                     anti_commuting_set,
+                                                                                     self.S_key_dict[set_key],
+                                                                                     # <- S_index set to 0
+                                                                                     check_reduction=False)
 
-                Q_circuit = Generate_Full_Q_Circuit_unitary_part_NO_M_gates(self.ansatz_circuit, X_sk_dict)
+                circuit_matrix = Q_circuit.unitary()
 
-                state_ket = self.Get_output_ket(Q_circuit)
-                state_bra = state_ket.transpose().conj()
-                H_sub_term_matrix = self.Get_pauli_matrix(X_sk_dict['PauliWord_S'])
+                final_state_ket = circuit_matrix.dot(self.input_ket)
+                final_state_bra = final_state_ket.transpose().conj()
 
-                energy = state_bra.dot(H_sub_term_matrix.dot(state_ket))
-                E_list.append(energy[0][0] * X_sk_dict['gamma_l'])
+                Ps_matrix = Get_pauli_matrix(Ps, len(self.ansatz_circuit.all_qubits()))
+
+                exp_result = final_state_bra.dot(Ps_matrix.todense().dot(final_state_ket))
+                E_list.append(exp_result.item(0) * gamma_l)
 
             else:
-                single_PauliOp = self.graph_dict_sets[set_key][0]
+                qubitOp = anti_commuting_set[0]
 
-                if list(single_PauliOp.terms.keys())[0] == ():
-                    E_list.append(list(single_PauliOp.terms.values())[0])
-                else:
-                    state_ket = self.Get_output_ket(self.ansatz_circuit)
-                    state_bra = state_ket.transpose().conj()
-                    # H_sub_term_matrix = get_sparse_operator(single_PauliOp, n_qubits=self.N_system_qubits)
-                    H_sub_term_matrix = self.Get_pauli_matrix(single_PauliOp)
-                    energy = state_bra.dot(H_sub_term_matrix.dot(state_ket))
-                    E_list.append(energy[0][0] * list(single_PauliOp.terms.values())[0])
+                for PauliWord, const in qubitOp.terms.items():
+                    if PauliWord is not ():
+                        circuit_matrix = self.ansatz_circuit.unitary()
+
+                        final_state_ket = circuit_matrix.dot(self.input_ket)
+                        final_state_bra = final_state_ket.transpose().conj()
+
+                        P_matrix = Get_pauli_matrix(qubitOp, len(self.ansatz_circuit.all_qubits()))
+
+                        exp_result = final_state_bra.dot(P_matrix.todense().dot(final_state_ket))
+                        E_list.append(exp_result.item(0) * const)
+
+                    else:
+                        E_list.append(const)
 
         return sum(E_list).real
 
-    def Get_wavefunction_of_state(self, sig_figs=3):
-        return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
 
