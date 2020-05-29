@@ -671,18 +671,20 @@ class VQE_Experiment_LCU_UP():
                     break
         return binary_results_dict
 
-    def Calc_Energy(self):
+    def Calc_Energy(self, check_LCU_reduction=False):
 
         E_list = []
         for set_key in self.anti_commuting_sets:
             if len(self.anti_commuting_sets[set_key]) > 1:
 
                 if self.N_indices_dict is None:
-                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key], 0)
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key], 0,
+                                                               check_operator=check_LCU_reduction)
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
                 else:
                     R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key],
-                                                                          self.N_indices_dict[set_key])
+                                                                          self.N_indices_dict[set_key],
+                                                               check_operator=check_LCU_reduction)
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
 
                 Q_circuit = Full_Q_Circuit(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
@@ -886,7 +888,7 @@ class VQE_Experiment_LCU_UP_lin_alg():
 
         return matrix
 
-    def Calc_Energy(self):
+    def Calc_Energy(self, check_LCU_reduction=False):
         # from openfermion.transforms import get_sparse_operator
 
         E_list = []
@@ -894,11 +896,13 @@ class VQE_Experiment_LCU_UP_lin_alg():
             if len(self.anti_commuting_sets[set_key]) > 1:
 
                 if self.N_indices_dict is None:
-                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key], 0)
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key], 0,
+                                                               check_operator=check_LCU_reduction)
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
                 else:
                     R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key],
-                                                                          self.N_indices_dict[set_key])
+                                                                          self.N_indices_dict[set_key],
+                                                               check_operator=check_LCU_reduction)
                     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
 
                 ### checking ancilla line!
@@ -950,7 +954,7 @@ class VQE_Experiment_LCU_UP_lin_alg():
                     H_sub_term_matrix = self.Get_pauli_matrix(single_PauliOp)
                     # H_sub_term_matrix = get_sparse_operator(single_PauliOp, n_qubits=self.N_system_qubits)
                     energy = ansatz_state_bra.dot(H_sub_term_matrix.todense().dot(ansatz_state_ket))
-                    E_list.append(energy[0][0] * list(single_PauliOp.terms.values())[0])
+                    E_list.append(energy.item(0) * list(single_PauliOp.terms.values())[0])
 
         return sum(E_list)
 
