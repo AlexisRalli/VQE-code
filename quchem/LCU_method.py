@@ -842,11 +842,22 @@ class VQE_Experiment_LCU_UP_lin_alg():
 
         ## Next get partial density matrix over system qubits # aka partial trace!
         # https://scicomp.stackexchange.com/questions/27496/calculating-partial-trace-of-array-in-numpy
-
         # reshape to do the partial trace easily using np.einsum
         reshaped_dm = projected_density_matrix.reshape([2 ** self.N_system_qubits, 2 ** n_ancilla,
                                                         2 ** self.N_system_qubits, 2 ** n_ancilla])
         reduced_dm = np.einsum('jiki->jk', reshaped_dm)
+
+        # ### taking partial trace ### manual method!
+        # # p_a = sum_{b} (I_{a}*<b|) p_{ab} (I_{a}*|b>)
+        # basis_ancilla = np.eye((2 ** n_ancilla))
+        # reduced_dm = np.zeros((2 ** self.N_system_qubits, 2 ** self.N_system_qubits), dtype=complex)
+        # for b in range(basis_ancilla.shape[0]):
+        #     b_ket = basis_ancilla[b, :].reshape([2 ** n_ancilla, 1])
+        #     I_a_b_ket = np.kron(I_system_operator, b_ket)
+        #     I_a_b_bra = I_a_b_ket.transpose().conj()
+        #
+        #     term = I_a_b_bra.dot(projected_density_matrix.dot(I_a_b_ket))
+        #     reduced_dm += term
 
         if not np.isclose(np.trace(reduced_dm), 1):
             raise ValueError('partial density matrix is not normalised properly {}'.format(np.trace(reduced_dm)))
