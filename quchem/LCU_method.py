@@ -284,9 +284,6 @@ class Perform_Modified_PauliWord(cirq.Gate):
         else:
             qubitNos_list, P_strs_list = zip(*list(self.PauliQubitOp.terms.keys())[0])
 
-            #             for index, P_str in enumerate(P_strs_list):
-            #                 yield Perform_modified_Pauligate(P_str, self.correction_val).on(qubits[qubitNos_list[index]])
-
             for index, qNo in enumerate(qubitNos_list):
                 P_str = P_strs_list[index]
                 if qNo == self.sign_index:
@@ -381,21 +378,23 @@ class LCU_R_gate(cirq.Gate):
                 yield mod_p_word_gate.controlled(num_controls=self.No_control_qubits, control_values=control_values).on(
                     *qubit_list)  # *qubit_list
             else:
-                control_str = Get_state_as_str(self.No_control_qubits, control_state_index)
-                control_values = [int(bit) for bit in control_str]
+                #identity circuit
+                if self.R_correction_list[control_state_index]!=1: # checks if phase correction is required!
+                    control_str = Get_state_as_str(self.No_control_qubits, control_state_index)
+                    control_values = [int(bit) for bit in control_str]
 
-                list_of_X_qNos_Pn, _ = list(
-                    zip(*[Paulistrs for qubitOp in self.Pn for Paulistrs, const in qubitOp.terms.items()][0]))
-                No_I_qubit_to_Operate = list_of_X_qNos_Pn[0] + 1
+                    list_of_X_qNos_Pn, _ = list(
+                        zip(*[Paulistrs for qubitOp in self.Pn for Paulistrs, const in qubitOp.terms.items()][0]))
+                    No_I_qubit_to_Operate = list_of_X_qNos_Pn[0] + 1
 
-                qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits) \
-                             + cirq.LineQubit.range(No_I_qubit_to_Operate)  # note control qubits first!
+                    qubit_list = cirq.LineQubit.range(self.No_system_qubits, self.No_system_qubits + self.No_control_qubits) \
+                                 + cirq.LineQubit.range(No_I_qubit_to_Operate)  # note control qubits first!
 
-                mod_p_word_gate = Perform_Modified_PauliWord(R_qubitOp_corrected,
-                                                             self.R_correction_list[control_state_index], self.Pn)
+                    mod_p_word_gate = Perform_Modified_PauliWord(R_qubitOp_corrected,
+                                                                 self.R_correction_list[control_state_index], self.Pn)
 
-                yield mod_p_word_gate.controlled(num_controls=self.No_control_qubits, control_values=control_values).on(
-                    *qubit_list)  # *qubit_list
+                    yield mod_p_word_gate.controlled(num_controls=self.No_control_qubits, control_values=control_values).on(
+                        *qubit_list)  # *qubit_list
 
     def _circuit_diagram_info_(self, args):
 
@@ -717,7 +716,8 @@ class VQE_Experiment_LCU_UP():
 
 
 ####
-def Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, ansatz_circ):
+def Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits,
+                                      ansatz_circ, decompose_into_two_qubit_gates=False):
 
     """
     Generate cirq circuit doing the following:
@@ -759,17 +759,26 @@ def Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_correction_list
 
     """
 
-    ancilla_obj = prepare_arb_state(ancilla_amplitudes, N_system_qubits)
-    ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
-    N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
 
-    R_circ_obj = LCU_R_gate(N_ancilla_qubits, N_system_qubits, R_corrected_Op_list, R_correction_list, Pn)
-    R_circ_circ = cirq.Circuit(
-        cirq.decompose_once((R_circ_obj(*cirq.LineQubit.range(R_circ_obj.num_qubits())))))
 
-#     change_to_Z_basis_obj = Change_PauliWord_measurement_to_Z_basis(Pn)
-#     change_to_Z_basis_circ = cirq.Circuit(
-#         cirq.decompose_once((change_to_Z_basis_obj(*cirq.LineQubit.range(change_to_Z_basis_obj.num_qubits())))))
+    if decompose_into_two_qubit_gates:
+        # TODO need to decompose ancilla into two qubit gates!!!
+        ancilla_obj = prepare_arb_state(ancilla_amplitudes, N_system_qubits)
+        ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
+        N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
+
+        R_circ_obj = LCU_R_gate(N_ancilla_qubits, N_system_qubits, R_corrected_Op_list, R_correction_list, Pn)
+        R_circ_circ = cirq.Circuit(
+            cirq.decompose((R_circ_obj(*cirq.LineQubit.range(R_circ_obj.num_qubits())))))
+    else:
+        ancilla_obj = prepare_arb_state(ancilla_amplitudes, N_system_qubits)
+        ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
+        N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
+
+        R_circ_obj = LCU_R_gate(N_ancilla_qubits, N_system_qubits, R_corrected_Op_list, R_correction_list, Pn)
+        R_circ_circ = cirq.Circuit(
+            cirq.decompose_once((R_circ_obj(*cirq.LineQubit.range(R_circ_obj.num_qubits())))))
+
 
     full_Q_circ = cirq.Circuit([
         *ansatz_circ.all_operations(),

@@ -715,6 +715,7 @@ class My_U_Gate(cirq.SingleQubitGate):
 
 def Get_control_parameters(num_qubits, Coefficient_list):
     if len(Coefficient_list) != 2 ** num_qubits:
+        # fill missing terms with amplitude of zero!
         Coefficient_list = Coefficient_list + [0 for _ in range(2 ** num_qubits - len(Coefficient_list))]
         #raise ValueError('incorrect number of coefficients')
 
@@ -837,7 +838,8 @@ gives :
                     theta = term['angle']
 
                     if theta == 0:
-                        yield cirq.I.on(cirq.LineQubit(qubit+self.N_system_qubits))
+                        # yield cirq.I.on(cirq.LineQubit(qubit+self.N_system_qubits))
+                        pass
                     else:
                         U_single_qubit = My_U_Gate(theta)
                         qubit_list = cirq.LineQubit.range(self.N_system_qubits, self.N_system_qubits+1 + num_controls)
@@ -889,4 +891,3 @@ class prepare_arb_state():
         result = simulator.compute_amplitudes(circuit, bitstrings=[i for i in range(2 ** len(circuit.all_qubits()))])
         result = np.around(result, sig_figs)
         return result.reshape([(2 ** len(circuit.all_qubits())), 1])
-
