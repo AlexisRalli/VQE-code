@@ -1,0 +1,24 @@
+PREAMBLE \providecommand{\ket}[1]{\left|#1\right\rangle}
+SCALE 1.5
+
+# defining wires
+q0 W \ket{0}_{a}
+q1 W \ket{\psi}_{s} \ket{\psi}_{s}
+
+
+#### prepare ancillary state via G
+q0 G $G$ color=black %% step $i$
+
+#### perform U
+q1 G $U_{0}$ -q0
+q1 G $U_{1}$ q0
+
+@ 1 2 %% step $ii$
+
+#### perform G†
+q0 G $G^{\dagger}$ %% step $iii$
+
+#### measure ancilla
+q0 M
+
+

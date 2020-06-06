@@ -1,0 +1,48 @@
+PREAMBLE \providecommand{\ket}[1]{\left|#1\right\rangle}
+PREAMBLE \providecommand{\expect}[1]{\left\langle#1\right\rangle}
+SCALE 1.5
+
+# defining wires
+q0 W \ket{0}
+q1 W \ket{0}
+...q2 W
+q3 W \ket{0}
+
+# empty space
+q0 LABEL
+
+# generate ref state
+q0 q1 q3 G $V$ color=black % Generate reference \\ state
+
+# empty space
+q0 LABEL
+q0 LABEL
+@ 2 3 %% $\ket{\psi(0)}$
+
+# get parameterised state
+q0 q1 q3 G:width=20 $U \big( \vec{\theta} \, \big)$ color=black % Get parameterised \\ Ansatz state
+
+# empty space
+q0 LABEL
+q1 LABEL
+q3 LABEL
+q0 LABEL
+q1 LABEL
+q3 LABEL
+@ 5 6 %% $\ket{\psi( \vec{\theta} \,)}$
+
+# get parameterised state
+q0 G:width=30 $R : \sigma^{i}_{0}$ color=black %% Change \\ basis # R:P_i means R is defined by Pi (see https://en.wikipedia.org/wiki/List_of_mathematical_symbols_by_subject)
+
+q1 G:width=30 $R : \sigma^{i}_{1}$ color=black 
+q3 G:width=30 $R : \sigma^{i}_{N-1}$ color=black % $R \in \{\mathcal{I}, H, R_{x}(-\frac{\pi}{2}) \}$
+
+#### measure qubits
+q0 M {\scriptsize $Z$}
+q1 M {\scriptsize $Z$}
+q3 M {\scriptsize $Z$}
+
+## result
+q0 q1 q3  W >\expect{P_{i}} = \sigma^{i}_{0}\otimes \sigma^{i}_{1} \otimes ... \otimes  \sigma^{i}_{N-1}
+
+
