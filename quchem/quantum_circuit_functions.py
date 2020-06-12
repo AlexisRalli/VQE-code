@@ -712,7 +712,6 @@ class My_U_Gate(cirq.SingleQubitGate):
 
     def __repr__(self):
         return ' U_arb_state_prep'
-
 def Get_control_parameters(num_qubits, Coefficient_list):
     if len(Coefficient_list) != 2 ** num_qubits:
         # fill missing terms with amplitude of zero!
@@ -891,3 +890,338 @@ class prepare_arb_state():
         result = simulator.compute_amplitudes(circuit, bitstrings=[i for i in range(2 ** len(circuit.all_qubits()))])
         result = np.around(result, sig_figs)
         return result.reshape([(2 ** len(circuit.all_qubits())), 1])
+
+### breaking up multi-control gate into one and two qubit gates!
+from functools import reduce
+class My_V_gate(cirq.SingleQubitGate):
+    """
+    Description
+
+    Args:
+        theta (float): angle to rotate by in radians.
+        number_control_qubits (int): number of control qubits
+    """
+
+    def __init__(self, V_mat, V_dag_mat, dagger_gate=False):
+        self.V_mat = V_mat
+        self.V_dag_mat = V_dag_mat
+        self.dagger_gate = dagger_gate
+
+    def _unitary_(self):
+        if self.dagger_gate:
+            return self.V_dag_mat
+        else:
+            return self.V_mat
+
+    def num_qubits(self):
+        return 1
+
+    def _circuit_diagram_info_(self, args):
+        if self.dagger_gate:
+            return 'V^{†}'
+        else:
+            return 'V'
+
+    def __str__(self):
+        if self.dagger_gate:
+            return 'V^{†}'
+        else:
+            return 'V'
+
+    def __repr__(self):
+        return self.__str__()
+def int_to_Gray(base_10_num, n_qubits):
+    # https://en.wikipedia.org/wiki/Gray_code
+
+    # print(np.binary_repr(num, n_qubits)) # standard binary form!
+
+    # The operator >> is shift right. The operator ^ is exclusive or
+    gray_int = base_10_num ^ (base_10_num >> 1)
+
+    return np.binary_repr(gray_int, n_qubits)
+def check_binary_str_parity(binary_str):
+    """
+    Returns 0 for EVEN parity
+    Returns 1 for ODD parity
+    """
+    parity = sum(map(int, binary_str)) % 2
+
+    return parity
+
+
+from sympy.physics.quantum import Dagger
+import numpy as np
+import cirq
+from sympy import *
+class n_control_U(cirq.Gate):
+    """
+    """
+
+    def __init__(self, list_of_control_qubits, list_control_vals, U_qubit, U_cirq_gate, n_control_qubits):
+        self.U_qubit = U_qubit
+        self.U_cirq_gate = U_cirq_gate
+
+        if len(list_of_control_qubits) != len(list_control_vals):
+            raise ValueError('incorrect qubit control bits or incorrect number of control qubits')
+
+        self.list_of_control_qubits = list_of_control_qubits
+        self.list_control_vals = list_control_vals
+
+        self.n_ancilla = len(list_of_control_qubits)
+        self.D = None
+        self.n_root = 2 ** (n_control_qubits - 1)
+        self.n_control_qubits = n_control_qubits
+
+        self.V_mat = None
+        self.V_dag_mat = None
+
+    def _diagonalise_U(self):
+
+        # find diagonal matrix:
+        U_matrix = Matrix(self.U_cirq_gate._unitary_())
+        self.S, self.D = U_matrix.diagonalize()
+        self.S_inv = self.S ** -1
+        # where U = S D S^{-1}
+
+        if not np.allclose(np.array(self.S * (self.D * self.S_inv), complex), self.U_cirq_gate._unitary_()):
+            raise ValueError('U != SDS-1')
+
+    def Get_V_gate_matrices(self, check=True):
+
+        if self.D is None:
+            self._diagonalise_U()
+        D_nth_root = self.D ** (1 / self.n_root)
+
+        V_mat = self.S * D_nth_root * self.S_inv
+        V_dag_mat = Dagger(V_mat)
+
+        self.V_mat = np.array(V_mat, complex)
+        self.V_dag_mat = np.array(V_dag_mat, complex)
+
+        if check:
+            V_power_n = reduce(np.matmul, [self.V_mat for _ in range(self.n_root)])
+            if not np.allclose(V_power_n, self.U_cirq_gate._unitary_()):
+                raise ValueError('V^{n} != U')
+
+    def flip_control_to_zero(self):
+        for index, control_qubit in enumerate(self.list_of_control_qubits):
+            if self.list_control_vals[index] == 0:
+                yield cirq.X.on(control_qubit)
+
+    def _get_gray_control_lists(self):
+
+        grey_cntrl_bit_lists = []
+        n_ancilla = len(self.list_of_control_qubits)
+        for grey_index in range(1, 2 ** n_ancilla):
+            gray_control_str = int_to_Gray(grey_index, n_ancilla)[::-1]  # note reversing order
+            control_list = list(map(int, gray_control_str))
+            parity = check_binary_str_parity(gray_control_str)
+
+            grey_cntrl_bit_lists.append((control_list, parity))
+        return grey_cntrl_bit_lists
+
+    def _decompose_(self, qubits):
+        if (self.V_mat is None) or (self.V_dag_mat is None):
+            self.Get_V_gate_matrices()
+
+        V_gate_DAGGER = My_V_gate(self.V_mat, self.V_dag_mat, dagger_gate=True)
+        V_gate = My_V_gate(self.V_mat, self.V_dag_mat, dagger_gate=False)
+
+        ## flip if controlled on zero
+        X_flip = self.flip_control_to_zero()
+        yield X_flip
+
+        ## perform controlled gate
+        n_ancilla = len(self.list_of_control_qubits)
+
+        grey_control_lists = self._get_gray_control_lists()
+
+        for control_index, binary_control_tuple in enumerate(grey_control_lists):
+
+            binary_control_seq, parity = binary_control_tuple
+            control_indices = np.where(np.array(binary_control_seq) == 1)[0]
+            control_qubit = control_indices[-1]
+
+            if parity == 1:
+                gate = V_gate.controlled(num_controls=1, control_values=[1]).on(
+                    self.list_of_control_qubits[control_qubit], self.U_qubit)
+            else:
+                gate = V_gate_DAGGER.controlled(num_controls=1, control_values=[1]).on(
+                    self.list_of_control_qubits[control_qubit], self.U_qubit)
+
+            if control_index == 0:
+                yield gate
+            else:
+                for c_index in range(len(control_indices[:-1])):
+                    yield cirq.CNOT(self.list_of_control_qubits[control_indices[c_index]],
+                                    self.list_of_control_qubits[control_indices[c_index + 1]])
+                yield gate
+                for c_index in list(range(len(control_indices[:-1])))[::-1]:
+                    yield cirq.CNOT(self.list_of_control_qubits[control_indices[c_index]],
+                                    self.list_of_control_qubits[control_indices[c_index + 1]])
+
+        ## unflip if controlled on zero
+        X_flip = self.flip_control_to_zero()
+        yield X_flip
+
+    def _circuit_diagram_info_(self, args):
+        #         return cirq.protocols.CircuitDiagramInfo(
+        #             wire_symbols=tuple([*['@' if bit==1 else '(0)' for bit in self.list_control_vals],'U']),
+        #             exponent=1)
+        return cirq.protocols.CircuitDiagramInfo(
+            wire_symbols=tuple(
+                [*['@' if bit == 1 else '(0)' for bit in self.list_control_vals], self.U_cirq_gate.__str__()]),
+            exponent=1)
+
+    def num_qubits(self):
+        return len(self.list_of_control_qubits) + 1  # (+1 for U_qubit)
+
+    def check_Gate_gate_decomposition(self, tolerance=1e-9):
+        """
+        function compares single and two qubit gate construction of n-controlled-U
+        against perfect n-controlled-U gate
+
+        tolerance is how close unitary matrices are required
+
+        """
+
+        # decomposed into single and two qubit gates
+        decomposed = self._decompose_(None)
+        n_controlled_U_quantum_Circuit = cirq.Circuit(decomposed)
+
+        #         print(n_controlled_U_quantum_Circuit)
+
+        # perfect gate
+        perfect_circuit_obj = self.U_cirq_gate.controlled(num_controls=self.n_control_qubits,
+                                                          control_values=self.list_control_vals).on(
+            *self.list_of_control_qubits, self.U_qubit)
+
+        perfect_circuit = cirq.Circuit(perfect_circuit_obj)
+
+        #         print(perfect_circuit)
+
+        if not np.allclose(n_controlled_U_quantum_Circuit.unitary(), perfect_circuit.unitary(), atol=tolerance):
+            raise ValueError('V^{n} != U')
+        else:
+            #             print('Correct decomposition')
+            return True
+
+class State_Prep_Circuit_one_two_qubit_gates(cirq.Gate):
+    """
+    Function to build cirq Circuit that will make an arbitrary state!
+
+    e.g.:
+    {
+         0: [{'control_state': None, 'angle': 0.7853981633974483}],
+         1: [{'control_state': '0', 'angle': 0.7853981633974483},
+          {'control_state': '1', 'angle': 0.7853981633974483}]
+      }
+
+gives :
+
+0: ── U = 0.51 rad ──(0)─────────────@──────────────(0)────────────(0)──────────────@────────────────@────────────────
+                     │               │              │              │                │                │
+1: ────────────────── U = 0.91 rad ── U = 0.93 rad ─(0)────────────@────────────────(0)──────────────@────────────────
+                                                    │              │                │                │
+2: ───────────────────────────────────────────────── U = 0.30 rad ─ U = 0.59 rad ─── U = 0.72 rad ─── U = 0.71 rad ───
+
+    Args:
+        circuit_param_dict (dict): A Dictionary of Tuples (qubit, control_val(int)) value is angle
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit.from_ops to generate arbitrary state
+
+    """
+
+    def __init__(self, circuit_param_dict,N_ancilla_qubits, N_system_qubits=0, check_gate_decomposition=True):
+
+        self.circuit_param_dict = circuit_param_dict
+        self.N_system_qubits = N_system_qubits
+        self.check_gate_decomposition = check_gate_decomposition
+        self.N_ancilla_qubits=N_ancilla_qubits
+
+    def _decompose_(self, qubits):
+
+        for qubit in self.circuit_param_dict:
+
+            for term in self.circuit_param_dict[qubit]:
+                if term['control_state']:
+                    control_values = [int(bit) for bit in term['control_state']]
+                    num_controls = len(control_values)
+                    theta = term['angle']
+
+                    if theta == 0:
+                        # yield cirq.I.on(cirq.LineQubit(qubit+self.N_system_qubits))
+                        pass
+                    else:
+                        U_single_qubit_gate = My_U_Gate(theta)
+                        list_of_control_qubits = cirq.LineQubit.range(self.N_system_qubits,
+                                                                      self.N_system_qubits + num_controls)
+                        U_qubit = cirq.LineQubit(qubit+self.N_system_qubits)
+                        Control_U_gate = n_control_U(list_of_control_qubits, control_values, U_qubit, U_single_qubit_gate, num_controls)
+
+                        if self.check_gate_decomposition:
+                            Control_U_gate.check_Gate_gate_decomposition()
+
+                        yield cirq.Circuit(cirq.decompose_once(
+                            (Control_U_gate(*cirq.LineQubit.range(Control_U_gate.num_qubits())))))
+                        ## better print BUT mistake with .unitary() method
+                        # yield cirq.Circuit((Control_U_gate(*list_of_control_qubits,U_qubit))) #
+
+                else:
+                    theta = term['angle']
+                    if theta == 0:
+                        # yield cirq.I.on(cirq.LineQubit(qubit+self.N_system_qubits))
+                        pass
+                    else:
+                        yield My_U_Gate(theta).on(cirq.LineQubit(qubit+self.N_system_qubits))
+
+
+    def _circuit_diagram_info_(self, args):
+
+        max_qubit = max(self.circuit_param_dict.keys())
+        string_list = []
+        for _ in range(self.N_system_qubits):
+            string_list.append('Do Nothing (system qubit)')
+        for _ in range(self.N_ancilla_qubits):
+            string_list.append('arb state prep')
+
+        return string_list
+
+    def num_qubits(self):
+        return self.N_ancilla_qubits + self.N_system_qubits
+## testing
+# ancilla_amps=[np.sqrt(0.3), np.sqrt(0.1),np.sqrt(0.1),np.sqrt(0.1),np.sqrt(0.1),np.sqrt(0.1),np.sqrt(0.1),np.sqrt(0.1)]
+# N_ancilla_qubits=int(np.ceil(np.log2(len(ancilla_amps))))
+# N_system_qubits=3
+#
+# test1 = Get_control_parameters(3, ancilla_amps)
+# test_circ = State_Prep_Circuit_one_two_qubit_gates(test1,N_system_qubits, N_system_qubits=N_system_qubits, check_gate_decomposition=True)
+# print(cirq.Circuit((test_circ(*cirq.LineQubit.range(test_circ.num_qubits())))))
+# print(cirq.Circuit(cirq.decompose_once(
+#         (test_circ(*cirq.LineQubit.range(test_circ.num_qubits()))))))
+# max([len(i) for i in list(test1.values())])//2
+
+class prepare_arb_state_one_two_qubit_gates():
+    def __init__(self, Coefficient_list, N_System_qubits):
+        self.Coefficient_list = Coefficient_list
+        self.N_System_qubits = N_System_qubits
+    def _Get_control_parameters_dict(self):
+        return Get_control_parameters(self.Get_max_no_ancilla_qubits(), self.Coefficient_list)
+
+    def Get_state_prep_Circuit(self):
+        circ_obj = State_Prep_Circuit_one_two_qubit_gates(self._Get_control_parameters_dict(), \
+                                                          self.Get_max_no_ancilla_qubits(),N_system_qubits=self.N_System_qubits,check_gate_decomposition=True)
+        circuit = cirq.Circuit(cirq.decompose_once((circ_obj(*cirq.LineQubit.range(circ_obj.num_qubits())))))
+        return circuit
+
+    def Get_max_no_ancilla_qubits(self):
+        return int(np.ceil(np.log2(len(self.Coefficient_list))))  # note round up with np.ceil
+# # testing
+# ancilla_amps=[np.sqrt(0.3), np.sqrt(0.1),np.sqrt(0.1),np.sqrt(0.1),np.sqrt(0.1),np.sqrt(0.1),np.sqrt(0.1),np.sqrt(0.1)]
+# N_ancilla_qubits=int(np.ceil(np.log2(len(ancilla_amps))))
+# N_system_qubits=3
+#
+# vv = prepare_arb_state_one_two_qubit_gates(ancilla_amps, N_system_qubits)
+# x= vv.Get_state_prep_Circuit()
+# x.unitary()

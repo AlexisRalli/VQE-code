@@ -738,12 +738,16 @@ def Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_correction_list
 
     example
 
-    Pn= QubitOperator('Z3', 1)
-    R_corrected_Op_list = [0.30200159443367586 [], 0.9533074199645766 [Y0 X1 X2 X3]]
-    R_corr_list = [1, (-0-1j)]
+    from openfermion.ops import QubitOperator
+    Pn = QubitOperator('Z3', 1)
+    R_corrected_Op_list = [ QubitOperator('',0.30200159443367586), QubitOperator('Y0 X1 X2 X3', 0.9533074199645766)]
+    R_corr_list = [1, (-0 - 1j)]
     ancilla_amplitudes = [0.30200159443367586, 0.9533074199645766]
     N_system_qubits = 4
-    ansatz_circ= Q_circuit
+    ansatz_circ = Q_circuit #cirq.Circuit()
+
+    Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes, N_system_qubits,
+                                      ansatz_circ, decompose_into_two_qubit_gates=True)
 
     output:
 
@@ -762,8 +766,7 @@ def Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_correction_list
 
 
     if decompose_into_two_qubit_gates:
-        # TODO need to decompose ancilla into two qubit gates!!!
-        ancilla_obj = prepare_arb_state(ancilla_amplitudes, N_system_qubits)
+        ancilla_obj = prepare_arb_state_one_two_qubit_gates(ancilla_amplitudes, N_system_qubits) # <-- single and two qubit gate construction!
         ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
         N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
 
@@ -927,7 +930,8 @@ class VQE_Experiment_LCU_UP_lin_alg():
 
                 ### checking ancilla line!
                 N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
-                ancilla_obj = prepare_arb_state(ancilla_amplitudes, N_ancilla_qubits)
+                ancilla_obj = prepare_arb_state(ancilla_amplitudes, self.N_system_qubits)  # perfect gate (but cannot decompose)
+                # ancilla_obj = prepare_arb_state_one_two_qubit_gates(ancilla_amplitudes, self.N_system_qubits) #<-- single and two qubit gate construction!
                 ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
 
                 simulator = cirq.Simulator()
@@ -980,3 +984,264 @@ class VQE_Experiment_LCU_UP_lin_alg():
 
     def Get_wavefunction_of_ansatz_state(self, sig_figs=3):
         return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
+
+
+class VQE_Experiment_LCU_UP_lin_alg_single_two_qubit_gate():
+    """
+    TODO doc_string
+    """
+    def __init__(self,
+                 anti_commuting_sets,
+                 ansatz_circuit,
+                 N_system_qubits,
+                 N_indices_dict=None):
+
+        self.anti_commuting_sets = anti_commuting_sets
+        self.ansatz_circuit = ansatz_circuit
+
+        self.N_system_qubits = N_system_qubits
+        self.N_indices_dict = N_indices_dict
+
+        self.pauliDict=   {'X':np.array([[0,1],[1,0]]),
+                          'Y':np.array([[0,-1j],[1j,0]]),
+                          'Z':np.array([[1,0],[0,-1]]),
+                          'I': np.eye(2)}
+        # self.pauliDict=   {'X': cirq.H._unitary_(),
+        #                   'Y': cirq.rx(np.pi / 2)._unitary_(),
+        #                   'Z': np.eye(2),
+        #                   'I': np.eye(2)}
+
+        self.zero_state = np.array([[1], [0]])
+
+
+    def Get_parital_system_density_matrix(self, Q_circuit_no_M_gates):
+
+        input_state = [self.zero_state for _ in range(len(Q_circuit_no_M_gates.all_qubits()))]
+        input_ket = reduce(kron, input_state)
+        circuit_matrix = Q_circuit_no_M_gates.unitary()
+
+        ansatz_state_ket = circuit_matrix.dot(input_ket.todense())
+
+        full_density_matrix = np.outer(ansatz_state_ket, ansatz_state_ket)
+
+        # simulator = cirq.Simulator()
+        # output_ket = simulator.compute_amplitudes(Q_circuit_no_M_gates,
+        #                                       bitstrings=[i for i in range(2 ** len(Q_circuit_no_M_gates.all_qubits()))])
+        #
+        # full_density_matrix = np.outer(output_ket, output_ket)
+
+        ## First project state onto all zero ancilla state using POVM
+        n_qubits = len(Q_circuit_no_M_gates.all_qubits())
+        n_ancilla = n_qubits - self.N_system_qubits
+
+        I_system_operator = np.eye((2**self.N_system_qubits))
+
+        ancilla_0_state_list = [self.zero_state for _ in range(n_ancilla)]
+        ancilla_0_state = reduce(np.kron, ancilla_0_state_list)
+        ancilla_0_projector = np.outer(ancilla_0_state, ancilla_0_state)
+
+        POVM_0_ancilla = np.kron(I_system_operator, ancilla_0_projector)
+        Kraus_Op_0 = POVM_0_ancilla.copy()
+
+        term = Kraus_Op_0.dot(full_density_matrix.dot(Kraus_Op_0.transpose().conj()))
+        projected_density_matrix = term/np.trace(term) # projected into correct space using POVM ancilla measurement!
+
+        ## Next get partial density matrix over system qubits # aka partial trace!
+        # https://scicomp.stackexchange.com/questions/27496/calculating-partial-trace-of-array-in-numpy
+        # reshape to do the partial trace easily using np.einsum
+        reshaped_dm = projected_density_matrix.reshape([2 ** self.N_system_qubits, 2 ** n_ancilla,
+                                                        2 ** self.N_system_qubits, 2 ** n_ancilla])
+        reduced_dm = np.einsum('jiki->jk', reshaped_dm)
+
+        # ### taking partial trace ### manual method!
+        # # p_a = sum_{b} (I_{a}*<b|) p_{ab} (I_{a}*|b>)
+        # basis_ancilla = np.eye((2 ** n_ancilla))
+        # reduced_dm = np.zeros((2 ** self.N_system_qubits, 2 ** self.N_system_qubits), dtype=complex)
+        # for b in range(basis_ancilla.shape[0]):
+        #     b_ket = basis_ancilla[b, :].reshape([2 ** n_ancilla, 1])
+        #     I_a_b_ket = np.kron(I_system_operator, b_ket)
+        #     I_a_b_bra = I_a_b_ket.transpose().conj()
+        #
+        #     term = I_a_b_bra.dot(projected_density_matrix.dot(I_a_b_ket))
+        #     reduced_dm += term
+
+        if not np.isclose(np.trace(reduced_dm), 1):
+            raise ValueError('partial density matrix is not normalised properly {}'.format(np.trace(reduced_dm)))
+
+        return reduced_dm
+
+    def Get_standard_ket(self):
+        # simulator = cirq.Simulator()
+        # output_ket = simulator.compute_amplitudes(self.ansatz_circuit,
+        #                                       bitstrings=[i for i in range(2 ** len(self.ansatz_circuit.all_qubits()))])
+        #
+        input_state = [self.zero_state for _ in range(self.N_system_qubits)]
+        input_ket = reduce(kron, input_state)
+        circuit_matrix = self.ansatz_circuit.unitary()
+
+        ansatz_state_ket = circuit_matrix.dot(input_ket.todense())
+
+        if not np.isclose(sum([np.abs(i)**2 for i in ansatz_state_ket]), 1):
+            raise ValueError('output ket is not normalised properly {}'.format(sum([np.abs(i)**2 for i in ansatz_state_ket])))
+
+        return np.array(ansatz_state_ket) #.reshape([(2 ** len(self.ansatz_circuit.all_qubits())), 1])
+
+    def Get_pauli_matrix(self, PauliOp):
+        list_Q_nos, list_P_strs = list(zip(*[Paulistrs for Paulistrs, const in PauliOp.terms.items()][0]))
+
+        list_of_ops = []
+        # list_of_ops_print=[]
+        for i in range(self.N_system_qubits):
+            if i in list_Q_nos:
+                index = list_Q_nos.index(i)
+                list_of_ops.append(self.pauliDict[list_P_strs[index]])
+                # list_of_ops_print.append('{}{}'.format(list_P_strs[index], i))
+            else:
+                list_of_ops.append(self.pauliDict['I'])
+                # list_of_ops_print.append('I{}'.format(i))
+
+        # print(list_of_ops_print, PauliOp)
+        matrix = reduce(kron, list_of_ops)
+
+        return matrix
+
+    def Calc_Energy(self, check_LCU_reduction=False):
+        # from openfermion.transforms import get_sparse_operator
+
+        E_list = []
+        for set_key in self.anti_commuting_sets:
+            if len(self.anti_commuting_sets[set_key]) > 1:
+
+                if self.N_indices_dict is None:
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key], 0,
+                                                               check_operator=check_LCU_reduction)
+                    R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
+                else:
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key],
+                                                                          self.N_indices_dict[set_key],
+                                                               check_operator=check_LCU_reduction)
+                    R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
+
+                ### checking ancilla line!
+                N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
+                # ancilla_obj = prepare_arb_state(ancilla_amplitudes, self.N_system_qubits) # perfect gate (but cannot decompose)
+                ancilla_obj = prepare_arb_state_one_two_qubit_gates(ancilla_amplitudes, self.N_system_qubits) #<-- single and two qubit gate construction!
+                ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
+
+                simulator = cirq.Simulator()
+                output_ket = simulator.compute_amplitudes(ancilla_circ,
+                                                      bitstrings=[i for i in range(2 ** N_ancilla_qubits)])
+                # print(ancilla_amplitudes)
+                # print(output_ket[:len(ancilla_amplitudes)])
+                # print(np.allclose(ancilla_amplitudes, output_ket[:len(ancilla_amplitudes)]))
+                # print('###########')
+                if not np.allclose(ancilla_amplitudes, output_ket[:len(ancilla_amplitudes)]):
+                    print('MISTAKE ON ANCILLA LINE!!!!!!!!!!')
+
+
+
+                # gives R|ψ〉
+                Q_circuit = Full_Ansatz_and_Quantum_R_circuit(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
+                                           self.N_system_qubits, self.ansatz_circuit)
+
+                # print(Q_circuit.to_text_diagram(transpose=True))
+                # print('')
+                # print('##')
+
+                partial_density_matrix = self.Get_parital_system_density_matrix(Q_circuit)
+
+                H_sub_term_matrix = self.Get_pauli_matrix(Pn)
+                # H_sub_term_matrix = get_sparse_operator(Pn, n_qubits=self.N_system_qubits)
+                # # E=〈ψ | H | ψ〉= ∑_j  αj〈ψA | R† Pn R | ψA〉 #### where RQR = Pn
+
+                # E= Tr(Pn rho)
+                energy = np.trace(partial_density_matrix.dot(H_sub_term_matrix.todense()))
+                # energy = np.trace(H_sub_term_matrix.dot(partial_density_matrix))
+                E_list.append(energy * gamma_l)
+
+            else:
+                single_PauliOp = self.anti_commuting_sets[set_key][0]
+                if list(single_PauliOp.terms.keys())[0] == ():
+                    E_list.append(list(single_PauliOp.terms.values())[0])
+                else:
+                    ansatz_state_ket = self.Get_standard_ket()
+                    ansatz_state_bra = ansatz_state_ket.transpose().conj()
+                    # H_sub_term_matrix = get_sparse_operator(single_PauliOp, n_qubits=self.N_system_qubits)
+
+                    # E=〈ψ | H | ψ〉= ∑_j  αj〈ψ | Pj | ψ〉
+                    H_sub_term_matrix = self.Get_pauli_matrix(single_PauliOp)
+                    # H_sub_term_matrix = get_sparse_operator(single_PauliOp, n_qubits=self.N_system_qubits)
+                    energy = ansatz_state_bra.dot(H_sub_term_matrix.todense().dot(ansatz_state_ket))
+                    E_list.append(energy.item(0) * list(single_PauliOp.terms.values())[0])
+
+        return sum(E_list)
+
+    def Get_wavefunction_of_ansatz_state(self, sig_figs=3):
+        return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
+
+def Full_Q_Circuit_single_and_two_qubit_gates(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, ansatz_circ):
+
+    """
+    class to generate full cirq circuit that prepares a quantum state (ansatz) performs R operation as LCU and finally
+    measures both the system and ancilla qubit lines in the Z basis.
+
+    Args:
+        Pn (QubitOperator): Qubit operator to measure
+        R_corrected_Op_list (list): list of LCU qubit Operators
+        R_corr_list (list): list of correction phases for LCU operators
+        ancilla_amplitudes (list): list of ancilla amplitudes
+        N_system_qubits (int): Number of system qubits / number of spin orbitals
+        ansatz_circ (cirq.Circuit): cirq ansatz quantum circuit
+
+    Returns
+        A cirq circuit object to be used by cirq.Circuit
+
+    example
+
+    Pn= QubitOperator('Z3', 1)
+    R_corrected_Op_list = [0.30200159443367586 [], 0.9533074199645766 [Y0 X1 X2 X3]]
+    R_corr_list = [1, (-0-1j)]
+    ancilla_amplitudes = [0.30200159443367586, 0.9533074199645766]
+    N_system_qubits = 4
+    ansatz_circ= Q_circuit
+
+    output:
+
+0: ───X─────────────────Rx(0.5π)───@─────────────────────────────────@───Rx(-0.5π)───I──────Y0──────────────────────────
+                                   │                                 │               │      │
+1: ───X─────────────────H──────────X───@─────────────────────────@───X───H───────────I──────X1──────────────────────────
+                                       │                         │                   │      │
+2: ───H────────────────────────────────X───@─────────────────@───X───H───────────────I──────X2──────────────────────────
+                                           │                 │                       │      │
+3: ───H────────────────────────────────────X───Rz(-1.947π)───X───H───────────────────1*I3───(-0-1j)*X3────────────────M─
+                                                                                     │      │                         │
+4: ─── U = 1.264 rad ────────────────────────────────────────────────────────────────(0)────@─── ─── U = 1.264 rad ───M─
+
+    """
+
+    ancilla_obj = prepare_arb_state_one_two_qubit_gates(ancilla_amplitudes, N_system_qubits)
+    ancilla_circ = ancilla_obj.Get_state_prep_Circuit()
+    N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
+
+    R_circ_obj = LCU_R_gate(N_ancilla_qubits, N_system_qubits, R_corrected_Op_list, R_correction_list, Pn)
+    R_circ_circ = cirq.Circuit(
+        cirq.decompose((R_circ_obj(*cirq.LineQubit.range(R_circ_obj.num_qubits())))))
+
+    change_to_Z_basis_obj = Change_PauliWord_measurement_to_Z_basis(Pn)
+    change_to_Z_basis_circ = cirq.Circuit(
+        cirq.decompose_once((change_to_Z_basis_obj(*cirq.LineQubit.range(change_to_Z_basis_obj.num_qubits())))))
+
+    measure_obj = Measure_system_and_ancilla(Pn, N_ancilla_qubits, N_system_qubits)
+
+    measure_obj_circ = cirq.Circuit(
+        cirq.decompose_once((measure_obj(*cirq.LineQubit.range(measure_obj.num_qubits())))))
+
+    full_Q_circ = cirq.Circuit([
+        *ansatz_circ.all_operations(),
+        *ancilla_circ.all_operations(),
+        *R_circ_circ.all_operations(),
+        *list(ancilla_circ.all_operations())[::-1],
+        *change_to_Z_basis_circ.all_operations(),
+        *measure_obj_circ
+    ])
+    return full_Q_circ
