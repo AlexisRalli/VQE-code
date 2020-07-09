@@ -496,7 +496,7 @@ class Hamiltonian_PySCF():
             raise ValueError('Calculated FCI energy from Moleular Hamiltonian Operator not equivalent to PSI4 calculation')
         return FCI_Energy
 
-    def Get_NOON(self):
+    def Get_NOON(self, transformation, threshold=None):
         """
         See https://journals.aps.org/prx/pdf/10.1103/PhysRevX.8.031022 appendix C for further details
 
@@ -540,10 +540,46 @@ class Hamiltonian_PySCF():
         #  diagonalizing gives  1-RDM in terms of natural molecular orbitals (NMOs)
         NOON, NMO_basis = eig(one_RDM) # NOON = natural orbital occupation numbers = eigenvalues
 
+        check=True
+        if check:
+            matrix=np.dot(NMO_basis, np.diag(NOON).dot(NMO_basis.T)) # UDU^{-1}
+            if not np.allclose(one_RDM, matrix, atol=1e-3):
+                raise ValueError('NOON method not working')
+
+        # https://arxiv.org/pdf/1710.07629.pdf ... pg17!
+        # The Molecular Hamiltonian must also be rotated, using the  same unitary matrixused to diagonalise the 1 - RDM.
+        # equivalent to performing a change of basis, from the canonical orbital basis to the natural molecular orbital basis
+        H_rotated = self.molecule.get_molecular_hamiltonian()
+        H_rotated.rotate_basis(NMO_basis) # performing basis rotation
+
+        from openfermion.transforms import get_fermion_operator
+        FermionicHamiltonian = get_fermion_operator(H_rotated)
+
+        if transformation == 'JW':
+            from openfermion.transforms import jordan_wigner
+            new_ROTATED_Qubit_Hamiltonian = jordan_wigner(FermionicHamiltonian)
+        elif transformation == 'BK':
+            from openfermion.transforms import bravyi_kitaev
+            new_ROTATED_Qubit_Hamiltonian = bravyi_kitaev(FermionicHamiltonian)
+
+        elif transformation == 'BK_tree':
+            from openfermion.transforms import bravyi_kitaev_tree
+            new_ROTATED_Qubit_Hamiltonian = bravyi_kitaev_tree(FermionicHamiltonian)
+        else:
+            raise ValueError('unknown transformation')
+
+        # test=True
+        # if test:
+        #     from openfermion.transforms import get_sparse_operator
+        #     H_stand = get_sparse_operator(self.MolecularHamiltonian).todense()
+        #     H_new = get_sparse_operator(new_ROTATED_Qubit_Hamiltonian).todense()
+        #     print(np.array_equal(H_stand, H_new))
+
+
         # ordering
-        idx = NOON.argsort()[::-1]
-        NOON_ordered = NOON[idx]
-        NMO_basis_ordered = NMO_basis[:, idx]
+        # idx = NOON.argsort()[::-1]
+        # NOON_ordered = NOON[idx]
+        # NMO_basis_ordered = NMO_basis[:, idx]
 
         # Diag_matix = C^{-1} A C
         # Diag_matix = np.dot(np.linalg.inv(NMO_basis_ordered) , np.dot(np.diag(one_RDM_combined), NMO_basis_ordered))
@@ -551,9 +587,8 @@ class Hamiltonian_PySCF():
         # basis_transformation_matrix = eig_vectors.transpose() #<--- here!
         # The Molecular Hamiltonian must also be rotated, using the  same unitary matrixused to diagonalise the 1 - RDM.
         # equivalent to performing a change of basis, from the canonical orbital basis to the natural molecular orbital basis
-
-
-        return NOON_ordered, NMO_basis_ordered#NOON, NMO_basis #, basis_transformation_matrix
+        # return NOON_ordered, NMO_basis_ordered#NOON, NMO_basis #, basis_transformation_matrix
+        return NOON, NMO_basis, new_ROTATED_Qubit_Hamiltonian
 
     def Get_Fermionic_Hamiltonian(self):
 
