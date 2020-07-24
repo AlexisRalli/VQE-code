@@ -646,6 +646,7 @@ class VQE_Experiment_LCU_UP():
 
         P_success = (1 / l1_norm) ** 2
 
+        total_number_repeats = 0
         n_success_shots = 0
         binary_results_dict = {}
         while n_success_shots != self.n_shots:
@@ -654,7 +655,7 @@ class VQE_Experiment_LCU_UP():
 
             M_results = raw_result.measurements[hist_key]
             for result in M_results:
-
+                total_number_repeats += 1
                 if np.array_equal(result[N_system_terms_measured::],
                                   correct_ancilla_state):  # Checks if all zero ancilla measured!
                     seperator = ''
@@ -668,11 +669,12 @@ class VQE_Experiment_LCU_UP():
 
                 if n_success_shots == self.n_shots:
                     break
-        return binary_results_dict
+        return binary_results_dict, total_number_repeats
 
     def Calc_Energy(self, check_LCU_reduction=False):
 
         E_list = []
+        number_of_circuit_evals = {}
         for set_key in self.anti_commuting_sets:
             if len(self.anti_commuting_sets[set_key]) > 1:
 
@@ -689,7 +691,8 @@ class VQE_Experiment_LCU_UP():
                 Q_circuit = Full_Q_Circuit(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
                                            self.N_system_qubits, self.ansatz_circuit)
 
-                binary_state_counter = self.Get_binary_dict_project(Q_circuit, Pn, ancilla_amplitudes, l1_norm)
+                binary_state_counter, No_circuit_M = self.Get_binary_dict_project(Q_circuit, Pn, ancilla_amplitudes, l1_norm)
+                number_of_circuit_evals[set_key] = No_circuit_M
                 exp_result = expectation_value_by_parity(binary_state_counter)
 
                 E_list.append(exp_result * gamma_l)
@@ -709,7 +712,7 @@ class VQE_Experiment_LCU_UP():
                     #print(single_PauliOp, exp_result * list(single_PauliOp.terms.values())[0])
 
         #         print(Q_circuit.to_text_diagram(transpose=True))
-        return sum(E_list)
+        return sum(E_list), number_of_circuit_evals
 
     def Get_wavefunction_of_state(self, sig_figs=3):
         return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
