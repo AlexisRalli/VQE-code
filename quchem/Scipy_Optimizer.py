@@ -1,6 +1,6 @@
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
-
+# https://docs.scipy.org/doc/scipy/reference/tutorial/optimize.html
 
 # class Optimizer:
 #     """
@@ -272,8 +272,135 @@ import numpy as np
 from scipy.optimize.optimize import OptimizeResult, wrap_function, _status_message, _check_unknown_options, _approx_fprime_helper
 from numpy import asarray
 
-def _minimize_Adam(func, x0, args=(), jac=None, bounds=None, constraints=None,
-                 tol=None, learning_rate=0.001, beta_1=0.9, beta_2=0.999, delta=1e-8, maxiter=500, disp=False,
+# def _minimize_Adam(func, x0, args=(), jac=None, bounds=None, constraints=None,
+#                  tol=None, learning_rate=0.001, beta_1=0.9, beta_2=0.999, delta=1e-8, maxiter=500, disp=False,
+#                    maxfev=15000, callback=None, epsilon=1e-8,  **unkown_options):
+#     """
+#
+#     Minimize function using the Adam Algorithm.
+#
+#     https://arxiv.org/abs/1412.6980
+#
+#
+#     Args:
+#         func (callable): The objective function to be minimized. funt(x, *args) -> float
+#         X0 (numpy.ndarray): initial guess
+#         args (tuple, optional): optional input arguements to func (NOTE these will not be optimized!) and jac, hess etc
+#         method (str): Type of optimizer... custom method can be defined too
+#         jac (callable): Calculates first derivative of objective function to be minimized. jac(x, *args) -> N array
+#                         if set to None then uses FINITE DIFFERENCE!
+#
+#         delta (float): finite diffence gradient step
+#
+#         tol (float, optional): Tolerance for termination.
+#
+#         learning_rate (float): Step size
+#         beta_1 (float): The exponential decay rate for the 1st moment estimates.
+#         beta_2 (float):  The exponential decay rate for the 2nd moment estimates.
+#         epsilon (float):  Constant (small) for numerical stability
+#
+#     Attributes:
+#         t (int): Timestep
+#         m_t (float): first moment vector
+#         v_t (float): second moment vector
+#
+#     # TODO add bounds and constraints!
+#     # TODO consider making xtol and ftol variables (aka function and variable convergence check... rather than one global
+#     # check
+#
+#     """
+#
+#     x0 = asarray(x0).ravel()
+#
+#     num_FUNCT_eval, FUNCT = wrap_function(func, args)
+#
+#     if jac is None:
+#         num_JAC_eval=0
+#         def funct_and_grad(x):
+#             f = FUNCT(x, *args)
+#             g = _approx_fprime_helper(x, FUNCT, delta)
+#             return f, g
+#     else:
+#         num_JAC_eval, FPRIME = wrap_function(jac, args)
+#         def funct_and_grad(x):
+#             f = FUNCT(x, *args)
+#             g = FPRIME(x, *args)
+#             return f,g
+#
+#     # initialization
+#     t = 0  # timestep
+#     m_t = 0  # 1st moment vector
+#     v_t = 0  # 2nd moment vector
+#     X_t = x0
+#
+#     n_iterations=0
+#     while True:
+#         n_iterations+=1
+#
+#         # ADAM Algorithm
+#         t += 1
+#         f_t, g_t = funct_and_grad(X_t)
+#         m_t = beta_1 * m_t + (
+#                     1 - beta_1) * g_t  # updates the moving averages of the gradient (biased first moment estimate)
+#         v_t = beta_2 * v_t + (1 - beta_2) * (
+#                     g_t * g_t)  # updates the moving averages of the squared gradient (biased 2nd
+#         # raw moment estimate)
+#
+#         m_cap = m_t / (1 - (beta_1 ** t))  # Compute bias-corrected first moment estimate
+#         v_cap = v_t / (1 - (beta_2 ** t))  # Compute bias-corrected second raw moment estimate
+#         X_t_prev = X_t
+#
+#         X_t = X_t_prev - (learning_rate * m_cap) / (np.sqrt(v_cap) + epsilon)  # updates the parameters
+#         # Adam END
+#
+#         if callback is not None:
+#             callback(np.copy(X_t))
+#
+#
+#         # check for termination
+#         if n_iterations>1:
+#             if np.isclose(f_t_prev, f_t, rtol=tol).all():  # checks if FUNCTION has converged
+#                 break
+#         f_t_prev = f_t
+#
+#
+#         if np.isclose(X_t, X_t_prev, rtol=tol).all():  # checks if VARIABLES have converged
+#             break
+#
+#         if num_FUNCT_eval[0] >= maxfev: # checks if overdone too many function evaluations
+#             break
+#
+#         if n_iterations >= maxiter: # checks number of iterations
+#             break
+#
+#
+#     warnflag = 0
+#     if num_FUNCT_eval[0] >= maxfev:
+#         warnflag = 1
+#         msg = _status_message['maxfev']
+#         if disp:
+#             print("Warning: " + msg)
+#     elif n_iterations >= maxiter:
+#         warnflag = 2
+#         msg = _status_message['maxiter']
+#         if disp:
+#             print("Warning: " + msg)
+#
+#     else:
+#         if disp:
+#             msg = _status_message['success']
+#             print(msg)
+#             print("         Current function value: {}".format(f_t))
+#             print("         Iterations: %d" % n_iterations)
+#             print("         Function evaluations: %d" % num_FUNCT_eval[0])
+#             print("         Function evaluations:{}".format(num_JAC_eval))
+#
+#     result = OptimizeResult(fun=f_t, nit=n_iterations, nfev=num_FUNCT_eval, njev=num_JAC_eval,
+#                             status=warnflag, success=(warnflag == 0),
+#                             message=msg, x=X_t)
+#     return result
+def Custom_Adam(fun, x0, args=(), jac=None, bounds=None, constraints=None,
+                 tol=None, learning_rate=0.001, beta_1=0.9, beta_2=0.999, maxiter=500,
                    maxfev=15000, callback=None, epsilon=1e-8,  **unkown_options):
     """
 
@@ -309,41 +436,41 @@ def _minimize_Adam(func, x0, args=(), jac=None, bounds=None, constraints=None,
     # check
 
     """
-
-    x0 = asarray(x0).ravel()
-
-    num_FUNCT_eval, FUNCT = wrap_function(func, args)
-
     if jac is None:
-        num_JAC_eval=0
-        def funct_and_grad(x):
-            f = FUNCT(x, *args)
-            g = _approx_fprime_helper(x, FUNCT, delta)
-            return f, g
-    else:
-        num_JAC_eval, FPRIME = wrap_function(jac, args)
-        def funct_and_grad(x):
-            f = FUNCT(x, *args)
-            g = FPRIME(x, *args)
-            return f,g
+        raise ValueError('must have gradient function')
 
     # initialization
     t = 0  # timestep
     m_t = 0  # 1st moment vector
     v_t = 0  # 2nd moment vector
-    X_t = x0
+    X_t = asarray(x0).ravel()
 
-    n_iterations=0
-    while True:
-        n_iterations+=1
+    n_feval = 0
+    n_jeval = 0
+    niter = 0
+    while niter < maxiter:
+        niter += 1
 
         # ADAM Algorithm
         t += 1
-        f_t, g_t = funct_and_grad(X_t)
+
+        if args:
+            f_t = fun(X_t, *args)
+            n_feval += 1
+
+            g_t = jac(X_t, *args)
+            n_jeval += 1
+        else:
+            f_t = fun(X_t)
+            n_feval += 1
+
+            g_t = jac(X_t)
+            n_jeval += 1
+
         m_t = beta_1 * m_t + (
-                    1 - beta_1) * g_t  # updates the moving averages of the gradient (biased first moment estimate)
+                1 - beta_1) * g_t  # updates the moving averages of the gradient (biased first moment estimate)
         v_t = beta_2 * v_t + (1 - beta_2) * (
-                    g_t * g_t)  # updates the moving averages of the squared gradient (biased 2nd
+                g_t * g_t)  # updates the moving averages of the squared gradient (biased 2nd
         # raw moment estimate)
 
         m_cap = m_t / (1 - (beta_1 ** t))  # Compute bias-corrected first moment estimate
@@ -356,49 +483,35 @@ def _minimize_Adam(func, x0, args=(), jac=None, bounds=None, constraints=None,
         if callback is not None:
             callback(np.copy(X_t))
 
-
         # check for termination
-        if n_iterations>1:
+        if niter > 1:
             if np.isclose(f_t_prev, f_t, rtol=tol).all():  # checks if FUNCTION has converged
                 break
         f_t_prev = f_t
 
-
         if np.isclose(X_t, X_t_prev, rtol=tol).all():  # checks if VARIABLES have converged
             break
 
-        if num_FUNCT_eval[0] >= maxfev: # checks if overdone too many function evaluations
+        if n_feval >= maxfev:  # checks if too many function evaluations
             break
-
-        if n_iterations >= maxiter: # checks number of iterations
-            break
-
 
     warnflag = 0
-    if num_FUNCT_eval[0] >= maxfev:
+    if n_feval > maxfev:
         warnflag = 1
         msg = _status_message['maxfev']
-        if disp:
-            print("Warning: " + msg)
-    elif n_iterations >= maxiter:
+        #         if disp:
+        print("Warning: " + msg)
+    elif niter > maxiter:
         warnflag = 2
         msg = _status_message['maxiter']
-        if disp:
-            print("Warning: " + msg)
-
+        #         if disp:
+        print("Warning: " + msg)
     else:
-        if disp:
-            msg = _status_message['success']
-            print(msg)
-            print("         Current function value: {}".format(f_t))
-            print("         Iterations: %d" % n_iterations)
-            print("         Function evaluations: %d" % num_FUNCT_eval[0])
-            print("         Function evaluations:{}".format(num_JAC_eval))
+        msg = _status_message['success']
 
-    result = OptimizeResult(fun=f_t, nit=n_iterations, nfev=num_FUNCT_eval, njev=num_JAC_eval,
-                            status=warnflag, success=(warnflag == 0),
-                            message=msg, x=X_t)
-    return result
+    return OptimizeResult(fun=f_t, nit=niter, nfev=n_feval, njev=n_jeval,
+                          status=warnflag, success=(warnflag == 0),
+                          message=msg, x=X_t)
 
 
 if __name__ == '__main__':
