@@ -1,8 +1,312 @@
 import scipy
+from openfermion.ops import FermionOperator
+from openfermion.transforms import bravyi_kitaev
+from openfermion.transforms import jordan_wigner
+from openfermion.transforms import get_sparse_operator
+from openfermion import jw_configuration_state
+from openfermion.ops import QubitOperator
+from scipy.sparse.linalg import eigs
+from scipy.sparse import csc_matrix
+
+
+def Get_ia_terms(n_electrons, n_orbitals, single_cc_amplitudes=None,  singles_hamiltonian=None,
+                               tol_filter_small_terms = None):
+    """
+
+    Get ia excitation terms as fermionic creation and annihilation operators for UCCSD.
+    ia terms are standard single excitation terms (aka only occupied -> unoccupied transitions allowed)
+    (faster and only marginally less accurate.)
+    #TODO can add method to get pqrs terms
+    #TODO these are all non-degenerate excitations which can possibly non-zero, including nocc->nocc, occ->occ, and spin-flips.
+    #TODO EXPENSIVE, but will likely  get a slightly better answer.
+
+    Args:
+        n_electrons (int): number of electrons
+        n_orbitals (int): number of orbitals
+        singles_hamiltonian (numpy.ndarray, optional): h_pq (n_qubits x n_qubits) matrix.
+        tol_filter_small_terms (bool, optional):  Whether to filter small terms in Hamiltonian (threshold currently hardcoded)
+        single_cc_amplitudes (numpy.ndarray, optional): A 2-dimension array t[a,i] for CCSD single excitation amplitudes
+                                where a is virtual index and i is occupied index
+
+    returns:
+        Sec_Quant_CC_ia_ops (list): list of FermionOperators (openfermion.ops._fermion_operator.FermionOperator)
+        theta_parameters (list): list of theta values (parameterisation of excitation amplitudes)
+
+     e.g.:
+
+     n_electrons=2
+     n_orbitals=4
+     Sec_Quant_CC_ops, theta_parameters = Get_ia_terms(n_electrons, n_orbitals)
+
+     Sec_Quant_CC_ops=  [
+                         -1.0[0 ^ 2] + 1.0[2 ^ 0],            # -(a†0 a2) + (a†2 a0)
+                         -1.0[1 ^ 3] + 1.0[3 ^ 1],            # -(a†1 a3) + (a†3 a1)
+                        ]
+    theta_parameters = [0,0,0]
+
+    """
+
+    Sec_Quant_CC_ia_ops = []  # second quantised single e- CC operators
+    theta_parameters_ia = []
+
+    # single_amplitudes and double_amplitudes from Get_CCSD_Amplitudes Hamiltonian function!
+    orbitals_index = range(0, n_orbitals)
+
+    alph_occs = [k for k in orbitals_index if k % 2 == 0 and k < n_electrons]  # spin up occupied
+    beta_occs = [k for k in orbitals_index if k % 2 == 1 and k < n_electrons]  # spin down UN-occupied
+    alph_noccs = [k for k in orbitals_index if k % 2 == 0 and k >= n_electrons]  # spin down occupied
+    beta_noccs = [k for k in orbitals_index if k % 2 == 1 and k >= n_electrons]  # spin up UN-occupied
+
+
+    # SINGLE electron excitation: spin UP transition
+    for i in alph_occs:
+        for a in alph_noccs:
+            if tol_filter_small_terms:
+                if abs(singles_hamiltonian[i][a]) > tol_filter_small_terms or abs(
+                        singles_hamiltonian[a][i]) > tol_filter_small_terms:
+                    one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
+                    if single_cc_amplitudes is not None:
+                        theta_parameters_ia.append(single_cc_amplitudes[a][i])
+                    else:
+                        theta_parameters_ia.append(0)
+
+                    Sec_Quant_CC_ia_ops.append(one_elec)
+            else:
+                # NO filtering
+                one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
+                if single_cc_amplitudes is not None:
+                    theta_parameters_ia.append(single_cc_amplitudes[a][i])
+                else:
+                    theta_parameters_ia.append(0)
+
+                Sec_Quant_CC_ia_ops.append(one_elec)
+
+    # SINGLE electron excitation: spin DOWN transition
+    for i in beta_occs:
+        for a in beta_noccs:
+            if tol_filter_small_terms:
+                # uses Hamiltonian to ignore small terms!
+                if abs(singles_hamiltonian[i][a]) > tol_filter_small_terms or abs(
+                        singles_hamiltonian[a][i]) > tol_filter_small_terms:
+                    one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
+                    if single_cc_amplitudes is not None:
+                        theta_parameters_ia.append(single_cc_amplitudes[a][i])
+                    else:
+                        theta_parameters_ia.append(0)
+
+                    Sec_Quant_CC_ia_ops.append(one_elec)
+            else:
+                # NO filtering
+                one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
+                if single_cc_amplitudes is not None:
+                    theta_parameters_ia.append(single_cc_amplitudes[a][i])
+                else:
+                    theta_parameters_ia.append(0)
+
+                Sec_Quant_CC_ia_ops.append(one_elec)
+
+    return Sec_Quant_CC_ia_ops, theta_parameters_ia
+
+
+def Get_ijab_terms(n_electrons, n_orbitals, double_cc_amplitudes=None, doubles_hamiltonian=None,
+                 tol_filter_small_terms=None):
+    """
+
+    Get ijab excitation terms as fermionic creation and annihilation operators for UCCSD.
+    ijab terms are standard double excitation terms (aka only occupied -> unoccupied transitions allowed)
+    (faster and only marginally less accurate.)
+    #TODO can add method to get pqrs terms
+    #TODO these are all non-degenerate excitations which can possibly non-zero, including nocc->nocc, occ->occ, and spin-flips.
+    #TODO EXPENSIVE, but will likely  get a slightly better answer.
+
+    Args:
+        n_electrons (int): number of electrons
+        n_orbitals (int): number of orbitals
+        doubles_hamiltonian (numpy.ndarray, optional): h_pqrs (n_qubits x n_qubits x n_qubits x n_qubits) matrix
+        tol_filter_small_terms (bool, optional):  Whether to filter small terms in Hamiltonian (threshold currently hardcoded)
+        double_cc_amplitudes (numpy.ndarray, optional): A 4-dimension array t[a,i,b,j] for CCSD double excitation amplitudes
+                                                        where a, b are virtual indices and i, j are occupied indices.
+
+    returns:
+        Sec_Quant_CC_ijab_ops (list): list of FermionOperators (openfermion.ops._fermion_operator.FermionOperator)
+        theta_parameters (list): list of theta values (parameterisation of excitation amplitudes)
+
+     e.g.:
+
+     n_electrons=2
+     n_orbitals=4
+     Sec_Quant_CC_ops, theta_parameters = Get_ijab_terms(n_electrons, n_orbitals)
+
+     Sec_Quant_CC_ops=  [
+                            -1.0[0 ^ 1 ^ 2 3] + 1.0 [3^ 2^ 1 0]  # -(a†0 a†1 a2 a3) + a†3 a†2 a1 a0)
+                        ]
+    theta_parameters = [0]
+    """
+
+
+    # single_amplitudes and double_amplitudes from Get_CCSD_Amplitudes Hamiltonian function!
+    orbitals_index = range(0, n_orbitals)
+
+    alph_occs = [k for k in orbitals_index if k % 2 == 0 and k < n_electrons]  # spin up occupied
+    beta_occs = [k for k in orbitals_index if k % 2 == 1 and k < n_electrons]  # spin down UN-occupied
+    alph_noccs = [k for k in orbitals_index if k % 2 == 0 and k >= n_electrons]  # spin down occupied
+    beta_noccs = [k for k in orbitals_index if k % 2 == 1 and k >= n_electrons]  # spin up UN-occupied
+
+    Sec_Quant_CC_ijab_ops = []  # second quantised two e- CC operators
+    theta_parameters_ijab = []
+
+    # DOUBLE excitation: UP + UP
+    for i in alph_occs:
+        for j in [k for k in alph_occs if k > i]:
+            for a in alph_noccs:
+                for b in [k for k in alph_noccs if k > a]:
+
+                    if tol_filter_small_terms:
+                        # uses Hamiltonian to ignore small terms!
+                        if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(
+                                doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
+                            two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
+                                       FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
+                            if double_cc_amplitudes is not None:
+                                theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
+                            else:
+                                theta_parameters_ijab.append(0)
+                        Sec_Quant_CC_ijab_ops.append(two_elec)
+                    else:
+                        # NO filtering
+                        two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
+                                   FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
+
+                        if double_cc_amplitudes is not None:
+                            theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
+                        else:
+                            theta_parameters_ijab.append(0)
+
+                        Sec_Quant_CC_ijab_ops.append(two_elec)
+
+    # DOUBLE excitation: DOWN + DOWN
+    for i in beta_occs:
+        for j in [k for k in beta_occs if k > i]:
+            for a in beta_noccs:
+                for b in [k for k in beta_noccs if k > a]:
+
+                    if tol_filter_small_terms:
+                        # uses Hamiltonian to ignore small terms!
+                        if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(
+                                doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
+                            two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
+                                       FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
+                            if double_cc_amplitudes is not None:
+                                theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
+                            else:
+                                theta_parameters_ijab.append(0)
+                        Sec_Quant_CC_ijab_ops.append(two_elec)
+                    else:
+                        # NO filtering
+                        two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
+                                   FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
+
+                        if double_cc_amplitudes is not None:
+                            theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
+                        else:
+                            theta_parameters_ijab.append(0)
+
+                        Sec_Quant_CC_ijab_ops.append(two_elec)
+
+    # DOUBLE excitation: up + DOWN
+    for i in alph_occs:
+        for j in [k for k in beta_occs if k > i]:
+            for a in alph_noccs:
+                for b in [k for k in beta_noccs if k > a]:
+
+                    if tol_filter_small_terms:
+                        # uses Hamiltonian to ignore small terms!
+                        if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(
+                                doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
+                            two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
+                                       FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
+                            if double_cc_amplitudes is not None:
+                                theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
+                            else:
+                                theta_parameters_ijab.append(0)
+                        Sec_Quant_CC_ijab_ops.append(two_elec)
+                    else:
+                        # NO filtering
+                        two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
+                                   FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
+
+                        if double_cc_amplitudes is not None:
+                            theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
+                        else:
+                            theta_parameters_ijab.append(0)
+
+                        Sec_Quant_CC_ijab_ops.append(two_elec)
+
+    return Sec_Quant_CC_ijab_ops, theta_parameters_ijab
+
+
+def Fermi_ops_to_qubit_ops(List_Fermi_Ops, transformation='JW'):
+
+        """
+        Takes list of fermionic excitation operators:
+
+                    [
+                       -(a†0 a2) + (a†2 a0),
+                       -(a†1 a3) + (a†3 a1),
+                       -(a†0 a†1 a2 a3) + a†3 a†2 a1 a0)
+                    ]
+        and returns JW/BK transform of each term and appends it to a list yielding a list of QubitOperators
+
+        [
+            -0.5j [X0 Z1 Y2] + 0.5j [Y0 Z1 X2],
+            -0.5j [X1 Z2 Y3] + 0.5j [Y1 Z2 X3],
+            0.125j [X0 X1 X2 Y3] + 0.125j [X0 X1 Y2 X3] + -0.125j [X0 Y1 X2 X3] + 0.125j [X0 Y1 Y2 Y3] +
+            -0.125j [Y0 X1 X2 X3] + 0.125j [Y0 X1 Y2 Y3] + -0.125j [Y0 Y1 X2 Y3] + -0.125j [Y0 Y1 Y2 X3]
+        ]
+
+        returns:
+            List_Qubit_Ops (list): List of QubitOperators (openfermion.ops._qubit_operator.QubitOperator)
+                                   under JW/BK transform.
+
+        """
+
+        List_Qubit_Ops = []
+
+        if transformation == 'JW':
+            for OP in List_Fermi_Ops:
+                JW_OP = jordan_wigner(OP)
+                List_Qubit_Ops.append(JW_OP)
+
+        elif transformation == 'BK':
+            for OP in List_Fermi_Ops:
+                BK_OP = bravyi_kitaev(OP)
+                List_Qubit_Ops.append(BK_OP)
+
+        else:
+            raise ValueError('unknown transformation: {}'.format(transformation))
+
+        return List_Qubit_Ops
+
+
 class Ansatz():
     def __init__(self, n_electrons, n_orbitals):
         self.n_electrons = n_electrons
         self.n_orbitals = n_orbitals
+
+        self.Sec_Quant_CC_ia_Fermi_ops=None
+        self.theta_ia=None
+        self.Sec_Quant_CC_ijab_Fermi_ops=None
+        self.theta_ijab = None
+
+        self.NOON_Sec_Quant_CC_ia_Fermi_ops=None
+        self.NOON_theta_ia=None
+        self.NOON_Sec_Quant_CC_ijab_Fermi_ops=None
+        self.NOON_theta_ijab = None
+        self.NOON_indices_removed=None
+
+
+        self.Second_Quant_CC_Ops_ia=None
+        self.Second_Quant_CC_single_Trot_list_ijab = None
 
     def Get_ia_and_ijab_terms(self, single_cc_amplitudes=None, double_cc_amplitudes=None, singles_hamiltonian=None,
                               doubles_hamiltonian=None, tol_filter_small_terms = None):
@@ -15,177 +319,25 @@ class Ansatz():
         #TODO can add method to get pqrs terms
         #TODO these are all non-degenerate excitations which can possibly non-zero, including nocc->nocc, occ->occ, and spin-flips.
         #TODO EXPENSIVE, but will likely  get a slightly better answer.
-
-        Args:
-            Coupled_cluser_param (bool, optional): Whether to use CC calculated amplitdues to initialise theta_angles
-            filter_small_terms (bool, optional):  Whether to filter small terms in Hamiltonian (threshold currently hardcoded)
-
-        returns:
-            Sec_Quant_CC_ops (list): list of FermionOperators (openfermion.ops._fermion_operator.FermionOperator)
-            theta_parameters (list): list of theta values (parameterisation of excitation amplitudes)
-
-         e.g. for H2:
-         Sec_Quant_CC_ops=  [
-                             -1.0[0 ^ 2] + 1.0[2 ^ 0],            # -(a†0 a2) + (a†2 a0)
-                             -1.0[1 ^ 3] + 1.0[3 ^ 1],            # -(a†1 a3) + (a†3 a1)
-                             -1.0[0 ^ 1 ^ 2 3] + 1.0 [3^ 2^ 1 0]  # -(a†0 a†1 a2 a3) + a†3 a†2 a1 a0)
-                            ]
-        theta_parameters = [0,0,0]
-        :param single_and_double_cc_amplitudes:
-
         """
+        self.Sec_Quant_CC_ia_Fermi_ops, self.theta_ia = Get_ia_terms(self.n_electrons,
+                                                                    self.n_orbitals,
+                                                                    single_cc_amplitudes=single_cc_amplitudes,
+                                                                    singles_hamiltonian=singles_hamiltonian,
+                                                                    tol_filter_small_terms = tol_filter_small_terms)
 
+        self.Sec_Quant_CC_ijab_Fermi_ops, self.theta_ijab= Get_ijab_terms(self.n_electrons,
+                                                                         self.n_orbitals,
+                                                                         double_cc_amplitudes=double_cc_amplitudes,
+                                                                         doubles_hamiltonian=doubles_hamiltonian,
+                                                                         tol_filter_small_terms=tol_filter_small_terms)
 
-        # single_amplitudes and double_amplitudes from Get_CCSD_Amplitudes Hamiltonian function!
-
-        from openfermion.ops import FermionOperator
-
-        orbitals_index = range(0, self.n_orbitals)
-        alph_occs = [k for k in orbitals_index if k % 2 == 0 and k < self.n_electrons] # spin up occupied
-        beta_occs = [k for k in orbitals_index if k % 2 == 1 and k < self.n_electrons] # spin down UN-occupied
-        alph_noccs = [k for k in orbitals_index if k % 2 == 0 and k >= self.n_electrons] # spin down occupied
-        beta_noccs = [k for k in orbitals_index if k % 2 == 1 and k >= self.n_electrons] # spin up UN-occupied
-
-        Sec_Quant_CC_ia_ops = [] # second quantised single e- CC operators
-        theta_parameters_ia = []
-        Sec_Quant_CC_ijab_ops =[] # second quantised two e- CC operators
-        theta_parameters_ijab =[]
-
-
-        # SINGLE electron excitation: spin UP transition
-        for i in alph_occs:
-            for a in alph_noccs:
-                if tol_filter_small_terms:
-                    if abs(singles_hamiltonian[i][a]) > tol_filter_small_terms or abs(singles_hamiltonian[a][i]) > tol_filter_small_terms:
-                        one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-                        if single_cc_amplitudes is not None:
-                            theta_parameters_ia.append(single_cc_amplitudes[a][i])
-                        else:
-                            theta_parameters_ia.append(0)
-
-                        Sec_Quant_CC_ia_ops.append(one_elec)
-                else:
-                    # NO filtering
-                    one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-                    if single_cc_amplitudes is not None:
-                        theta_parameters_ia.append(single_cc_amplitudes[a][i])
-                    else:
-                        theta_parameters_ia.append(0)
-
-                    Sec_Quant_CC_ia_ops.append(one_elec)
-
-        # SINGLE electron excitation: spin DOWN transition
-        for i in beta_occs:
-            for a in beta_noccs:
-                if tol_filter_small_terms:
-                    # uses Hamiltonian to ignore small terms!
-                    if abs(singles_hamiltonian[i][a]) > tol_filter_small_terms or abs(singles_hamiltonian[a][i]) > tol_filter_small_terms:
-                        one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-                        if single_cc_amplitudes is not None:
-                            theta_parameters_ia.append(single_cc_amplitudes[a][i])
-                        else:
-                            theta_parameters_ia.append(0)
-
-                        Sec_Quant_CC_ia_ops.append(one_elec)
-                else:
-                    # NO filtering
-                    one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-                    if single_cc_amplitudes is not None:
-                        theta_parameters_ia.append(single_cc_amplitudes[a][i])
-                    else:
-                        theta_parameters_ia.append(0)
-
-                    Sec_Quant_CC_ia_ops.append(one_elec)
-
-        # DOUBLE excitation: UP + UP
-        for i in alph_occs:
-            for j in [k for k in alph_occs if k > i]:
-                for a in alph_noccs:
-                    for b in [k for k in alph_noccs if k > a]:
-
-                        if tol_filter_small_terms:
-                            # uses Hamiltonian to ignore small terms!
-                            if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
-                                two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                           FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-                                if double_cc_amplitudes is not None:
-                                    theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
-                                else:
-                                    theta_parameters_ijab.append(0)
-                            Sec_Quant_CC_ijab_ops.append(two_elec)
-                        else:
-                            # NO filtering
-                            two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                       FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-
-                            if double_cc_amplitudes is not None:
-                                theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-                            else:
-                                theta_parameters_ijab.append(0)
-
-                            Sec_Quant_CC_ijab_ops.append(two_elec)
-
-        # DOUBLE excitation: DOWN + DOWN
-        for i in beta_occs:
-            for j in [k for k in beta_occs if k > i]:
-                for a in beta_noccs:
-                    for b in [k for k in beta_noccs if k > a]:
-
-                        if tol_filter_small_terms:
-                            # uses Hamiltonian to ignore small terms!
-                            if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
-                                two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                           FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-                                if double_cc_amplitudes is not None:
-                                    theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
-                                else:
-                                    theta_parameters_ijab.append(0)
-                            Sec_Quant_CC_ijab_ops.append(two_elec)
-                        else:
-                            # NO filtering
-                            two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                       FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-
-                            if double_cc_amplitudes is not None:
-                                theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
-                            else:
-                                theta_parameters_ijab.append(0)
-
-                            Sec_Quant_CC_ijab_ops.append(two_elec)
-
-        # DOUBLE excitation: up + DOWN
-        for i in alph_occs:
-            for j in [k for k in beta_occs if k > i]:
-                for a in alph_noccs:
-                    for b in [k for k in beta_noccs if k > a]:
-
-                        if tol_filter_small_terms:
-                            # uses Hamiltonian to ignore small terms!
-                            if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
-                                two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                           FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-                                if double_cc_amplitudes is not None:
-                                    theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
-                                else:
-                                    theta_parameters_ijab.append(0)
-                            Sec_Quant_CC_ijab_ops.append(two_elec)
-                        else:
-                            # NO filtering
-                            two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-                                       FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-
-                            if double_cc_amplitudes is not None:
-                                theta_parameters_ijab.append(double_cc_amplitudes[a][i][b][j])
-                            else:
-                                theta_parameters_ijab.append(0)
-
-                            Sec_Quant_CC_ijab_ops.append(two_elec)
-
-        return Sec_Quant_CC_ia_ops, Sec_Quant_CC_ijab_ops, theta_parameters_ia, theta_parameters_ijab
 
     def Remove_NOON_terms(self, NOON=None, occ_threshold=1.99999, unocc_threshold=1e-5,
                           indices_to_remove_list_manual=None, single_cc_amplitudes=None,double_cc_amplitudes=None,
                           singles_hamiltonian=None, doubles_hamiltonian=None, tol_filter_small_terms=None):
+
+
 
         if indices_to_remove_list_manual:
             indices_remove = set(indices_to_remove_list_manual)
@@ -199,14 +351,16 @@ class Ansatz():
             indices_remove = set(occupied_indices)
             indices_remove.update(set(unoccupied_indices))
 
-        Sec_Quant_CC_ia_ops, Sec_Quant_CC__ijab_ops, theta_parameters_ia, theta_parameters_ijab = self.Get_ia_and_ijab_terms(single_cc_amplitudes=single_cc_amplitudes,
-                                                                                                                              double_cc_amplitudes=double_cc_amplitudes,
-                                                                                                                              singles_hamiltonian=singles_hamiltonian,
-                                                                                                                              doubles_hamiltonian=doubles_hamiltonian,
-                                                                                                                              tol_filter_small_terms = tol_filter_small_terms)
+            if (self.Sec_Quant_CC_ia_Fermi_ops is None) or (self.Sec_Quant_CC_ijab_Fermi_ops is None):
+                self.Get_ia_and_ijab_terms(single_cc_amplitudes=single_cc_amplitudes,
+                                           double_cc_amplitudes=double_cc_amplitudes,
+                                           singles_hamiltonian=singles_hamiltonian,
+                                           doubles_hamiltonian=doubles_hamiltonian,
+                                           tol_filter_small_terms = tol_filter_small_terms)
+
         reduced_Sec_Quant_CC_ops_ia = []
         reduced_theta_parameters_ia=[]
-        for index, excitation in enumerate(Sec_Quant_CC_ia_ops):
+        for index, excitation in enumerate(self.Sec_Quant_CC_ia_Fermi_ops):
             #each term made up of two parts: -1.0 [2^ 3^ 10 11] + 1.0 [11^ 10^ 3 2]
             first_term, second_term = excitation.terms.items()
 
@@ -220,7 +374,7 @@ class Ansatz():
 
         reduced_Sec_Quant_CC_ops_ijab = []
         reduced_theta_parameters_ijab=[]
-        for index, excitation in enumerate(Sec_Quant_CC__ijab_ops):
+        for index, excitation in enumerate(self.Sec_Quant_CC_ijab_Fermi_ops):
             #each term made up of two parts: -1.0 [2^ 3^ 10 11] + 1.0 [11^ 10^ 3 2]
             first_term, second_term = excitation.terms.items()
 
@@ -233,12 +387,22 @@ class Ansatz():
                 continue
 
         if indices_to_remove_list_manual is None:
+            self.NOON_indices_removed= list(indices_remove)
+        else:
+            self.NOON_indices_removed = indices_to_remove_list_manual
+
+        self.NOON_Sec_Quant_CC_ia_Fermi_ops=reduced_Sec_Quant_CC_ops_ia
+        self.NOON_theta_ia= reduced_theta_parameters_ia
+        self.NOON_Sec_Quant_CC_ijab_Fermi_ops = reduced_Sec_Quant_CC_ops_ijab
+        self.NOON_theta_ijab = reduced_theta_parameters_ijab
+
+        if indices_to_remove_list_manual is None:
             return list(indices_remove), reduced_Sec_Quant_CC_ops_ia, reduced_Sec_Quant_CC_ops_ijab, reduced_theta_parameters_ia, reduced_theta_parameters_ijab
         else:
             return reduced_Sec_Quant_CC_ops_ia, reduced_Sec_Quant_CC_ops_ijab, reduced_theta_parameters_ia, reduced_theta_parameters_ijab
 
 
-    def UCCSD_single_trotter_step(self,Second_Quant_CC_Ops_ia, Second_Quant_CC_Ops_ijab, transformation='JW'):
+    def UCCSD_single_trotter_step(self,transformation, List_FermiOps_ia=None, List_FermiOps_ijab=None):
 
         """
         Performs single trotter step approximation of UCCSD anstaz.
@@ -270,37 +434,32 @@ class Ansatz():
                                                under JW transform. Each performs a UCCSD excitation.
 
         """
+        ##ia
+        if List_FermiOps_ia is None:
+            if self.Sec_Quant_CC_ia_Fermi_ops is None:
+                self.Get_ia_and_ijab_terms()
+            self.Second_Quant_CC_single_Trot_list_ia = Fermi_ops_to_qubit_ops(self.Sec_Quant_CC_ia_Fermi_ops,
+                                                                 transformation=transformation)
+        else:
+            self.Second_Quant_CC_single_Trot_list_ia= Fermi_ops_to_qubit_ops(List_FermiOps_ia,
+                                                                transformation=transformation)
 
-        Second_Quant_CC_single_Trot_list_ia = []
-        Second_Quant_CC_single_Trot_list_ijab=[]
+        ## ijab
+        if List_FermiOps_ijab is None:
+            if self.Sec_Quant_CC_ijab_Fermi_ops is None:
+                self.Get_ia_and_ijab_terms()
+            self.Second_Quant_CC_single_Trot_list_ijab = Fermi_ops_to_qubit_ops(self.Sec_Quant_CC_ijab_Fermi_ops,
+                                                                 transformation=transformation)
+        else:
+            self.Second_Quant_CC_single_Trot_list_ijab = Fermi_ops_to_qubit_ops(List_FermiOps_ijab,
+                                                                                transformation=transformation)
 
-        if transformation == 'JW':
-            from openfermion.transforms import jordan_wigner
-            for OP in Second_Quant_CC_Ops_ia:
-                JW_OP = jordan_wigner(OP)
-                Second_Quant_CC_single_Trot_list_ia.append(JW_OP)
-
-            for OP in Second_Quant_CC_Ops_ijab:
-                JW_OP = jordan_wigner(OP)
-                Second_Quant_CC_single_Trot_list_ijab.append(JW_OP)
-
-        elif transformation == 'BK':
-            from openfermion.transforms import bravyi_kitaev
-            for OP in Second_Quant_CC_Ops_ia:
-                BK_OP = bravyi_kitaev(OP)
-                Second_Quant_CC_single_Trot_list_ia.append(BK_OP)
-
-            for OP in Second_Quant_CC_Ops_ijab:
-                BK_OP = bravyi_kitaev(OP)
-                Second_Quant_CC_single_Trot_list_ijab.append(BK_OP)
-
-        return Second_Quant_CC_single_Trot_list_ia, Second_Quant_CC_single_Trot_list_ijab
 
     def UCCSD_DOUBLE_trotter_step(self):
         # TODO
         pass
 
-    def Get_CC_Matrices(self, Sec_Quant_CC_ops_ia, Sec_Quant_CC_ops_ijab, transformation='JW'):
+    def Get_CC_Matrices(self, List_ia_ops, List_ijab_ops, transformation):
         """
         From list of FermionOperators (openfermion.ops._fermion_operator.FermionOperator) corresponding to
         UCCSD excitations... remember: UCCSD = ∑_pq (h_pq a†_p a_q) + ∑_pqrs (h_pqrs a†_p a†_q a_r a_s)
@@ -312,7 +471,8 @@ class Ansatz():
                     ]
 
         calculates corresponding sparse matrices for each term under defined transformation e.g. JORDAN WIGNER
-        and returns them in a list. AKA returns list of matrices corresponding to each UCCSD excitation operator
+        and returns them in a list. AKA can returns list of matrices corresponding to each UCCSD excitation operator.
+        (note will work with qubit operators too)
 
         e.g. H = h0 I + h1 Z0 + h2 Z1 +h3 Z2 + h4 Z3 + h5 Z0Z1 ... etc etc
         note can get integrals (h_ia and h_ijab) from Get_CCSD_Amplitudes method of Hamiltonian class!
@@ -342,32 +502,26 @@ class Ansatz():
 
         # becomes [matrix1, matrix2, matrix3]
 
-        from openfermion.transforms import get_sparse_operator
+
         CC_op_matrices_ia = []
         CC_op_matrices_ijab = []
 
         if transformation=='JW':
-            from openfermion.transforms import jordan_wigner
-
-            for classical_op in Sec_Quant_CC_ops_ia:
-                # matrix operator of coupled cluster operations
+            for classical_op in List_ia_ops:
                 CC_op_matrices_ia.append(get_sparse_operator(jordan_wigner(classical_op), n_qubits=self.n_orbitals))
 
-            for classical_op in Sec_Quant_CC_ops_ijab:
-                # matrix operator of coupled cluster operations
+            for classical_op in List_ijab_ops:
                 CC_op_matrices_ijab.append(get_sparse_operator(jordan_wigner(classical_op), n_qubits=self.n_orbitals))
 
         elif transformation=='BK':
-            from openfermion.transforms import bravyi_kitaev
-            for classical_op in Sec_Quant_CC_ops_ia:
+            for classical_op in List_ia_ops:
                 # matrix operator of coupled cluster operations
                 CC_op_matrices_ia.append(get_sparse_operator(bravyi_kitaev(classical_op), n_qubits=self.n_orbitals))
 
-            for classical_op in Sec_Quant_CC_ops_ijab:
-                # matrix operator of coupled cluster operations
+            for classical_op in List_ijab_ops:
                 CC_op_matrices_ijab.append(get_sparse_operator(bravyi_kitaev(classical_op), n_qubits=self.n_orbitals))
         else:
-            raise ValueError('unknown transformation')
+            raise ValueError('unknown transformation: {}'.format(transformation))
         return CC_op_matrices_ia, CC_op_matrices_ijab
 
     def Convert_basis_state_to_occ_num_basis(self, state):
@@ -418,7 +572,6 @@ class Ansatz():
         return state_list
 
     def Convert_occ_num_basis_to_basis_state(self, occ_num_basis):
-        from openfermion import jw_configuration_state
 
         if isinstance(occ_num_basis, list):
             occ_num_basis = np.array(occ_num_basis)
@@ -468,7 +621,7 @@ class Ansatz():
 
         Beta_x = csr_matrix([1]).reshape([1, 1])
 
-        for x in range(int(np.ceil(np.log2(n_orbitals)))):
+        for _ in range(int(np.ceil(np.log2(n_orbitals)))):
             Beta_x = kron(I, Beta_x)
 
             Beta_x = Beta_x.tolil()
@@ -495,588 +648,209 @@ class Ansatz():
         return self.Convert_occ_num_basis_to_basis_state(BK_HF_occ_Basis)
 
 
-# class BK_Qubit_Reordering(Ansatz):
-#
-#     def __init__(self, BK_QubitHamiltonian,
-#                  n_electrons,
-#                  n_orbitals):
-#         super().__init__(n_electrons, n_orbitals)
-#
-#         self.BK_QubitHamiltonian=BK_QubitHamiltonian
-#
-#     def Get_ia_and_ijab_terms_BK_ordering(self, single_cc_amplitudes=None, double_cc_amplitudes=None, singles_hamiltonian=None,
-#                               doubles_hamiltonian=None, tol_filter_small_terms=None):
-#         """
-#         state encoded as: | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...> (M spin orbitals)
-#
-#         not | ↑ ↓  ↑ ↓ ↑ ↓...>
-#         """
-#
-#
-#         from openfermion.ops import FermionOperator
-#
-#         alph_occs = np.arange(0, self.n_electrons / 2, dtype=int)  # spin up occupied
-#         beta_occs = np.arange(self.n_orbitals / 2, self.n_orbitals / 2 + self.n_electrons / 2, dtype=int)  # spin down occupied
-#         alph_noccs = np.arange(self.n_electrons / 2, self.n_orbitals / 2, dtype=int)  # spin up un-occupied
-#         beta_noccs = np.arange(self.n_orbitals / 2 + self.n_electrons / 2, self.n_orbitals, dtype=int)  # spin down UN-occupied
-#
-#         Sec_Quant_CC__ia_ops = []  # second quantised single e- CC operators
-#         theta_parameters_ia = []
-#         Sec_Quant_CC__ijab_ops = []  # second quantised two e- CC operators
-#         theta_parameters_ijab = []
-#
-#         # SINGLE electron excitation: spin UP transition
-#         for i in alph_occs:
-#             i = int(i)
-#             for a in alph_noccs:
-#                 a=int(a)
-#                 if tol_filter_small_terms:
-#                     if abs(singles_hamiltonian[i][a]) > tol_filter_small_terms or abs(
-#                             singles_hamiltonian[a][i]) > tol_filter_small_terms:
-#                         one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-#                         if single_cc_amplitudes is not None:
-#                             theta_parameters_ia.append(single_cc_amplitudes[a][i])
-#                         else:
-#                             theta_parameters_ia.append(0)
-#
-#                         Sec_Quant_CC__ia_ops.append(one_elec)
-#                 else:
-#                     # NO filtering
-#                     one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-#                     if single_cc_amplitudes is not None:
-#                         theta_parameters_ia.append(single_cc_amplitudes[a][i])
-#                     else:
-#                         theta_parameters_ia.append(0)
-#
-#                     Sec_Quant_CC__ia_ops.append(one_elec)
-#
-#         # SINGLE electron excitation: spin DOWN transition
-#         for i in beta_occs:
-#             i = int(i)
-#             for a in beta_noccs:
-#                 a = int(a)
-#                 if tol_filter_small_terms:
-#                     # uses Hamiltonian to ignore small terms!
-#                     if abs(singles_hamiltonian[i][a]) > tol_filter_small_terms or abs(
-#                             singles_hamiltonian[a][i]) > tol_filter_small_terms:
-#                         one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-#                         if single_cc_amplitudes is not None:
-#                             theta_parameters_ia.append(single_cc_amplitudes[a][i])
-#                         else:
-#                             theta_parameters_ia.append(0)
-#
-#                         Sec_Quant_CC__ia_ops.append(one_elec)
-#                 else:
-#                     # NO filtering
-#                     one_elec = FermionOperator(((a, 1), (i, 0))) - FermionOperator(((i, 1), (a, 0)))
-#                     if single_cc_amplitudes is not None:
-#                         theta_parameters_ia.append(single_cc_amplitudes[a][i])
-#                     else:
-#                         theta_parameters_ia.append(0)
-#
-#                     Sec_Quant_CC__ia_ops.append(one_elec)
-#
-#         # DOUBLE excitation: UP + UP
-#         for i in alph_occs:
-#             i = int(i)
-#             for j in [k for k in alph_occs if k > i]:
-#                 j = int(j)
-#                 for a in alph_noccs:
-#                     a = int(a)
-#                     for b in [k for k in alph_noccs if k > a]:
-#                         b = int(b)
-#                         if tol_filter_small_terms:
-#                             # uses Hamiltonian to ignore small terms!
-#                             if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(
-#                                     doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
-#                                 two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-#                                            FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-#                                 if double_cc_amplitudes is not None:
-#                                     theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-#                                 else:
-#                                     theta_parameters_ijab.append(0)
-#                             Sec_Quant_CC__ijab_ops.append(two_elec)
-#                         else:
-#                             # NO filtering
-#                             two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-#                                        FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-#
-#                             if double_cc_amplitudes is not None:
-#                                 theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-#                             else:
-#                                 theta_parameters_ijab.append(0)
-#
-#                             Sec_Quant_CC__ijab_ops.append(two_elec)
-#
-#         # DOUBLE excitation: DOWN + DOWN
-#         for i in beta_occs:
-#             i = int(i)
-#             for j in [k for k in beta_occs if k > i]:
-#                 j = int(j)
-#                 for a in beta_noccs:
-#                     a = int(a)
-#                     for b in [k for k in beta_noccs if k > a]:
-#                         b = int(b)
-#                         if tol_filter_small_terms:
-#                             # uses Hamiltonian to ignore small terms!
-#                             if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(
-#                                     doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
-#                                 two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-#                                            FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-#                                 if double_cc_amplitudes is not None:
-#                                     theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-#                                 else:
-#                                     theta_parameters_ijab.append(0)
-#                             Sec_Quant_CC__ijab_ops.append(two_elec)
-#                         else:
-#                             # NO filtering
-#                             two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-#                                        FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-#
-#                             if double_cc_amplitudes is not None:
-#                                 theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-#                             else:
-#                                 theta_parameters_ijab.append(0)
-#
-#                             Sec_Quant_CC__ijab_ops.append(two_elec)
-#
-#         # DOUBLE excitation: up + DOWN
-#         for i in alph_occs:
-#             i = int(i)
-#             for j in [k for k in beta_occs if k > i]:
-#                 j = int(j)
-#                 for a in alph_noccs:
-#                     a = int(a)
-#                     for b in [k for k in beta_noccs if k > a]:
-#                         b = int(b)
-#                         if tol_filter_small_terms:
-#                             # uses Hamiltonian to ignore small terms!
-#                             if abs(doubles_hamiltonian[j][i][a][b]) > tol_filter_small_terms or abs(
-#                                     doubles_hamiltonian[b][a][i][j]) > tol_filter_small_terms:
-#                                 two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-#                                            FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-#                                 if double_cc_amplitudes is not None:
-#                                     theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-#                                 else:
-#                                     theta_parameters_ijab.append(0)
-#                             Sec_Quant_CC__ijab_ops.append(two_elec)
-#                         else:
-#                             # NO filtering
-#                             two_elec = FermionOperator(((b, 1), (a, 1), (j, 0), (i, 0))) - \
-#                                        FermionOperator(((i, 1), (j, 1), (a, 0), (b, 0)))
-#
-#                             if double_cc_amplitudes is not None:
-#                                 theta_parameters_ijab.append(double_cc_amplitudes[b][a][j][i])
-#                             else:
-#                                 theta_parameters_ijab.append(0)
-#
-#                             Sec_Quant_CC__ijab_ops.append(two_elec)
-#
-#         return Sec_Quant_CC__ia_ops, Sec_Quant_CC__ijab_ops, theta_parameters_ia, theta_parameters_ijab
-#
-#     def Get_Re_ordered_Hamiltonian(self):
-#
-#         from openfermion.ops import QubitOperator
-#         new_Hamiltonian = QubitOperator()
-#
-#         for Op in self.BK_QubitHamiltonian:
-#             for PauliWord, const in Op.terms.items():
-#                 if PauliWord == ():
-#                     new_Hamiltonian += Op
-#                 else:
-#                     QubitNo_list, PauliStr_list = zip(*PauliWord)
-#
-#                     # max_even_qubit = max(i for i in QubitNo_list if not i % 2)
-#                     max_even_qubit = int(self.n_orbitals / 2)
-#
-#                     pauli_list = []
-#                     for index, qubitNo in enumerate(QubitNo_list):
-#                         if qubitNo % 2:
-#                             new_qubitNo = int(max_even_qubit + (qubitNo / 2))
-#                         else:
-#                             new_qubitNo = int(qubitNo / 2)
-#                         pauli_list.append('{}{}'.format(PauliStr_list[index], new_qubitNo))
-#
-#                     new_QubitOp = QubitOperator(' '.join(pauli_list), const)
-#                     new_Hamiltonian += new_QubitOp
-#         return new_Hamiltonian
-#
-#     def New_BK_HF_state(self):
-#         """
-#         Function to re-arrange  | ↑ ↓  ↑ ↓...> state too | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...>
-#
-#         """
-#
-#         BK_state = self.Get_BK_HF_state_in_OCC_basis() # in form | ↑ ↓  ↑ ↓ ↑ ↓...>
-#
-#         even_indices = np.arange(0,self.n_orbitals,2)
-#         odd_indices = np.arange(1, self.n_orbitals, 2)
-#
-#         spin_up = np.take(BK_state, even_indices)
-#         spin_down = np.take(BK_state, odd_indices)
-#
-#         return np.hstack((spin_up,spin_down)) # in form | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...>
-#
-#     def Get_Reordered_Hamiltonian_2_qubits_removed(self, n_spin_up_electrons):
-#         """
-#         If we encode a state as | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...> (M spin orbitals) and look at BK matrix:
-#
-#         matrix([[1., 0., 0., 0., 0., 0., 0., 0.],
-#                 [1., 1., 0., 0., 0., 0., 0., 0.],
-#                 [0., 0., 1., 0., 0., 0., 0., 0.],
-#                 [1., 1., 1., 1., 0., 0., 0., 0.],
-#                 [0., 0., 0., 0., 1., 0., 0., 0.],
-#                 [0., 0., 0., 0., 1., 1., 0., 0.],
-#                 [0., 0., 0., 0., 0., 0., 1., 0.],
-#                 [1., 1., 1., 1., 1., 1., 1., 1.]])
-#
-#         can see for M/2 (number of spin up electrons) and M (number of spin up and spin down electrons)
-#         the matrix is has leading 1 values.
-#
-#         As the electron number is conserved by the Hamiltonian, these qubits are only actedo n  by  the  identity
-#         or  PauliZ operators.
-#
-#         we can re-place these operators by their corresponding eigenvalues(+1  for  the  identity,  +1  for Z_{M−1} if
-#         the  total  number of electrons is EVEN, and −1 if total number of electrons is ODD,
-#
-#         +1 for Z{M/2−1} if the number of SPIN-UP electrons is EVEN and −1 if  ODD).
-#         The  Hamiltonian  then  only  acts on (M−2) qubits, so two qubits can be removed from the  simulation.
-#
-#         """
-#
-#         # following approach in PHYS. REV. X8,031022 (2018)
-#         # For a system of M spin-orbitals... we can arrange the orbital ssuch  that  the  firs tM/2  spin-orbitals  describe
-#         # spin up states and the last M/2 spin orbitals describe spin down states.
-#         # hence need to reorder Hamiltonian according to this!
-#         from openfermion.ops import QubitOperator
-#         new_Hamiltonian = QubitOperator()
-#
-#         for Op in self.BK_QubitHamiltonian:
-#             for PauliWord, const in Op.terms.items():
-#                 if PauliWord == ():
-#                     new_Hamiltonian += Op
-#                 else:
-#                     QubitNo_list, PauliStr_list = zip(*PauliWord)
-#
-#                     QubitNo_list = list(QubitNo_list)
-#                     PauliStr_list = list(PauliStr_list)
-#
-#                     if (self.n_orbitals / 2 - 1) in QubitNo_list:
-#                         M_over_2_index = QubitNo_list.index((self.n_orbitals / 2 - 1))
-#                         QubitNo_list.pop(M_over_2_index)
-#                         PauliStr_list.pop(M_over_2_index)
-#
-#                         # if n_spin_up_electrons %2:  # only spin up electrons!
-#                         #     const = const * -1
-#                         #     print('correction')
-#                         # else:
-#                         #     const = const * 1
-#
-#                     if (self.n_orbitals - 1) in QubitNo_list:
-#                         M_index = QubitNo_list.index((self.n_orbitals - 1))
-#                         QubitNo_list.pop(M_index)
-#                         PauliStr_list.pop(M_index)
-#
-#                         # if self.n_electrons %2: # BOTH spin-up and down electrons!
-#                         #     const = const * -1
-#                         #     print('TOTAL correction')
-#                         # else:
-#                         #     const = const * 1
-#
-#                     # re-numbering operations!
-#                     pauli_list = ['{}{}'.format(PauliStr_list[index], qubitNo) if qubitNo<(self.n_orbitals / 2 - 1)
-#                                      else '{}{}'.format(PauliStr_list[index], qubitNo-1) for index, qubitNo in enumerate(QubitNo_list)]
-#                     new_QubitOp = QubitOperator(' '.join(pauli_list), const)
-#                     new_Hamiltonian += new_QubitOp
-#
-#         return new_Hamiltonian
-#
-#     def BF_HF_state_REDUCED(self):
-#         BK_state = self.New_BK_HF_state()
-#         return np.delete([BK_state], [(self.n_orbitals / 2 - 1), (self.n_orbitals - 1)])
+def Find_I_Z_indices_in_Hamiltonian(QubitHamiltonian, N_qubits):
 
-class BK_Qubit_Reduction(Ansatz):
+    # all indices
+    qubit_Nos_to_remove = np.arange(0, N_qubits, 1)
+    for op in QubitHamiltonian:
+        for PauliWord, const in op.terms.items():
+            if PauliWord:
+                qubitNos, PauliStrs = list(zip(*PauliWord))
 
-    def __init__(self, BK_QubitHamiltonian,
+                # remove indices if X or Y present
+                indices_to_remove = np.where(np.isin(PauliStrs, ['X', 'Y']) == True)[0]
+                qubitNo_to_remove = np.take(qubitNos, indices_to_remove)
+
+                i_remove = np.where(np.isin(qubit_Nos_to_remove, qubitNo_to_remove) == True)[0]
+                qubit_Nos_to_remove = np.delete(qubit_Nos_to_remove, i_remove)
+
+    return qubit_Nos_to_remove
+
+def Remove_Z_terms_from_Hamiltonian(QubitHamiltonian, input_state, list_of_qubit_indices_to_remove,
+                                    check_reduction=False):
+
+    new_Hamiltonian = QubitOperator()
+
+    for Op in QubitHamiltonian:
+        for PauliWord, const in Op.terms.items():
+            if PauliWord == ():
+                new_Hamiltonian += Op
+            else:
+                QubitNo_list, PauliStr_list = zip(*PauliWord)
+                QubitNo_list = np.array(QubitNo_list)
+                PauliStr_list = np.array(PauliStr_list)
+
+                indices_to_remove = np.where(np.isin(QubitNo_list, list_of_qubit_indices_to_remove) == True)[0]
+
+                # note indexing slightly different for BK state (as always whole)
+                # some op start at non-zero qubitNo (e.g. X2 Y2)
+                bits_of_state_being_lost = np.take(input_state,
+                                              list(set(QubitNo_list).intersection(list_of_qubit_indices_to_remove)))
+                Pstr_of_state_being_lost = np.take(PauliStr_list, indices_to_remove)
+
+                for i, bit in enumerate(bits_of_state_being_lost):
+                    if Pstr_of_state_being_lost[i] == 'Z':
+                        if int(bit) == 1:
+                            const = const * -1
+                        elif int(bit) == 0:
+                            const = const * 1
+                        else:
+                            raise ValueError('input state is not binary: {}'.format())
+                    elif (Pstr_of_state_being_lost[i] == 'Y') or (Pstr_of_state_being_lost[i] == 'X'):
+                        const = 0
+                        break
+                    else:
+                        raise ValueError('operation is not a Pword: {}'.format(Pstr_of_state_being_lost))
+
+
+                QubitNo_list = np.delete(QubitNo_list, indices_to_remove)
+                PauliStr_list = np.delete(PauliStr_list, indices_to_remove)
+                new_pauli_word = list(zip(QubitNo_list.tolist(), PauliStr_list.tolist()))
+
+                new_Hamiltonian += QubitOperator(new_pauli_word, const)
+
+    if check_reduction:
+        old_H_matrix = csc_matrix(get_sparse_operator(QubitHamiltonian))#.todense()
+        N_qubits = int(np.log2(old_H_matrix.shape[0]))
+        new_H_matrix = csc_matrix(get_sparse_operator(new_Hamiltonian, n_qubits=N_qubits))#.todense()
+
+        eig_values_old, eig_vectors_old = eigs(old_H_matrix)
+        FCI_old = min(eig_values_old)
+
+        eig_values_new, eig_vectors_new = eigs(new_H_matrix)
+        FCI_new = min(eig_values_new)
+
+        if not np.isclose(FCI_old, FCI_new, atol=1e-7):
+            raise ValueError('Hamiltonian reduction incorrect')
+
+    return new_Hamiltonian
+
+def Re_label_Hamiltonian(QubitHamiltonian):
+
+    # find unique qubit indices
+    qubit_set = set()
+    for Op in QubitHamiltonian:
+        qubit_terms = list(Op.terms.keys())[0]
+        if qubit_terms:  # gets rid of Identity term
+            QubitNo_list, _ = zip(*qubit_terms)
+            qubit_set.update(set(QubitNo_list))
+
+    qubitNo_re_label_dict = dict(zip(qubit_set, range(len(qubit_set))))
+    ## ^ dictionary to re-label qubits
+
+    ## re-label Hamiltonian using unqiue qubit indices!
+    from openfermion.ops import QubitOperator
+    re_labelled_Hamiltonian = QubitOperator()
+
+    for Op in QubitHamiltonian:
+        for PauliWord, const in Op.terms.items():
+            if PauliWord == ():
+                re_labelled_Hamiltonian += Op
+            else:
+                QubitNo_list, PauliStr_list = zip(*PauliWord)
+                QubitNo_list_new = [qubitNo_re_label_dict[qubitNo] for qubitNo in QubitNo_list]
+
+                re_labelled_P_word = list(zip(QubitNo_list_new, PauliStr_list))
+                re_labelled_Hamiltonian += QubitOperator(re_labelled_P_word, const)
+
+    return qubitNo_re_label_dict, re_labelled_Hamiltonian
+
+def Remove_indices_from_qubit_ops(List_QubitOperators, list_of_qubit_indices_to_remove):
+
+    new_op_list = []
+
+    for Op in List_QubitOperators:
+        new_op =QubitOperator()
+        for PauliWord, const in Op.terms.items():
+            if PauliWord == ():
+                new_op += Op
+            else:
+                QubitNo_list, PauliStr_list = zip(*PauliWord)
+                QubitNo_list = np.array(QubitNo_list)
+                PauliStr_list = np.array(PauliStr_list)
+
+                indices_to_remove = np.where(np.isin(QubitNo_list, list_of_qubit_indices_to_remove) == True)[0]
+
+
+                QubitNo_list = np.delete(QubitNo_list, indices_to_remove)
+                PauliStr_list = np.delete(PauliStr_list, indices_to_remove)
+                new_pauli_word = list(zip(QubitNo_list.tolist(), PauliStr_list.tolist()))
+
+                new_op += QubitOperator(new_pauli_word, const)
+        new_op_list.append(new_op)
+
+    return new_op_list
+
+def Re_label_qubit_operators(qubitNo_re_label_dict, List_QubitOperators):
+
+    re_labelled_CC_ops = []
+    for terms in List_QubitOperators:
+        re_labelled_CC_op = QubitOperator()
+        for Op in terms:
+            for PauliWord, const in Op.terms.items():
+                if PauliWord == ():
+                    re_labelled_CC_op += Op
+                else:
+                    QubitNo_list, PauliStr_list = zip(*PauliWord)
+                    QubitNo_list_new = [qubitNo_re_label_dict[qubitNo] for qubitNo in QubitNo_list]
+                    re_labelled_P_word = list(zip(QubitNo_list_new, PauliStr_list))
+                    re_labelled_CC_op += QubitOperator(re_labelled_P_word, const)
+
+        re_labelled_CC_ops.append(re_labelled_CC_op)
+
+    return re_labelled_CC_ops
+
+def Re_label_fermion_operators(qubitNo_re_label_dict, List_FermiOperators): #TODO!!!!
+
+    re_labelled_Fermi_ops_list = []
+    for double_Fermi_op_list in List_FermiOperators:
+        re_labelled_Fermi_op = FermionOperator()
+
+        op1, op2 = double_Fermi_op_list.terms.items()
+
+        new_op1 = tuple((qubitNo_re_label_dict[index], crea) if index in qubitNo_re_label_dict.keys() else (index, crea) for index, crea in op1[0])
+        new_op2 = tuple((qubitNo_re_label_dict[index], crea) if index in qubitNo_re_label_dict.keys() else (index, crea) for
+                   index, crea in op2[0])
+
+        re_labelled_Fermi_op+= FermionOperator(new_op1, op1[1])
+        re_labelled_Fermi_op += FermionOperator(new_op2, op2[1])
+        re_labelled_Fermi_ops_list.append(re_labelled_Fermi_op)
+
+    return re_labelled_Fermi_ops_list
+
+
+class Ansatz_Reduction(Ansatz):
+
+    def __init__(self, QubitHamiltonian,
                  n_electrons,
                  n_orbitals):
         super().__init__(n_electrons, n_orbitals)
 
-        self.BK_QubitHamiltonian=BK_QubitHamiltonian
+        self.QubitHamiltonian=QubitHamiltonian
 
-    def Get_Reordered_Hamiltonian_2_qubits_removed_TODO(self):
-        """
-        Under BK transform IF state is a multiple of 2 then one can re-arrange orbitals as spin up then spin down:
-        | ↑ ↓  ↑ ↓...> to | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...> with (M spin orbitals) then look at BK matrix:
+        self.qubitNo_re_label_dict=None
+        self.reduced_QubitHamiltonian=None
 
-        matrix([[1., 0., 0., 0., 0., 0., 0., 0.],
-                [1., 1., 0., 0., 0., 0., 0., 0.],
-                [0., 0., 1., 0., 0., 0., 0., 0.],
-                [1., 1., 1., 1., 0., 0., 0., 0.],
-                [0., 0., 0., 0., 1., 0., 0., 0.],
-                [0., 0., 0., 0., 1., 1., 0., 0.],
-                [0., 0., 0., 0., 0., 0., 1., 0.],
-                [1., 1., 1., 1., 1., 1., 1., 1.]])
+    def Get_removed_I_Z_Hamiltonian_relabled(self, input_state, check_reduction=False):
+        qubitNos_to_remove = Find_I_Z_indices_in_Hamiltonian(self.QubitHamiltonian, self.n_orbitals)
 
-        can see for M/2 (number of spin up electrons) and M (number of spin up and spin down electrons)
-        the matrix is has leading 1 values.
+        Reduced_H = Remove_Z_terms_from_Hamiltonian(self.QubitHamiltonian,
+                                                    input_state,
+                                                    qubitNos_to_remove,
+                                                    check_reduction=check_reduction)
 
-        As the electron number is conserved by the Hamiltonian, these qubits are only actedo n  by  the  identity
-        or  PauliZ operators.
+        self.qubitNo_re_label_dict, self.reduced_QubitHamiltonian = Re_label_Hamiltonian(Reduced_H)
+        self.new_input = np.take(input_state, list(self.qubitNo_re_label_dict.keys()))
+        self.qubitNos_to_remove = qubitNos_to_remove
 
-        we can re-place these operators by their corresponding eigenvalues(+1  for  the  identity,  +1  for Z_{M−1} if
-        the  total  number of electrons is EVEN, and −1 if total number of electrons is ODD,
 
-        +1 for Z{M/2−1} if the number of SPIN-UP electrons is EVEN and −1 if  ODD).
-        The  Hamiltonian  then  only  acts on (M−2) qubits, so two qubits can be removed from the  simulation.
+        self.new_electron_count = sum(np.take(self.Get_JW_HF_state_in_OCC_basis(), list(self.qubitNo_re_label_dict.keys())))
+        self.new_orbital_count = self.new_input.shape[0]
 
-        """
-        pass
-
-    def Get_Reordered_BF_HF_state_2_qubits_removed_TODO(self):
-        """
-        Under BK transform IF state is a multiple of 2 then one can re-arrange orbitals as spin up then spin down:
-        | ↑ ↓  ↑ ↓...> to | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...> with (M spin orbitals) then look at BK matrix:
-
-        matrix([[1., 0., 0., 0., 0., 0., 0., 0.],
-                [1., 1., 0., 0., 0., 0., 0., 0.],
-                [0., 0., 1., 0., 0., 0., 0., 0.],
-                [1., 1., 1., 1., 0., 0., 0., 0.],
-                [0., 0., 0., 0., 1., 0., 0., 0.],
-                [0., 0., 0., 0., 1., 1., 0., 0.],
-                [0., 0., 0., 0., 0., 0., 1., 0.],
-                [1., 1., 1., 1., 1., 1., 1., 1.]])
-
-        can see for M/2 (number of spin up electrons) and M (number of spin up and spin down electrons)
-        the matrix is has leading 1 values.
-
-        As the electron number is conserved by the Hamiltonian, these qubits are only actedo n  by  the  identity
-        or  PauliZ operators.
-
-        we can re-place these operators by their corresponding eigenvalues(+1  for  the  identity,  +1  for Z_{M−1} if
-        the  total  number of electrons is EVEN, and −1 if total number of electrons is ODD,
-
-        +1 for Z{M/2−1} if the number of SPIN-UP electrons is EVEN and −1 if  ODD).
-        The  Hamiltonian  then  only  acts on (M−2) qubits, so two qubits can be removed from the  simulation.
-
-        """
-        pass
-
-    def Get_Reordered_ia_and_ijab_terms_2_qubits_removed_TODO(self):
-        """
-        Under BK transform IF state is a power of 2 then one can re-arrange orbitals as spin up then spin down:
-        | ↑ ↓  ↑ ↓...> to | ↑ ↑ ↑ ↑ ... ↓ ↓ ↓ ↓...> with (M spin orbitals) then look at BK matrix:
-
-        matrix([[1., 0., 0., 0., 0., 0., 0., 0.],
-                [1., 1., 0., 0., 0., 0., 0., 0.],
-                [0., 0., 1., 0., 0., 0., 0., 0.],
-                [1., 1., 1., 1., 0., 0., 0., 0.],
-                [0., 0., 0., 0., 1., 0., 0., 0.],
-                [0., 0., 0., 0., 1., 1., 0., 0.],
-                [0., 0., 0., 0., 0., 0., 1., 0.],
-                [1., 1., 1., 1., 1., 1., 1., 1.]])
-
-        can see for M/2 (number of spin up electrons) and M (number of spin up and spin down electrons)
-        the matrix is has leading 1 values.
-
-        As the electron number is conserved by the Hamiltonian, these qubits are only actedo n  by  the  identity
-        or  PauliZ operators.
-
-        we can re-place these operators by their corresponding eigenvalues(+1  for  the  identity,  +1  for Z_{M−1} if
-        the  total  number of electrons is EVEN, and −1 if total number of electrons is ODD,
-
-        +1 for Z{M/2−1} if the number of SPIN-UP electrons is EVEN and −1 if  ODD).
-        The  Hamiltonian  then  only  acts on (M−2) qubits, so two qubits can be removed from the  simulation.
-
-        """
-        pass
-
-    def Remove_indices_from_Hamiltonian_manual(self, list_of_qubit_indices_to_remove, list_of_correction_vals):
-
-        from openfermion.ops import QubitOperator
-        new_Hamiltonian = QubitOperator()
-
-        for Op in self.BK_QubitHamiltonian:
-            for PauliWord, const in Op.terms.items():
-                if PauliWord == ():
-                    new_Hamiltonian += Op
-                else:
-                    QubitNo_list, PauliStr_list = zip(*PauliWord)
-                    QubitNo_list = np.array(QubitNo_list)
-                    PauliStr_list = np.array(PauliStr_list)
-
-                    indices_to_remove = np.where(np.isin(QubitNo_list, list_of_qubit_indices_to_remove) == True)[0]
-
-                    #             print(indices_to_remove, QubitNo_list)
-                    const_corr = [list_of_correction_vals[index] for index, i_remove in enumerate(indices_to_remove) if
-                                  i_remove in QubitNo_list]
-                    #             print(indices_to_remove, Op)
-                    #             print('include:', const_corr)
-                    if const_corr:
-                        const = np.prod(const_corr) * const
-
-                    QubitNo_list = np.delete(QubitNo_list, indices_to_remove)
-                    PauliStr_list = np.delete(PauliStr_list, indices_to_remove)
-                    new_pauli_word = list(zip(QubitNo_list.tolist(), PauliStr_list.tolist()))
-                    new_Hamiltonian += QubitOperator(new_pauli_word, const)
-        return new_Hamiltonian
-
-    def Remove_indices_from_Hamiltonian(self, list_of_qubit_indices_to_remove):
-
-        BK_State = self.Get_BK_HF_state_in_OCC_basis()
-        from openfermion.ops import QubitOperator
-        new_Hamiltonian = QubitOperator()
-
-        for Op in self.BK_QubitHamiltonian:
-            for PauliWord, const in Op.terms.items():
-                if PauliWord == ():
-                    new_Hamiltonian += Op
-                else:
-                    QubitNo_list, PauliStr_list = zip(*PauliWord)
-                    QubitNo_list = np.array(QubitNo_list)
-                    PauliStr_list = np.array(PauliStr_list)
-
-                    indices_to_remove = np.where(np.isin(QubitNo_list, list_of_qubit_indices_to_remove) == True)[0]
-
-                    # note indexing slightly different for BK state (as always whole)
-                    # some op start at non-zero qubitNo (e.g. X2 Y2)
-                    BK_State_being_lost= np.take(BK_State, list(set(QubitNo_list).intersection(list_of_qubit_indices_to_remove)))
-                    PauliStr_corresponding = np.take(PauliStr_list, indices_to_remove)
-
-                    for i, bit in enumerate(BK_State_being_lost):
-                        if PauliStr_corresponding[i] == 'Z':
-                            if int(bit) == 1:
-                                const = const * -1
-                            elif int(bit) == 0:
-                                const = const * 1
-                            else:
-                                raise ValueError('input state is not binary')
-                        else:
-                            const=0
-                        # if int(bit) ==1:
-                        #     if PauliStr_corresponding[i]=='Y':
-                        #         # as Y|1> = -i |0> ### BUT we only measure -1... don't see phase of i!
-                        #         const = const*-1
-                        #     elif PauliStr_corresponding[i]=='Z':
-                        #         # as Z|1> = -1 |1>
-                        #         const = const*-1
-
-                    QubitNo_list = np.delete(QubitNo_list, indices_to_remove)
-                    PauliStr_list = np.delete(PauliStr_list, indices_to_remove)
-                    new_pauli_word = list(zip(QubitNo_list.tolist(), PauliStr_list.tolist()))
-
-                    new_Hamiltonian += QubitOperator(new_pauli_word, const)
-        return new_Hamiltonian
-
-    def Re_label_Hamiltonian(self, QubitHamiltonian):
-
-        # find unique qubit indices
-        qubit_set = set()
-        for Op in QubitHamiltonian:
-            qubit_terms = list(Op.terms.keys())[0]
-            if qubit_terms:  # gets rid of Identity term
-                QubitNo_list, _ = zip(*qubit_terms)
-                qubit_set.update(set(QubitNo_list))
-
-        re_label_dict = dict(zip(qubit_set, range(len(qubit_set))))
-        ## ^ dictionary to re-label qubits
-
-        ## re-label Hamiltonian using unqiue qubit indices!
-        from openfermion.ops import QubitOperator
-        re_labelled_Hamiltonian = QubitOperator()
-
-        for Op in QubitHamiltonian:
-            for PauliWord, const in Op.terms.items():
-                if PauliWord == ():
-                    re_labelled_Hamiltonian += Op
-                else:
-                    QubitNo_list, PauliStr_list = zip(*PauliWord)
-                    QubitNo_list_new = [re_label_dict[qubitNo] for qubitNo in QubitNo_list]
-
-                    re_labelled_P_word = list(zip(QubitNo_list_new, PauliStr_list))
-                    re_labelled_Hamiltonian += QubitOperator(re_labelled_P_word, const)
-
-        return re_label_dict, re_labelled_Hamiltonian
-
-    def New_BK_HF_state(self, list_of_qubit_indices_to_remove):
-        """
-        Function get new BK state
-        """
-        BK_state = self.Get_BK_HF_state_in_OCC_basis() # in form | ↑ ↓  ↑ ↓ ↑ ↓...>
-        reduced_BK_state=np.delete(BK_state, list_of_qubit_indices_to_remove)
-
-        # # note occupation: |f_{0} f_{1}...  f_{n-1)>
-        # JW_state = self.Get_JW_HF_state_in_OCC_basis()
-        #
-        # # remove qubits with indices defined
-        # reduced_JW_state = np.delete(JW_state, list_of_qubit_indices_to_remove)
-        #
-        # #Get BK transform
-        # BK_mat_transform = self._Beta_BK_matrix_transform(n_orbitals=len(reduced_JW_state))
-        #
-        #
-        # Hartree_Fock_JW_occ_basis_state_reduced = np.array(reduced_JW_state).reshape([len(reduced_JW_state),1])
-        # HF_state_BK_basis = BK_mat_transform.dot(Hartree_Fock_JW_occ_basis_state_reduced) % 2
-        # # modulo two very important!
-        #
-        # return HF_state_BK_basis.reshape([1, HF_state_BK_basis.shape[0]])[0] # note occupation: |b_{0} b_{1} ... b_{n-1)>
-
-        return reduced_BK_state
-
-    def Find_Qubits_only_acted_on_by_I_or_Z(self, qubit_operator_list):
-
-        # qubit_operator_list is intended to be either list of ia_CC_terms or ijab_CC_terms
-        # finds terms that don't change initial state!
-
-        # Generate list of qubits
-        qubits_to_remove = np.arange(0, self.n_orbitals, 1)
-
-        for term in qubit_operator_list:
-            for op in term:
-                for PauliWord, const in op.terms.items():
-                    qubitNos, PauliStrs = list(zip(*PauliWord))
-
-                    # find where non I or Z terms are
-                    indices_to_remove = np.where(np.isin(PauliStrs, ['X', 'Y']) == True)[0]
-                    qubitNo_to_remove = np.take(qubitNos, indices_to_remove)
-
-                    i_remove = np.where(np.isin(qubits_to_remove, qubitNo_to_remove) == True)[0]
-                    qubits_to_remove = np.delete(qubits_to_remove, i_remove)
-
-        return qubits_to_remove
-
-    def Remove_indices_from_CC_qubit_operators(self, CC_qubit_operator_list,
-                                                             list_of_qubit_indices_to_remove):
-        from openfermion.ops import QubitOperator
-        # list_of_correction_vals=[1,1]
-        new_CC_qubit_operator_list = []
-        for terms in CC_qubit_operator_list:
-            new_CC_op = QubitOperator()
-
-            for Op in terms:
-                for PauliWord, const in Op.terms.items():
-                    if PauliWord == ():
-                        new_CC_op += Op
-                    else:
-                        QubitNo_list, PauliStr_list = zip(*PauliWord)
-                        QubitNo_list = np.array(QubitNo_list)
-                        PauliStr_list = np.array(PauliStr_list)
-
-                        indices_to_remove = np.where(np.isin(QubitNo_list, list_of_qubit_indices_to_remove) == True)[0]
-
-                        QubitNo_list = np.delete(QubitNo_list, indices_to_remove)
-                        PauliStr_list = np.delete(PauliStr_list, indices_to_remove)
-                        new_pauli_word = list(zip(QubitNo_list.tolist(), PauliStr_list.tolist()))
-                        new_CC_op += QubitOperator(new_pauli_word, const)
-            new_CC_qubit_operator_list.append(new_CC_op)
-
-        return new_CC_qubit_operator_list
-
-    def Re_label_CC_qubit_operators(self, re_label_dict, CC_qubit_operator_list):
-
-        from openfermion.ops import QubitOperator
+    def Relabel_Op_list(self, Qubit_operator_list):
+        # intended to re-label CC operators
         re_labelled_CC_ops = []
-        for terms in CC_qubit_operator_list:
+        for terms in Qubit_operator_list:
             re_labelled_CC_op = QubitOperator()
             for Op in terms:
                 for PauliWord, const in Op.terms.items():
@@ -1084,31 +858,31 @@ class BK_Qubit_Reduction(Ansatz):
                         re_labelled_CC_op += Op
                     else:
                         QubitNo_list, PauliStr_list = zip(*PauliWord)
-                        QubitNo_list_new = [re_label_dict[qubitNo] for qubitNo in QubitNo_list]
+                        QubitNo_list_new = [self.qubitNo_re_label_dict[qubitNo] for qubitNo in QubitNo_list]
                         re_labelled_P_word = list(zip(QubitNo_list_new, PauliStr_list))
                         re_labelled_CC_op += QubitOperator(re_labelled_P_word, const)
-
             re_labelled_CC_ops.append(re_labelled_CC_op)
 
         return re_labelled_CC_ops
 
-    def Reduced_ia_ijab_terms(self, n_orbitals, n_electrons, qubits_indices_KEPT,
+
+    def Reduced_ia_ijab_terms(self,
                           tol_filter_small_terms=None,
                           singles_hamiltonian=None,
                           doubles_hamiltonian=None,
                           double_cc_amplitudes=None,
                           single_cc_amplitudes=None):
 
-        from openfermion.ops import FermionOperator
+        qubits_indices_KEPT = list(self.qubitNo_re_label_dict.keys())
 
-        orbitals_index = range(0, n_orbitals)
-        alph_occs = list(set([k for k in orbitals_index if k % 2 == 0 and k < n_electrons]).intersection(
+        orbitals_index = range(0, self.n_orbitals)
+        alph_occs = list(set([k for k in orbitals_index if k % 2 == 0 and k < self.n_electrons]).intersection(
             qubits_indices_KEPT))  # spin up occupied
-        beta_occs = list(set([k for k in orbitals_index if k % 2 == 1 and k < n_electrons]).intersection(
+        beta_occs = list(set([k for k in orbitals_index if k % 2 == 1 and k < self.n_electrons]).intersection(
             qubits_indices_KEPT))  # spin down UN-occupied
-        alph_noccs = list(set([k for k in orbitals_index if k % 2 == 0 and k >= n_electrons]).intersection(
+        alph_noccs = list(set([k for k in orbitals_index if k % 2 == 0 and k >= self.n_electrons]).intersection(
             qubits_indices_KEPT))  # spin down occupied
-        beta_noccs = list(set([k for k in orbitals_index if k % 2 == 1 and k >= n_electrons]).intersection(
+        beta_noccs = list(set([k for k in orbitals_index if k % 2 == 1 and k >= self.n_electrons]).intersection(
             qubits_indices_KEPT))  # spin up UN-occupied
 
         Sec_Quant_CC_ia_ops = []  # second quantised single e- CC operators
@@ -1252,6 +1026,27 @@ class BK_Qubit_Reduction(Ansatz):
 
         return Sec_Quant_CC_ia_ops, Sec_Quant_CC_ijab_ops, theta_parameters_ia, theta_parameters_ijab
 
+    def Get_reduced_ia_ijab_terms(self,
+                                  tol_filter_small_terms=None,
+                                  singles_hamiltonian=None,
+                                  doubles_hamiltonian=None,
+                                  double_cc_amplitudes=None,
+                                  single_cc_amplitudes=None):
+
+
+        Sec_Quant_CC_ia_ops, Sec_Quant_CC_ijab_ops, theta_parameters_ia, theta_parameters_ijab = self.Reduced_ia_ijab_terms(single_cc_amplitudes=single_cc_amplitudes,
+                                   double_cc_amplitudes=double_cc_amplitudes,
+                                   singles_hamiltonian=singles_hamiltonian,
+                                   doubles_hamiltonian=doubles_hamiltonian,
+                                   tol_filter_small_terms=tol_filter_small_terms)
+
+        new_ia = Re_label_fermion_operators(self.qubitNo_re_label_dict, Sec_Quant_CC_ia_ops)
+        new_ijab = Re_label_fermion_operators(self.qubitNo_re_label_dict, Sec_Quant_CC_ijab_ops)
+
+        return new_ia, theta_parameters_ia, new_ijab, theta_parameters_ijab
+
+
+
 
 
 from functools import reduce
@@ -1356,229 +1151,9 @@ class Ansatz_lin_alg():
         return energy[0][0]
 
 
-# class Ansatz_MATRIX(Ansatz):
-#     """
-#
-#     Build the ansatz state through linear algebra rather than quantum circuits.
-#
-#     Args:
-#         PauliWord_str_Second_Quant_CC_JW_OP_list (list): List of Fermionic Operators (openfermion.ops._fermion_operator.FermionOperator)
-#         n_electrons (int): Number of electrons
-#         n_qubits (int): Number of qubits
-#
-#     Attributes:
-#         reference_ket ():
-#         UCCSD_ops_matrix_list ():
-#
-#     """
-#     def __init__(self,  n_electrons, n_orbitals, Second_Quant_CC_Ops_ia, Second_Quant_CC_Ops_ijab):
-#         super().__init__(n_electrons, n_orbitals)
-#         self.Second_Quant_CC_Ops_ia= Second_Quant_CC_Ops_ia
-#         self.Second_Quant_CC_Ops_ijab = Second_Quant_CC_Ops_ijab
-#
-#     def Get_reference_HF_ket(self, transformation='JW'):
-#         """
-#
-#         Method to obtain basis state under JW transform of state defined in occupation number basis.
-#         e.g. for H2 under the Jordan Wigner transfrom has |HF> = |0011> in occ no. basis
-#         occupied_orbitals_index_list = [0,1] <- as first orbitals occupied
-#
-#         These outputs (|HF> and <HF|) can be used with MolecularHamiltonianMatrix!.
-#
-#         Args:
-#             occupied_orbitals_index_list (list): list of orbital indices that are OCCUPIED
-#
-#         returns:
-#             reference_ket (scipy.sparse.csr.csr_matrix): Sparse matrix of KET corresponding to occ no basis state under
-#                                                          JW transform
-#
-#
-#         """
-#         if transformation=='JW':
-#             reference_ket = scipy.sparse.csc_matrix( self.Get_JW_HF_state()).transpose()
-#             # reference_bra = reference_ket.transpose().conj()
-#         elif transformation=='BK':
-#             reference_ket = scipy.sparse.csc_matrix(self.Get_BK_HF_state()).transpose()
-#             # reference_bra = reference_ket.transpose().conj()
-#         else:
-#             raise ValueError('unknown transformation')
-#         return reference_ket
-#
-#     def Calc_ansatz_state_withOUT_trot(self, ia_parameters, ijab_parameters, transformation):
-#
-#         UCCSD_ops_ia, UCCSD_ops_ijab = self.Get_CC_Matrices(self.Second_Quant_CC_Ops_ia, self.Second_Quant_CC_Ops_ijab,
-#                                                             transformation=transformation)
-#
-#
-#         generator = scipy.sparse.csc_matrix((2 ** (self.n_orbitals), 2 ** (self.n_orbitals)), dtype=complex)
-#
-#         for index_ia, mat_op_ia in enumerate(UCCSD_ops_ia):
-#             generator = generator + ia_parameters[index_ia] *mat_op_ia
-#
-#         for index_ijab, mat_op_ijab in enumerate(UCCSD_ops_ijab):
-#             generator = generator + ijab_parameters[index_ijab] *mat_op_ijab
-#
-#         reference_ket = self.Get_reference_HF_ket(transformation=transformation)
-#
-#         new_state = scipy.sparse.linalg.expm_multiply(generator, reference_ket)
-#         # new_bra = new_state.transpose().conj()
-#         return new_state
-#
-#     def Calc_ansatz_state_WITH_trot_SINGLE_STEP(self, ia_parameters, ijab_parameters, transformation):
-#
-#         Second_Quant_CC_single_Trot_list_ia, Second_Quant_CC_single_Trot_list_ijab = self.Get_CC_Matrices(self.Second_Quant_CC_Ops_ia, self.Second_Quant_CC_Ops_ijab,
-#                                                             transformation=transformation)
-#
-#         new_state = self.Get_reference_HF_ket(transformation=transformation)
-#
-#         for index_ia, mat_op_ia in enumerate(Second_Quant_CC_single_Trot_list_ia):
-#             new_state = scipy.sparse.linalg.expm_multiply((ia_parameters[index_ia] * mat_op_ia), new_state)
-#
-#         for index_ijab, mat_op_ijab in enumerate(Second_Quant_CC_single_Trot_list_ijab):
-#             new_state = scipy.sparse.linalg.expm_multiply((ijab_parameters[index_ijab] * mat_op_ijab), new_state)
-#
-#         return new_state
-#
-#     def Calc_energy_of_state(self, state_ket, Qubit_MolecularHamiltonianMatrix):
-#         state_bra = state_ket.transpose().conj()
-#         energy = state_bra.dot(Qubit_MolecularHamiltonianMatrix.dot(state_ket))
-#         return energy.toarray()[0][0].real
-#
-# if __name__ == '__main__':
-# #     ####### Matrix Method ######
-#     from quchem.Hamiltonian_Generator_Functions import *
-#     ### Parameters
-#     Molecule = 'H2'#'LiH' #'H2
-#     geometry = None #[('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))] # [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
-#     basis = 'sto-3g'
-#
-#     ### Get Hamiltonian
-#     Hamilt = Hamiltonian(Molecule,
-#                          run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
-#                          basis=basis,
-#                          multiplicity=1,
-#                          geometry=geometry)  # normally None!
-#
-#     Hamilt.Get_Molecular_Hamiltonian(Get_H_matrix=False)
-#     QubitHam = Hamilt.Get_Qubit_Hamiltonian(transformation='JW')
-#     Ham_matrix_JW = Hamilt.Get_sparse_Qubit_Hamiltonian_matrix(QubitHam)
-#
-#     ansatz_obj = Ansatz(Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits)
-#
-#     Sec_Quant_CC_ia_ops, Sec_Quant_CC_ijab_ops, theta_parameters_ia, theta_parameters_ijab = ansatz_obj.Get_ia_and_ijab_terms()
-#
-#     ansatz_lin_alg_obj = Ansatz_MATRIX(Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits, Sec_Quant_CC_ia_ops, Sec_Quant_CC_ijab_ops)
-#
-#     state_ket = ansatz_lin_alg_obj.Calc_ansatz_state_withOUT_trot(theta_parameters_ia, theta_parameters_ijab, 'JW')
-#     # state_ket = ansatz_lin_alg_obj.Calc_ansatz_state_WITH_trot_SINGLE_STEP(theta_parameters_ia, theta_parameters_ijab, 'JW')
-#
-#     Energy = ansatz_lin_alg_obj.Calc_energy_of_state(state_ket, Ham_matrix_JW)
-#
-#     print(Energy)
-#
-#     def GIVE_ENERGY(theta_ia_theta_jab_list):
-#         theta_ia = theta_ia_theta_jab_list[:len(theta_parameters_ia)]
-#         theta_ijab = theta_ia_theta_jab_list[len(theta_parameters_ia):]
-#         state_ket = ansatz_lin_alg_obj.Calc_ansatz_state_withOUT_trot(theta_ia,
-#                                                                       theta_ijab, 'JW')
-#
-#         # state_ket = ansatz_lin_alg_obj.Calc_ansatz_state_WITH_trot_SINGLE_STEP(theta_ia,
-#         #                                                                        theta_ijab, 'JW')
-#
-#         Energy = ansatz_lin_alg_obj.Calc_energy_of_state(state_ket, Ham_matrix_JW)
-#         return Energy
-#
-#     from quchem.Scipy_Optimizer import *
-#     THETA_params = [*theta_parameters_ia, *theta_parameters_ijab]
-#     GG = Optimizer(GIVE_ENERGY, THETA_params, 'Nelder-Mead', store_values=True, display_iter_steps=True,
-#                    tol=1e-5,
-#                    display_convergence_message=True)
-#     GG.get_env(50)
-#     GG.plot_convergence()
-#     plt.show()
 
 
 from quchem.quantum_circuit_functions import *
-# class Ansatz_Circuit(Ansatz):
-#     """
-#
-#     The Ansatz_Circuit object allows Hartree Fock UCCSD Ansatz Circuit to be generated
-#
-#     Args:
-#         PauliWord_str_Second_Quant_CC_JW_OP_list (list): List of Fermionic Operators (openfermion.ops._fermion_operator.FermionOperator)
-#         n_electrons (int): Number of electrons
-#         n_qubits (int): Number of qubits
-#
-#     Attributes:
-#         HF_QCirc ():
-#
-#     """
-#     def __init__(self, Qubit_Op_list_Second_Quant_CC_Ops_ia, Qubit_Op_list_Second_Quant_CC_Ops_ijab,
-#                  n_orbitals, n_electrons, manual_HF_state=None):
-#
-#         super().__init__(n_electrons, n_orbitals)
-#
-#         self.Qubit_Op_list_Second_Quant_CC_Ops_ia = Qubit_Op_list_Second_Quant_CC_Ops_ia
-#         self.Qubit_Op_list_Second_Quant_CC_Ops_ijab=Qubit_Op_list_Second_Quant_CC_Ops_ijab
-#         self.n_orbitals = n_orbitals
-#         self.n_electrons = n_electrons
-#
-#         # TODO consider changing this
-#         self.manual_HF_state = manual_HF_state
-#
-#         self.HF_QCirc = None
-#
-#     def _Get_HF_Quantum_Circuit(self, transformation='JW'):
-#
-#         if self.manual_HF_state is not None:
-#             HF_state_occ_basis = self.manual_HF_state
-#         else:
-#             if transformation=='JW':
-#                 HF_state_occ_basis = self.Get_JW_HF_state_in_OCC_basis()
-#             elif transformation=='BK':
-#                 HF_state_occ_basis = self.Get_BK_HF_state_in_OCC_basis()
-#             else:
-#                 raise ValueError('unknown transformation')
-#
-#         HF_state_prep = State_Prep(HF_state_occ_basis)
-#         HF_state_prep_circuit = cirq.Circuit(cirq.decompose_once(
-#             (HF_state_prep(*cirq.LineQubit.range(HF_state_prep.num_qubits())))))
-#         self.HF_QCirc = list(HF_state_prep_circuit.all_operations())
-#
-#     def _Get_UCCSD_Quantum_Circuit(self, Theta_param_list_ia, Theta_param_list_ijab):
-#
-#         Q_Circuit_generator_list = []
-#
-#         for ia_index, ia_QubitOp in enumerate(self.Qubit_Op_list_Second_Quant_CC_Ops_ia):
-#             for ia_QubitOp_term in ia_QubitOp:
-#                 Q_circuit_gen = full_exponentiated_PauliWord_circuit(ia_QubitOp_term, Theta_param_list_ia[ia_index])
-#                 Q_circuit = cirq.Circuit(cirq.decompose_once(
-#                     (Q_circuit_gen(*cirq.LineQubit.range(Q_circuit_gen.num_qubits())))))
-#                 Q_Circuit_generator_list.append(Q_circuit.all_operations())
-#
-#         for ijab_index, iajb_QubitOp in enumerate(self.Qubit_Op_list_Second_Quant_CC_Ops_ijab):
-#             for ijab_QubitOp_term in iajb_QubitOp:
-#                 Q_circuit_gen = full_exponentiated_PauliWord_circuit(ijab_QubitOp_term, Theta_param_list_ijab[ijab_index])
-#                 Q_circuit = cirq.Circuit(cirq.decompose_once(
-#                     (Q_circuit_gen(*cirq.LineQubit.range(Q_circuit_gen.num_qubits())))))
-#                 Q_Circuit_generator_list.append(Q_circuit.all_operations())
-#
-#         return Q_Circuit_generator_list
-#
-#     def Get_Full_HF_UCCSD_QC(self, Theta_param_list_ia, Theta_param_list_ijab, transformation='JW'):
-#
-#         if self.HF_QCirc is None:
-#             self._Get_HF_Quantum_Circuit(transformation=transformation)
-#
-#         UCCSD_QC_List = self._Get_UCCSD_Quantum_Circuit(Theta_param_list_ia, Theta_param_list_ijab)
-#
-#         full_circuit = cirq.Circuit(
-#             [
-#                 self.HF_QCirc,
-#                 *UCCSD_QC_List,
-#             ]
-#         )
-#         return full_circuit
 
 class Ansatz_Circuit():
     """
@@ -1618,10 +1193,11 @@ class Ansatz_Circuit():
 
         for ia_index, ia_QubitOp in enumerate(self.Qubit_Op_list_Second_Quant_CC_Ops_ia):
             for ia_QubitOp_term in ia_QubitOp:
-                Q_circuit_gen = full_exponentiated_PauliWord_circuit(ia_QubitOp_term, Theta_param_list_ia[ia_index])
-                Q_circuit = cirq.Circuit(cirq.decompose_once(
-                    (Q_circuit_gen(*cirq.LineQubit.range(Q_circuit_gen.num_qubits())))))
-                Q_Circuit_generator_list.append(Q_circuit.all_operations())
+                if list(ia_QubitOp_term.terms.keys())[0]:
+                    Q_circuit_gen = full_exponentiated_PauliWord_circuit(ia_QubitOp_term, Theta_param_list_ia[ia_index])
+                    Q_circuit = cirq.Circuit(cirq.decompose_once(
+                        (Q_circuit_gen(*cirq.LineQubit.range(Q_circuit_gen.num_qubits())))))
+                    Q_Circuit_generator_list.append(Q_circuit.all_operations())
         return Q_Circuit_generator_list
 
     def _Get_UCCSD_ijab_circuit(self, Theta_param_list_ijab):
@@ -1629,10 +1205,11 @@ class Ansatz_Circuit():
         Q_Circuit_generator_list = []
         for ijab_index, iajb_QubitOp in enumerate(self.Qubit_Op_list_Second_Quant_CC_Ops_ijab):
             for ijab_QubitOp_term in iajb_QubitOp:
-                Q_circuit_gen = full_exponentiated_PauliWord_circuit(ijab_QubitOp_term, Theta_param_list_ijab[ijab_index])
-                Q_circuit = cirq.Circuit(cirq.decompose_once(
-                    (Q_circuit_gen(*cirq.LineQubit.range(Q_circuit_gen.num_qubits())))))
-                Q_Circuit_generator_list.append(Q_circuit.all_operations())
+                if list(ijab_QubitOp_term.terms.keys())[0]:
+                    Q_circuit_gen = full_exponentiated_PauliWord_circuit(ijab_QubitOp_term, Theta_param_list_ijab[ijab_index])
+                    Q_circuit = cirq.Circuit(cirq.decompose_once(
+                        (Q_circuit_gen(*cirq.LineQubit.range(Q_circuit_gen.num_qubits())))))
+                    Q_Circuit_generator_list.append(Q_circuit.all_operations())
         return Q_Circuit_generator_list
 
     def Get_Full_HF_UCCSD_QC(self, Theta_param_list_ia=None, Theta_param_list_ijab=None,
@@ -1672,35 +1249,35 @@ class Ansatz_Circuit():
 
         return full_circuit
 
-if __name__ == '__main__':
-#     ####### Matrix Method ######
-    from quchem.Hamiltonian_Generator_Functions import *
-    ### Parameters
-    Molecule = 'H2'#'LiH' #'H2
-    geometry = None #[('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))] # [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
-    basis = 'sto-3g'
-
-    ### Get Hamiltonian
-    Hamilt = Hamiltonian(Molecule,
-                         run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
-                         basis=basis,
-                         multiplicity=1,
-                         geometry=geometry)  # normally None!
-
-    Hamilt.Get_Molecular_Hamiltonian(Get_H_matrix=False)
-    QubitHam = Hamilt.Get_Qubit_Hamiltonian(transformation='JW')
-    Ham_matrix_JW = Hamilt.Get_sparse_Qubit_Hamiltonian_matrix(QubitHam)
-
-    ansatz_obj = Ansatz(Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits)
-
-    Sec_Quant_CC_ia_ops, Sec_Quant_CC_ijab_ops, theta_parameters_ia, theta_parameters_ijab = ansatz_obj.Get_ia_and_ijab_terms()
-
-    Qubit_Op_list_Second_Quant_CC_Ops_ia, Qubit_Op_list_Second_Quant_CC_Ops_ijab = ansatz_obj.UCCSD_single_trotter_step(Sec_Quant_CC_ia_ops, Sec_Quant_CC_ijab_ops,
-                                                                                                                        transformation='JW')
-
-    full_ansatz_Q_Circ = Ansatz_Circuit(Qubit_Op_list_Second_Quant_CC_Ops_ia, Qubit_Op_list_Second_Quant_CC_Ops_ijab,
-                 Hamilt.molecule.n_qubits, Hamilt.molecule.n_electrons)
-
-    ansatz_cirq_circuit = full_ansatz_Q_Circ.Get_Full_HF_UCCSD_QC(theta_parameters_ia, theta_parameters_ijab, transformation='JW')
-
-    print(ansatz_cirq_circuit)
+# if __name__ == '__main__':
+# #     ####### Matrix Method ######
+#     from quchem.Hamiltonian_Generator_Functions import *
+#     ### Parameters
+#     Molecule = 'H2'#'LiH' #'H2
+#     geometry = None #[('Li', (0., 0., 0.)), ('H', (0., 0., 1.45))] # [('H', (0., 0., 0.)), ('H', (0., 0., 0.74))]
+#     basis = 'sto-3g'
+#
+#     ### Get Hamiltonian
+#     Hamilt = Hamiltonian(Molecule,
+#                          run_scf=1, run_mp2=1, run_cisd=1, run_ccsd=1, run_fci=1,
+#                          basis=basis,
+#                          multiplicity=1,
+#                          geometry=geometry)  # normally None!
+#
+#     Hamilt.Get_Molecular_Hamiltonian(Get_H_matrix=False)
+#     QubitHam = Hamilt.Get_Qubit_Hamiltonian(transformation='JW')
+#     Ham_matrix_JW = Hamilt.Get_sparse_Qubit_Hamiltonian_matrix(QubitHam)
+#
+#     ansatz_obj = Ansatz(Hamilt.molecule.n_electrons, Hamilt.molecule.n_qubits)
+#
+#     Sec_Quant_CC_ia_ops, Sec_Quant_CC_ijab_ops, theta_parameters_ia, theta_parameters_ijab = ansatz_obj.Get_ia_and_ijab_terms()
+#
+#     Qubit_Op_list_Second_Quant_CC_Ops_ia, Qubit_Op_list_Second_Quant_CC_Ops_ijab = ansatz_obj.UCCSD_single_trotter_step(Sec_Quant_CC_ia_ops, Sec_Quant_CC_ijab_ops,
+#                                                                                                                         transformation='JW')
+#
+#     full_ansatz_Q_Circ = Ansatz_Circuit(Qubit_Op_list_Second_Quant_CC_Ops_ia, Qubit_Op_list_Second_Quant_CC_Ops_ijab,
+#                  Hamilt.molecule.n_qubits, Hamilt.molecule.n_electrons)
+#
+#     ansatz_cirq_circuit = full_ansatz_Q_Circ.Get_Full_HF_UCCSD_QC(theta_parameters_ia, theta_parameters_ijab, transformation='JW')
+#
+#     print(ansatz_cirq_circuit)
