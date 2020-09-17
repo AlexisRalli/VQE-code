@@ -1,11 +1,10 @@
 from openfermion.ops import QubitOperator
+from openfermion import qubit_operator_sparse
 import numpy as np
 
-from quchem.Unitary_partitioning import *
+from quchem.Unitary_partitioning_Seq_Rot import *
 
-
-
-def Get_R_op_list(anti_commuting_set, N_index, check_operator=False):
+def Get_R_op_list(anti_commuting_set, N_index, check_operator=False):#, N_qubits_for_check=None):
     """
 
     Function gets the R operator as a linear combination of unitary operators.
@@ -99,13 +98,13 @@ def Get_R_op_list(anti_commuting_set, N_index, check_operator=False):
     # #     #𝐻𝑛= cos(𝜙_{n-1}) Pn + sin(𝜙_{n-1}) H_{n_1 }
     # #     print('Hn =',np.cos(phi_n_1),Pn, '+', np.sin(phi_n_1),' * ', H_n_1['PauliWords'])
         Hn_list = [qubitOp_Pn_beta_n] + [Omega_l* op for op in  H_n_1['PauliWords']]
-    #
+
     # #     print('')
     # #     print('R = ', R_linear_comb_list)
     # #     #R= cos(𝛼/2)𝟙-sin(𝛼/2)(∑𝛿_{𝑘}𝑃_{𝑘𝑛})
     # #     print('R = ', np.cos(alpha/2), 'I', '+',np.sin(alpha/2), [dkPk*Pn for dkPk in H_n_1['PauliWords']])
 
-        ### CHECKING need to comment out as expensive!
+        ### CHECKING note expensive!
         R = QubitOperator()
         for op in R_linear_comb_list:
             R += op
@@ -121,11 +120,16 @@ def Get_R_op_list(anti_commuting_set, N_index, check_operator=False):
         for op in Hn_list:
             H_n += op
 
-        print('Pn= R*H_n*R_dag ')
-        print('Pn=', Pn)
-        print('R*H_n*R_dag = ', R * H_n * R_dag)
-            # print('Pn= R*H_n*R_dag ', Pn, ' = ', R*H_n*R_dag)
-        #     print('H_n= R_dag*Pn*R ', H_n, ' = ', R_dag*Pn*R)
+        # print('Pn= R*H_n*R_dag ')
+        # print('Pn=', Pn)
+        # print('R*H_n*R_dag = ', R * H_n * R_dag)
+
+        if ((R * H_n * R_dag)!=Pn):
+            raise ValueError(' R H_n R† != Pn')
+        # Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_qubits_for_check)
+        # RHR_dag = qubit_operator_sparse(R * H_n * R_dag, n_qubits=N_qubits_for_check)
+        # if not np.allclose(Pn_mat.todense(), RHR_dag.todense()):
+        #     raise ValueError(' R H_n R† != Pn')
 
     return R_linear_comb_list, Pn, gamma_l  # , H_n_1['PauliWords'], phi_n_1, Hn_list
 
@@ -706,10 +710,117 @@ class VQE_Experiment_LCU_UP():
                     Q_circuit = Generate_Full_Q_Circuit(self.ansatz_circuit, single_PauliOp)
                     hist_key_str = Get_Histogram_key(single_PauliOp)
                     int_state_counter = Simulate_Quantum_Circuit(Q_circuit, self.n_shots, hist_key_str)
+                    number_of_circuit_evals[set_key] = self.n_shots
                     binary_state_counter = Return_as_binary(int_state_counter, hist_key_str)
                     exp_result = expectation_value_by_parity(binary_state_counter)
                     E_list.append(exp_result * list(single_PauliOp.terms.values())[0])
                     #print(single_PauliOp, exp_result * list(single_PauliOp.terms.values())[0])
+
+        #         print(Q_circuit.to_text_diagram(transpose=True))
+        return sum(E_list), number_of_circuit_evals
+
+    def Get_wavefunction_of_state(self, sig_figs=3):
+        return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
+
+# same as above, but limited in number of measurements
+class VQE_Experiment_LCU_UP_limited_Meas():
+    """
+    TODO doc_string
+    """
+
+    def __init__(self,
+                 anti_commuting_sets,
+                 ansatz_circuit,
+                 n_shots,
+                 N_system_qubits,
+                 N_indices_dict=None):
+
+        self.anti_commuting_sets = anti_commuting_sets
+        self.ansatz_circuit = ansatz_circuit
+        self.n_shots = n_shots
+
+        self.N_system_qubits = N_system_qubits
+        self.N_indices_dict = N_indices_dict
+
+    def Get_Histogram_key_ancilla_system(self, qubitOperator, N_ancilla_qubits):
+
+        qubit_No, PauliStr = zip(*list(*qubitOperator.terms.keys()))
+        histogram_string = ','.join([str(i) for i in (qubit_No)] + [str(i) for i in range(self.N_system_qubits,
+                                                                                          self.N_system_qubits + N_ancilla_qubits)])
+        return histogram_string
+
+    def simulate_probabilistic_Q_circuit(self, Quantum_circuit):
+        simulator = cirq.Simulator()
+        raw_result = simulator.run(Quantum_circuit, repetitions=self.n_shots)
+        # TODO note extra 1000 here in no.  of shots (due to only certain exp results taken when projected)
+        # TODO could make an optional parameter
+        return raw_result
+
+    def Get_binary_dict_project(self, Quantum_circuit, qubitOperator, ancilla_amplitudes):
+
+        N_system_terms_measured = len(list(qubitOperator.terms.keys())[0])
+        N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
+        correct_ancilla_state = np.zeros([N_ancilla_qubits])
+
+        binary_results_dict = {}
+
+        hist_key = Get_Histogram_key_ancilla_system(qubitOperator, self.N_system_qubits, N_ancilla_qubits)
+        raw_result = self.simulate_probabilistic_Q_circuit(Quantum_circuit)
+
+        M_results = raw_result.measurements[hist_key]
+        for result in M_results:
+            if np.array_equal(result[N_system_terms_measured::],
+                              correct_ancilla_state):  # Checks if all zero ancilla measured!
+                seperator = ''
+                state_key_binary = seperator.join(
+                    map(str, result[:N_system_terms_measured]))  # Gets rid of ancilla part!!!
+                if state_key_binary not in binary_results_dict.keys():
+                    binary_results_dict[state_key_binary] = 1
+                else:
+                    binary_results_dict[state_key_binary] += 1
+
+        return binary_results_dict
+
+    def Calc_Energy(self, check_LCU_reduction=False):
+
+        E_list = []
+        number_of_circuit_evals = {}
+        for set_key in self.anti_commuting_sets:
+            if len(self.anti_commuting_sets[set_key]) > 1:
+
+                if self.N_indices_dict is None:
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key], 0,
+                                                               check_operator=check_LCU_reduction)
+                    R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
+                else:
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key],
+                                                               self.N_indices_dict[set_key],
+                                                               check_operator=check_LCU_reduction)
+                    R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
+
+                Q_circuit = Full_Q_Circuit(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
+                                           self.N_system_qubits, self.ansatz_circuit)
+
+                binary_state_counter = self.Get_binary_dict_project(Q_circuit, Pn, ancilla_amplitudes)
+                number_of_circuit_evals[set_key] = sum(list(binary_state_counter.values()))
+                exp_result = expectation_value_by_parity(binary_state_counter)
+
+                E_list.append(exp_result * gamma_l)
+                # print(Pn, gamma_l, exp_result, l1_norm)
+
+            else:
+                single_PauliOp = self.anti_commuting_sets[set_key][0]
+                if list(single_PauliOp.terms.keys())[0] == ():
+                    E_list.append(list(single_PauliOp.terms.values())[0])
+                else:
+                    Q_circuit = Generate_Full_Q_Circuit(self.ansatz_circuit, single_PauliOp)
+                    hist_key_str = Get_Histogram_key(single_PauliOp)
+                    int_state_counter = Simulate_Quantum_Circuit(Q_circuit, self.n_shots, hist_key_str)
+                    number_of_circuit_evals[set_key] = self.n_shots
+                    binary_state_counter = Return_as_binary(int_state_counter, hist_key_str)
+                    exp_result = expectation_value_by_parity(binary_state_counter)
+                    E_list.append(exp_result * list(single_PauliOp.terms.values())[0])
+                    # print(single_PauliOp, exp_result * list(single_PauliOp.terms.values())[0])
 
         #         print(Q_circuit.to_text_diagram(transpose=True))
         return sum(E_list), number_of_circuit_evals
@@ -1248,3 +1359,163 @@ def Full_Q_Circuit_single_and_two_qubit_gates(Pn, R_corrected_Op_list, R_correct
         *measure_obj_circ
     ])
     return full_Q_circ
+
+## SINGLE ANCILLA CASE
+def LCU_circuit_single_ancilla(Pn, R_corrected_Op_list, R_correction_list, ancilla_amplitudes, N_system_qubits, ansatz_circ,
+                       include_M_gates=True):
+    """
+    single qubit case only!
+
+    theta_sk = 2*arccos(ancilla_amplitudes[0])
+    """
+
+    N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
+
+    G_qubit = cirq.LineQubit(N_ancilla_qubits + N_system_qubits - 1)
+
+    theta_sk = 2 * np.arccos(ancilla_amplitudes[0])
+    G_circ = cirq.ry(theta_sk).on(G_qubit)
+    G_circ_dagger = cirq.ry(-1 * theta_sk).on(G_qubit)
+
+    R_circ_obj = LCU_R_gate(N_ancilla_qubits, N_system_qubits, R_corrected_Op_list, R_correction_list, Pn)
+    R_circ_circ = cirq.Circuit(
+        cirq.decompose_once((R_circ_obj(*cirq.LineQubit.range(R_circ_obj.num_qubits())))))
+
+    change_to_Z_basis_obj = Change_PauliWord_measurement_to_Z_basis(Pn)
+    change_to_Z_basis_circ = cirq.Circuit(
+        cirq.decompose_once((change_to_Z_basis_obj(*cirq.LineQubit.range(change_to_Z_basis_obj.num_qubits())))))
+
+    measure_obj = Measure_system_and_ancilla(Pn, N_ancilla_qubits, N_system_qubits)
+
+    measure_obj_circ = cirq.Circuit(
+        cirq.decompose_once((measure_obj(*cirq.LineQubit.range(measure_obj.num_qubits())))))
+
+    if include_M_gates:
+        full_Q_circ = cirq.Circuit([
+            *ansatz_circ.all_operations(),
+            G_circ,
+            *R_circ_circ.all_operations(),
+            G_circ_dagger,
+            *change_to_Z_basis_circ.all_operations(),
+            *measure_obj_circ
+        ])
+    else:
+        full_Q_circ = cirq.Circuit([
+            *ansatz_circ.all_operations(),
+            G_circ,
+            *R_circ_circ.all_operations(),
+            G_circ_dagger,
+        ])
+    return full_Q_circ
+
+class VQE_Experiment_LCU_UP_single_ancilla():
+    """
+    TODO doc_string
+    """
+    def __init__(self,
+                 anti_commuting_sets,
+                 ansatz_circuit,
+                 n_shots,
+                 N_system_qubits,
+                 N_indices_dict=None):
+
+        self.anti_commuting_sets = anti_commuting_sets
+        self.ansatz_circuit = ansatz_circuit
+        self.n_shots = n_shots
+
+        self.N_system_qubits = N_system_qubits
+        self.N_indices_dict = N_indices_dict
+
+    def Get_Histogram_key_ancilla_system(self, qubitOperator, N_ancilla_qubits):
+
+        qubit_No, PauliStr = zip(*list(*qubitOperator.terms.keys()))
+        histogram_string = ','.join([str(i) for i in (qubit_No)] + [str(i) for i in range(self.N_system_qubits,
+                                                                                          self.N_system_qubits + N_ancilla_qubits)])
+        return histogram_string
+
+    def simulate_probabilistic_Q_circuit(self, probability_of_success, Quantum_circuit):
+        simulator = cirq.Simulator()
+        raw_result = simulator.run(Quantum_circuit, repetitions=10*self.n_shots * int(np.ceil(1 / probability_of_success)))
+        # TODO note extra 1000 here in no.  of shots (due to only certain exp results taken when projected)
+        # TODO could make an optional parameter
+        return raw_result
+
+    def Get_binary_dict_project(self, Quantum_circuit, qubitOperator, ancilla_amplitudes, l1_norm):
+        N_system_terms_measured = len(list(qubitOperator.terms.keys())[0])
+        N_ancilla_qubits = int(np.ceil(np.log2(len(ancilla_amplitudes))))
+        correct_ancilla_state = np.zeros([N_ancilla_qubits])
+
+        P_success = (1 / l1_norm) ** 2
+
+        total_number_repeats = 0
+        n_success_shots = 0
+        binary_results_dict = {}
+        while n_success_shots != self.n_shots:
+            hist_key = Get_Histogram_key_ancilla_system(qubitOperator, self.N_system_qubits, N_ancilla_qubits)
+            raw_result = simulate_probabilistic_Q_circuit(P_success, Quantum_circuit, self.n_shots)
+
+            M_results = raw_result.measurements[hist_key]
+            for result in M_results:
+                total_number_repeats += 1
+                if np.array_equal(result[N_system_terms_measured::],
+                                  correct_ancilla_state):  # Checks if all zero ancilla measured!
+                    seperator = ''
+                    state_key_binary = seperator.join(
+                        map(str, result[:N_system_terms_measured]))  # Gets rid of ancilla part!!!
+                    if state_key_binary not in binary_results_dict.keys():
+                        binary_results_dict[state_key_binary] = 1
+                    else:
+                        binary_results_dict[state_key_binary] += 1
+                    n_success_shots += 1
+
+                if n_success_shots == self.n_shots:
+                    break
+        return binary_results_dict, total_number_repeats
+
+    def Calc_Energy(self, check_LCU_reduction=False):
+
+        E_list = []
+        number_of_circuit_evals = {}
+        for set_key in self.anti_commuting_sets:
+            if len(self.anti_commuting_sets[set_key]) > 1:
+
+                if self.N_indices_dict is None:
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key], 0,
+                                                               check_operator=check_LCU_reduction)
+                    R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
+                else:
+                    R_uncorrected, Pn, gamma_l = Get_R_op_list(self.anti_commuting_sets[set_key],
+                                                                          self.N_indices_dict[set_key],
+                                                               check_operator=check_LCU_reduction)
+                    R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
+
+                Q_circuit=LCU_circuit_single_ancilla(Pn, R_corrected_Op_list, R_corr_list, ancilla_amplitudes,
+                                           self.N_system_qubits, self.ansatz_circuit,
+                                           include_M_gates=True)
+
+
+                binary_state_counter, No_circuit_M = self.Get_binary_dict_project(Q_circuit, Pn, ancilla_amplitudes, l1_norm)
+                number_of_circuit_evals[set_key] = No_circuit_M
+                exp_result = expectation_value_by_parity(binary_state_counter)
+
+                E_list.append(exp_result * gamma_l)
+                #print(Pn, gamma_l, exp_result, l1_norm)
+
+            else:
+                single_PauliOp = self.anti_commuting_sets[set_key][0]
+                if list(single_PauliOp.terms.keys())[0] == ():
+                    E_list.append(list(single_PauliOp.terms.values())[0])
+                else:
+                    Q_circuit = Generate_Full_Q_Circuit(self.ansatz_circuit, single_PauliOp)
+                    hist_key_str = Get_Histogram_key(single_PauliOp)
+                    int_state_counter = Simulate_Quantum_Circuit(Q_circuit, self.n_shots, hist_key_str)
+                    binary_state_counter = Return_as_binary(int_state_counter, hist_key_str)
+                    exp_result = expectation_value_by_parity(binary_state_counter)
+                    E_list.append(exp_result * list(single_PauliOp.terms.values())[0])
+                    #print(single_PauliOp, exp_result * list(single_PauliOp.terms.values())[0])
+
+        #         print(Q_circuit.to_text_diagram(transpose=True))
+        return sum(E_list), number_of_circuit_evals
+
+    def Get_wavefunction_of_state(self, sig_figs=3):
+        return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
