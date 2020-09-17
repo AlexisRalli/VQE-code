@@ -148,8 +148,9 @@ def Build_reduction_circuit(anti_commuting_set, S_index, check_reduction=False):
 
         R_S_matrix = full_RS_circuit.unitary(qubits_that_should_be_present=qbits)
 
-        Ps_mat = Get_pauli_matrix(Ps, len(qbits))
+        # Ps_mat = Get_pauli_matrix(Ps, len(qbits))
 
+        Ps_mat=qubit_operator_sparse(Ps, n_qubits=len(qbits))
         reduction_mat = R_S_matrix.dot(H_S_matrix.dot(R_S_matrix.conj().transpose()))
 
         if not (np.allclose(Ps_mat.todense(), reduction_mat)):
@@ -303,7 +304,7 @@ class VQE_Experiment_Conj_UP_lin_alg():
                     Q_circuit, Ps, gamma_l = Generate_Full_Q_Circuit_Conj_NO_M_gates(self.ansatz_circuit,
                                                                                      anti_commuting_set,
                                                                                      self.S_key_dict[set_key],
-                                                                                     # <- S_index set to 0
+                                                                                     # ^^^-- S_index defined in dict
                                                                                      check_reduction=False)
 
                 circuit_matrix = Q_circuit.unitary()
