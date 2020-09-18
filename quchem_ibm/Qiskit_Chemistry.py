@@ -7,7 +7,9 @@ import qiskit
 from openfermion.transforms import get_sparse_operator
 from qiskit.extensions import UnitaryGate
 from tqdm import tqdm
-
+import pickle
+import os
+import datetime
 
 def HF_state_IBM_circuit(HF_state, q_register, q_circuit):
     ## re-order IN REVERSE!!!!!!!!!!!!!! IMPORTANT!!!!!
@@ -199,18 +201,9 @@ def Vector_defined_Ansatz(n_qubits, ground_state_vector, check_ansatz_state=Fals
 
     return ansatz_circ, q_reg
 
+def Build_Standard_VQE_circuits(QubitHamiltonian, Ansatz_circuit, q_reg):
 
-def Build_Standard_VQE_circuits(QubitHamiltonian, ground_state_vector, n_qubits, check_ansatz_state=False):
 
-    q_reg = QuantumRegister(n_qubits)
-    qcirc = QuantumCircuit(q_reg)
-
-    perfect_ansatz_circ = Get_Q_circ_to_build_state(ground_state_vector,
-                                                    q_reg,
-                                                    qcirc,
-                                                    check_state=check_ansatz_state)
-
-    perfect_ansatz_circ = perfect_ansatz_circ.reverse_bits()
 
     circuit_list=[]
     for qubitOp in tqdm(QubitHamiltonian, ascii=True, desc='Getting_standard_VQE_circuits'):
@@ -218,7 +211,7 @@ def Build_Standard_VQE_circuits(QubitHamiltonian, ground_state_vector, n_qubits,
             if PauliWord:
                 full_circuit = change_basis_for_Z_measure(qubitOp,
                                                           q_reg,
-                                                          perfect_ansatz_circ,
+                                                          Ansatz_circuit,
                                                           )
                 full_circuit.measure_all()
                 circuit_list.append({'circuit': full_circuit, 'coeff': const, 'qubitOp': qubitOp})
@@ -226,6 +219,36 @@ def Build_Standard_VQE_circuits(QubitHamiltonian, ground_state_vector, n_qubits,
                 I_term = const
                 # circuit_list.append({'circuit': None, 'coeff': const})
     return circuit_list, I_term
+
+# def Build_Standard_VQE_circuits_MEMORY_EFF(QubitHamiltonian, Ansatz_circuit, q_reg, filename):
+#
+#     time = datetime.datetime.now().strftime('%Y%b%d-%H%M%S%f')
+#     F_name = '{}_time={}'.format(filename, time)
+#     base_dir = os.getcwd()
+#     input_dir = os.path.join(base_dir, 'saved_circuits')
+#     if not os.path.exists(input_dir):
+#         os.makedirs(input_dir)
+#
+#     # filepath = os.path.join(input_dir, F_name)
+#     #
+#     # with open(filepath + '.pickle', 'wb') as fhandle:
+#     #     pickle.dump(output, fhandle, protocol=pickle.HIGHEST_PROTOCOL)
+#
+#
+#     circuit_list=[]
+#     for qubitOp in tqdm(QubitHamiltonian, ascii=True, desc='Getting_standard_VQE_circuits'):
+#         for PauliWord, const in qubitOp.terms.items():
+#             if PauliWord:
+#                 full_circuit = change_basis_for_Z_measure(qubitOp,
+#                                                           q_reg,
+#                                                           Ansatz_circuit,
+#                                                           )
+#                 full_circuit.measure_all()
+#                 circuit_list.append({'circuit': full_circuit, 'coeff': const, 'qubitOp': qubitOp})
+#             else:
+#                 I_term = const
+#                 # circuit_list.append({'circuit': None, 'coeff': const})
+#     return circuit_list, I_term
 
 def standard_VQE_lin_alg(QubitHamiltonian, ground_state_vector, n_qubits, check_ansatz_state=False):
 
@@ -298,18 +321,9 @@ def Build_reduction_circuit_seq_rot_IBM(anti_commuting_set, S_index, q_register,
             print('reduction circuit incorrect...   𝑅s 𝐻s 𝑅s† != 𝑃s')
     return seq_R_circuit, Ps, gamma_l
 
-def Get_Seq_Rot_Unitary_Part_circuits(anti_commuting_sets, ground_state_vector, n_qubits, S_index_dict=None,
-                                      rotation_reduction_check=False, check_ansatz_state=False):
+def Get_Seq_Rot_Unitary_Part_circuits(anti_commuting_sets, Ansatz_circuit, q_reg, n_qubits, S_index_dict=None,
+                                      rotation_reduction_check=False):
 
-    q_reg = QuantumRegister(n_qubits)
-    qcirc = QuantumCircuit(q_reg)
-
-    perfect_ansatz_circ = Get_Q_circ_to_build_state(ground_state_vector,
-                                                    q_reg,
-                                                    qcirc,
-                                                    check_state=check_ansatz_state)
-
-    perfect_ansatz_circ = perfect_ansatz_circ.reverse_bits()  # reverse order here!
 
     if S_index_dict is None:
         S_index_dict = {key: 0 for key in anti_commuting_sets}
@@ -326,7 +340,7 @@ def Get_Seq_Rot_Unitary_Part_circuits(anti_commuting_sets, ground_state_vector, 
                                                                             n_qubits,
                                                                             check_reduction=rotation_reduction_check)
 
-            combined_circuits = perfect_ansatz_circ.combine(R_sl_circuit)
+            combined_circuits = Ansatz_circuit.combine(R_sl_circuit)
 
             full_circuit = change_basis_for_Z_measure(Ps,
                                                       q_reg,
@@ -339,7 +353,7 @@ def Get_Seq_Rot_Unitary_Part_circuits(anti_commuting_sets, ground_state_vector, 
                 if PauliWord:
                     full_circuit = change_basis_for_Z_measure(qubitOp,
                                                               q_reg,
-                                                              perfect_ansatz_circ)
+                                                              Ansatz_circuit)
                     full_circuit.measure_all()
                     circuit_list.append({'circuit': full_circuit, 'coeff': const, 'qubitOp': qubitOp})
                 else:
@@ -475,18 +489,8 @@ def Get_post_selection_counts_LCU(list_of_measurements, N_ancilla):
 
     return new_counts
 
-def Get_LCU_Unitary_Part_circuits(anti_commuting_sets, ground_state_vector, n_qubits,
-                                  N_index_dict=None,check_ansatz_state=False):
-
-    q_reg = QuantumRegister(n_qubits)
-    qcirc = QuantumCircuit(q_reg)
-
-    perfect_ansatz_circ = Get_Q_circ_to_build_state(ground_state_vector,
-                                                    q_reg,
-                                                    qcirc,
-                                                    check_state=check_ansatz_state)
-
-    perfect_ansatz_circ = perfect_ansatz_circ.reverse_bits()  # reverse order here!
+def Get_LCU_Unitary_Part_circuits(anti_commuting_sets, Ansatz_circuit, q_reg, n_qubits,
+                                  N_index_dict=None):
 
     if N_index_dict is None:
         N_index_dict = {key: 0 for key in anti_commuting_sets}
@@ -511,7 +515,7 @@ def Get_LCU_Unitary_Part_circuits(anti_commuting_sets, ground_state_vector, n_qu
             G_inverse = G_circuit.inverse()
 
             # combine ancilla and system
-            combined_circuits = perfect_ansatz_circ.combine(G_circuit)
+            combined_circuits = Ansatz_circuit.combine(G_circuit)
 
             # find qubits that are measured!
             Pn_qubitNos, _ = zip(*list(*Pn.terms.keys()))
@@ -545,7 +549,7 @@ def Get_LCU_Unitary_Part_circuits(anti_commuting_sets, ground_state_vector, n_qu
                 if PauliWord:
                     full_circuit = change_basis_for_Z_measure(qubitOp,
                                                               q_reg,
-                                                              perfect_ansatz_circ)
+                                                              Ansatz_circuit)
                     full_circuit.measure_all()
                     circuit_list.append({'circuit': full_circuit, 'coeff': const, 'qubitOp': qubitOp})
                 else:
@@ -677,9 +681,7 @@ def LCU_VQE_lin_alg(anti_commuting_sets, ground_state_vector, n_qubits, N_index_
     return sum(E_list)
 
 
-import pickle
-import os
-import datetime
+
 def Save_exp_inputs(filename, Hamiltonian, anti_commuting_sets, geometry, basis_set, transformation,
                     Graph_colouring_strategy, fci_energy,
                     standard_VQE_circuits, standard_I_term,
