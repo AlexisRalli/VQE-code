@@ -15,6 +15,8 @@ quchem/*.hdf5
 quchem/*.inp
 quchem/*.out
 
+quchem_ibm/Experiments/Input_data/*
+
 Projects/tmp*
 Projects/*.hdf5
 Projects/*.inp
