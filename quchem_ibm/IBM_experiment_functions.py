@@ -20,6 +20,7 @@ def load_IBM_provider(IBM_key=None):
         IBMQ.load_account()
 
     my_provider = IBMQ.get_provider()
+    # my_provider = IBMQ.get_provider(hub='ibm-q')
     return my_provider
 
 def Get_IBM_backends(IBM_provider, show_least_busy=False):
@@ -246,7 +247,8 @@ def run_VQE_unitary_part_experiments_QASM(molecule_name, method_name, qc_circuit
 
     output['start_time'] = datetime.datetime.now()
     print('## running job ## \n')
-    job = backend.run(qobjs)
+    job_name = '{}_{}_{}'.format(molecule_name, method_name, output['start_time'].strftime('%Y%b%d-%H%M%S%f'))
+    job = backend.run(qobjs, name=job_name)
 
     # if (job.status().name != 'DONE') and (backend.configuration().simulator is not True):
     #     try:
@@ -343,3 +345,329 @@ def run_experiment_exp_loop_QASM(molecule_name, method_name, my_provider, backen
                                               save=True,
                                               optimization_level=optimization_level)
 
+
+
+def run_VQE_unitary_part_experiments_CLOUD(molecule_name, method_name, qc_circuit_dictionary_list, my_provider, n_shots, I_term, backend_name,
+                                      optimization_level=3, save=True):
+
+    backend = my_provider.get_backend(backend_name)
+
+    output = {}
+
+    # QASM PART!
+    qc_list = [QuantumCircuit.from_qasm_str(exp_dict['circuit']) for exp_dict in tqdm(qc_circuit_dictionary_list, ascii=True, desc='Getting Q Circuits') if exp_dict['circuit']]
+    # qc_list = [QuantumCircuit.from_qasm_str(exp_dict['circuit']) for exp_dict in qc_circuit_dictionary_list if exp_dict['circuit']]
+    transpiled_circs = transpile(qc_list, backend=backend, optimization_level=optimization_level)
+    del qc_list
+
+    if method_name == 'LCU':
+        qobjs = assemble(transpiled_circs, backend=backend, shots=n_shots, memory=True)
+    else:
+        qobjs = assemble(transpiled_circs, backend=backend, shots=n_shots)
+
+    transpiled_circs_length= len(transpiled_circs)
+    del transpiled_circs
+    # ## error mitigation
+    # # https://qiskit.org/textbook/ch-quantum-hardware/measurement-error-mitigation.html
+    # if backend_name:
+    #     max_shots = 8192
+    #     if method_name == 'LCU':
+    #         LCU_meas_filters=[]
+    #         N_ancilla_per_exp = set([exp_dict['N_ancilla'] for exp_dict in qc_circuit_dictionary_list if 'N_ancilla' in exp_dict.keys()])
+    #         for n_ancilla in N_ancilla_per_exp:
+    #             #fitter is n_ancilla + n_system!
+    #             LCU_meas_filters.append({'N_ancilla': n_ancilla, 'filter': Get_Measurement_Filter(n_ancilla+n_system, backend_name, max_shots, my_provider=my_provider)})
+    #
+    #     stnd_meas_filter = Get_Measurement_Filter(n_system, backend_name, max_shots, my_provider=my_provider)
+    # #### end error mitigation
+    output['start_time'] = datetime.datetime.now()
+    print('## running job ## \n')
+    # job_name = '{}_{}_{}'.format(molecule_name, method_name, output['start_time'].strftime('%Y%b%d-%H%M%S%f'))
+    job = backend.run(qobjs)#, name=job_name)
+    print('## job submitted ## \n')
+
+    output['jobID'] = job.job_id()
+    output['end_time'] = datetime.datetime.now()
+    output['method'] = method_name
+    output['n_shots'] = n_shots
+    output['I_term'] = I_term
+    output['experiment_dict'] = qc_circuit_dictionary_list
+    del job
+
+    if save:
+        print('## saving job ## \n')
+        time = datetime.datetime.now().strftime('%Y%b%d-%H%M%S%f')
+        F_name = 'molecule={}___n_shots={}___method={}___time={}'.format(molecule_name, n_shots, method_name, time)
+
+        #         base_dir = os.path.dirname(os.path.realpath(__file__))
+        base_dir = os.getcwd()
+        filepath = os.path.join(base_dir, 'IBM_qasm_simulator_CLOUD')
+
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
+
+        filepath = os.path.join(filepath, F_name)
+        with open(filepath + '.pickle', 'wb') as fhandle:
+            pickle.dump(output, fhandle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        print('experiment data saved here: {}'.format(filepath))
+
+    return output
+
+def run_experiment_exp_loop_CLOUD(molecule_name, method_name, my_provider, backend_name, INPUT_dict, shot_list,
+                            optimization_level=3):
+
+    if method_name== 'standard_VQE':
+        qc_circuit_dictionary_list = INPUT_dict['standard_VQE_circuits']
+        I_term = INPUT_dict['standard_I_term']
+
+    elif method_name== 'seq_rot_VQE':
+        qc_circuit_dictionary_list = INPUT_dict['Seq_Rot_VQE_circuits']
+        I_term = INPUT_dict['Seq_Rot_I_term']
+
+    elif method_name== 'LCU':
+        qc_circuit_dictionary_list = INPUT_dict['LCU_VQE_circuits']
+        I_term = INPUT_dict['LCU_I_term']
+    else:
+        raise ValueError('unknown method {}'.format(method_name))
+
+    if method_name== 'standard_VQE':
+        molecule_name = molecule_name + '_first_third'
+        qc_circuit_dictionary_list=qc_circuit_dictionary_list[:210]
+
+        # molecule_name = molecule_name + '_second_third'
+        # qc_circuit_dictionary_list=qc_circuit_dictionary_list[210:420]
+        #
+        # molecule_name = molecule_name + '_third_third'
+        # qc_circuit_dictionary_list=qc_circuit_dictionary_list[420:]
+
+    for n_shots in tqdm(shot_list, ascii=True, desc='Running experiments'):
+    # for n_shots in shot_list:
+        run_VQE_unitary_part_experiments_CLOUD(molecule_name,
+                                              method_name,
+                                              qc_circuit_dictionary_list,
+                                              my_provider,
+                                              n_shots,
+                                              I_term,
+                                              backend_name,
+                                              optimization_level=optimization_level)
+
+
+
+##### WAVEFUNCTION METHOD
+
+def run_VQE_unitary_part_experiments_WAVE(molecule_name, method_name, qc_circuit_dictionary_list, my_provider, I_term, backend_name,
+                                      optimization_level=None, save=True):
+    n_shots=1
+    backend = my_provider.get_backend(backend_name)
+
+    output = {}
+
+    # QASM PART!
+    qc_list = [QuantumCircuit.from_qasm_str(exp_dict['circuit']) for exp_dict in tqdm(qc_circuit_dictionary_list, ascii=True, desc='Getting Q Circuits') if exp_dict['circuit']]
+
+    # REMOVE FINAL MEASUREMENT!
+    for circuit in tqdm(qc_list, ascii=True, desc='Removing final measurements'):
+    # for circuit in qc_list:
+        circuit.remove_final_measurements()
+
+    transpiled_circs = transpile(qc_list, backend=backend, optimization_level=optimization_level)
+    del qc_list
+
+    qobjs = assemble(transpiled_circs, backend=backend, shots=n_shots)
+    del transpiled_circs
+
+    output['start_time'] = datetime.datetime.now()
+    print('## running job ## \n')
+    # job_name = '{}_{}_{}'.format(molecule_name, method_name, output['start_time'].strftime('%Y%b%d-%H%M%S%f'))
+    job = backend.run(qobjs)#, name=job_name)
+    print('## job submitted ## \n')
+
+    output['jobID'] = job.job_id()
+    # output['end_time'] = datetime.datetime.now()
+    output['method'] = method_name
+    output['n_shots'] = n_shots
+    output['I_term'] = I_term
+    output['experiment_dict'] = qc_circuit_dictionary_list
+    del job
+
+    if save:
+        print('## saving job ## \n')
+        time = datetime.datetime.now().strftime('%Y%b%d-%H%M%S%f')
+        F_name = 'WAVE_molecule={}___method={}___time={}'.format(molecule_name, method_name, time)
+
+        #         base_dir = os.path.dirname(os.path.realpath(__file__))
+        base_dir = os.getcwd()
+        filepath = os.path.join(base_dir, 'IBM_qasm_simulator_WAVE')
+
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
+
+        filepath = os.path.join(filepath, F_name)
+        with open(filepath + '.pickle', 'wb') as fhandle:
+            pickle.dump(output, fhandle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        print('experiment data saved here: {}'.format(filepath))
+
+    return output
+
+def run_experiment_exp_loop_WAVE(molecule_name, method_name, my_provider, backend_name, INPUT_dict,
+                            optimization_level=None, save=True):
+
+    if method_name== 'standard_VQE':
+        qc_circuit_dictionary_list = INPUT_dict['standard_VQE_circuits']
+        I_term = INPUT_dict['standard_I_term']
+
+    elif method_name== 'seq_rot_VQE':
+        qc_circuit_dictionary_list = INPUT_dict['Seq_Rot_VQE_circuits']
+        I_term = INPUT_dict['Seq_Rot_I_term']
+
+    elif method_name== 'LCU':
+        qc_circuit_dictionary_list = INPUT_dict['LCU_VQE_circuits']
+        I_term = INPUT_dict['LCU_I_term']
+    else:
+        raise ValueError('unknown method {}'.format(method_name))
+
+    if method_name== 'standard_VQE':
+        # molecule_name = molecule_name + '_first_third'
+        # qc_circuit_dictionary_list=qc_circuit_dictionary_list[:210]
+        # molecule_name = molecule_name + '_second_third'
+        # qc_circuit_dictionary_list=qc_circuit_dictionary_list[210:420]
+        #
+        # molecule_name = molecule_name + '_third_third'
+        # qc_circuit_dictionary_list=qc_circuit_dictionary_list[420:]
+
+        # molecule_name = molecule_name + '_first_sixth'
+        # qc_circuit_dictionary_list=qc_circuit_dictionary_list[:105]
+        # molecule_name = molecule_name + '_second_sixth'
+        # qc_circuit_dictionary_list=qc_circuit_dictionary_list[105:210]
+        # molecule_name = molecule_name + '_third_sixth'
+        # qc_circuit_dictionary_list=qc_circuit_dictionary_list[210:315]
+
+        # molecule_name = molecule_name + '_fourth_sixth'
+        # qc_circuit_dictionary_list=qc_circuit_dictionary_list[315:420]
+
+        # molecule_name = molecule_name + '_fifth_sixth'
+        # qc_circuit_dictionary_list=qc_circuit_dictionary_list[420:525]
+
+        molecule_name = molecule_name + '_sixth_sixth'
+        qc_circuit_dictionary_list=qc_circuit_dictionary_list[525:]
+
+    run_VQE_unitary_part_experiments_WAVE(molecule_name,
+                                          method_name,
+                                          qc_circuit_dictionary_list,
+                                          my_provider,
+                                          I_term,
+                                          backend_name,
+                                          optimization_level=optimization_level,
+                                          save=save)
+
+
+## state vector simulator (expensive!)
+from qiskit.quantum_info import Statevector
+def run_VQE_unitary_part_experiments_state_vector(molecule_name, method_name, qc_circuit_dictionary_list, I_term,
+                                      optimization_level=None, save=True):
+    n_shots=1
+    backend = Aer.get_backend('statevector_simulator')
+
+    output = {}
+
+    # QASM PART!
+    qc_list = [QuantumCircuit.from_qasm_str(exp_dict['circuit']) for exp_dict in tqdm(qc_circuit_dictionary_list, ascii=True, desc='Getting Q Circuits') if exp_dict['circuit']]
+
+    # REMOVE FINAL MEASUREMENT!
+    for circuit in tqdm(qc_list, ascii=True, desc='Removing final measurements'):
+    # for circuit in qc_list:
+        circuit.remove_final_measurements()
+
+    transpiled_circs = transpile(qc_list, backend=backend, optimization_level=optimization_level)
+    length_transpiled_circs=len(transpiled_circs)
+    del qc_list
+
+    qobjs = assemble(transpiled_circs, backend=backend, shots=n_shots)
+    del transpiled_circs
+
+    output['start_time'] = datetime.datetime.now()
+    print('## running job ## \n')
+    # job_name = '{}_{}_{}'.format(molecule_name, method_name, output['start_time'].strftime('%Y%b%d-%H%M%S%f'))
+    job = backend.run(qobjs)#, name=job_name)
+    print('## job submitted ## \n')
+
+    print('## job finished ## \n')
+
+    output['end_time'] = datetime.datetime.now()
+    output['method'] = method_name
+    output['I_term'] = I_term
+
+    output['experiment_dict'] = qc_circuit_dictionary_list
+    output['state_vector_list'] = [Statevector(job.result().get_statevector(i)) for i in range(length_transpiled_circs)]
+
+    if save:
+        print('## saving job ## \n')
+        time = datetime.datetime.now().strftime('%Y%b%d-%H%M%S%f')
+        F_name = 'molecule={}___n_shots={}___method={}___time={}'.format(molecule_name, n_shots, method_name, time)
+
+        #         base_dir = os.path.dirname(os.path.realpath(__file__))
+        base_dir = os.getcwd()
+        data_dir = os.path.join(base_dir, 'Data')
+
+        filepath = os.path.join(data_dir, 'state_vector_simulator')
+
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
+
+        filepath = os.path.join(filepath, F_name)
+        with open(filepath + '.pickle', 'wb') as fhandle:
+            pickle.dump(output, fhandle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        print('experiment data saved here: {}'.format(filepath))
+
+    return output
+
+def run_experiment_exp_loop_state_vector(molecule_name, method_name, INPUT_dict,
+                            optimization_level=None, save=True):
+
+    if method_name== 'standard_VQE':
+        qc_circuit_dictionary_list = INPUT_dict['standard_VQE_circuits']
+        I_term = INPUT_dict['standard_I_term']
+
+    elif method_name== 'seq_rot_VQE':
+        qc_circuit_dictionary_list = INPUT_dict['Seq_Rot_VQE_circuits']
+        I_term = INPUT_dict['Seq_Rot_I_term']
+
+    elif method_name== 'LCU':
+        qc_circuit_dictionary_list = INPUT_dict['LCU_VQE_circuits']
+        I_term = INPUT_dict['LCU_I_term']
+    else:
+        raise ValueError('unknown method {}'.format(method_name))
+
+    # if method_name== 'standard_VQE':
+    #     # molecule_name = molecule_name + '_first_third'
+    #     # qc_circuit_dictionary_list=qc_circuit_dictionary_list[:210]
+    #     # molecule_name = molecule_name + '_second_third'
+    #     # qc_circuit_dictionary_list=qc_circuit_dictionary_list[210:420]
+    #     #
+    #     # molecule_name = molecule_name + '_third_third'
+    #     # qc_circuit_dictionary_list=qc_circuit_dictionary_list[420:]
+    #
+    #     # molecule_name = molecule_name + '_first_sixth'
+    #     # qc_circuit_dictionary_list=qc_circuit_dictionary_list[:105]
+    #     # molecule_name = molecule_name + '_second_sixth'
+    #     # qc_circuit_dictionary_list=qc_circuit_dictionary_list[105:210]
+    #     # molecule_name = molecule_name + '_third_sixth'
+    #     # qc_circuit_dictionary_list=qc_circuit_dictionary_list[210:315]
+    #
+    #     # molecule_name = molecule_name + '_fourth_sixth'
+    #     # qc_circuit_dictionary_list=qc_circuit_dictionary_list[315:420]
+    #
+    #     # molecule_name = molecule_name + '_fifth_sixth'
+    #     # qc_circuit_dictionary_list=qc_circuit_dictionary_list[420:525]
+    #
+    #     molecule_name = molecule_name + '_sixth_sixth'
+    #     qc_circuit_dictionary_list=qc_circuit_dictionary_list[525:]
+    run_VQE_unitary_part_experiments_state_vector(molecule_name,
+                                                  method_name,
+                                                  qc_circuit_dictionary_list,
+                                                  I_term,
+                                                  optimization_level=optimization_level,
+                                                  save=save)

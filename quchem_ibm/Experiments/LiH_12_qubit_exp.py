@@ -18,7 +18,12 @@ def main(method_name):
     # IBM_backend = Get_IBM_backends(my_provider, show_least_busy=False)
     IBM_backend = 'ibmq_qasm_simulator'
 
-    shot_list=[8192]
+    # LCM(102,630)=10710
+
+    # (10710*475)/630 = 1326
+    # (10710*78)/102 = 8190
+    shot_list=[8190 for _ in range (10)]
+    # shot_list=[1326 for _ in range (10)]
 
     run_experiment_exp_loop_QASM(molecule_name,
                                  method_name,
