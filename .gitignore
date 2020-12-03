@@ -18,6 +18,7 @@ quchem/*.out
 quchem_ibm/Experiments/Input_data/*
 quchem_ibm/Experiments/Data/*
 quchem_ibm/Experiments/IBM_qasm_simulator/*
+quchem_ibm/Experiments/Myriad/*
 
 Projects/tmp*
 Projects/*.hdf5

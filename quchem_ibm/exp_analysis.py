@@ -63,7 +63,7 @@ def Calc_Energy_seq_rot(experimental_count_list, simulated_count_list, list_expe
             # mitigated
             exp_val_mit = calc_exp_pauliword(meas_mit_counts, qubitOp)
             E_mit_list.append(exp_val_mit * coeff)
-    return sum(E_raw_list), sum(E_sim_list), sum(E_mit_list)
+    return sum(E_raw_list).real, sum(E_sim_list).real, sum(E_mit_list).real
 
 
 def Calc_Energy_LCU(experimental_meas_list, simulated_meas_list, list_experiment_dicts, I_term,
@@ -129,7 +129,7 @@ def Calc_Energy_LCU(experimental_meas_list, simulated_meas_list, list_experiment
             E_mit_list.append(exp_val_mit * coeff)
             total_M_mit += sum(post_selected_dict_mit.values())
 
-    return sum(E_raw_list), sum(E_sim_list), sum(E_mit_list), total_M_raw, total_M_sim, int(np.floor(total_M_mit))
+    return sum(E_raw_list).real, sum(E_sim_list).real, sum(E_mit_list).real, total_M_raw, total_M_sim, int(np.floor(total_M_mit))
 
 
 def Calc_Energy_standard(experimental_count_list, simulated_count_list, list_experiment_dicts, I_term,
@@ -158,4 +158,4 @@ def Calc_Energy_standard(experimental_count_list, simulated_count_list, list_exp
         exp_val_mit = calc_exp_pauliword(meas_mit_counts, qubitOp)
         E_mit_list.append(exp_val_mit * coeff)
 
-    return sum(E_raw_list), sum(E_sim_list), sum(E_mit_list)
+    return sum(E_raw_list).real, sum(E_sim_list).real, sum(E_mit_list).real
