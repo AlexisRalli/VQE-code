@@ -19,6 +19,8 @@ quchem_ibm/Experiments/Input_data/*
 quchem_ibm/Experiments/Data/*
 quchem_ibm/Experiments/IBM_qasm_simulator/*
 quchem_ibm/Experiments/Myriad/*
+quchem_ibm/Experiments/LiH_Simulation_result/*.pickle
+quchem_ibm/Experiments/LiH_Simulation_result/.json
 
 Projects/tmp*
 Projects/*.hdf5
