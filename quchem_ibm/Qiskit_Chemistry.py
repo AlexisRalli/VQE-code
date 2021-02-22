@@ -380,17 +380,17 @@ def Get_Seq_Rot_Unitary_Part_circuits_MEMORY_EFF(anti_commuting_sets, Ansatz_cir
                                                                             n_qubits,
                                                                             check_reduction=rotation_reduction_check)
 
-            GATES = ['u1', 'u2', 'u3', 'cx']
-            R_sl_circuit = transpile(R_sl_circuit,
-                                     backend=None,
-                                     basis_gates=GATES)
-
             combined_circuits = Ansatz_circuit.combine(R_sl_circuit)
 
             full_circuit = change_basis_for_Z_measure(Ps,
                                                       q_reg,
                                                       combined_circuits)
             full_circuit.measure_all()
+
+            GATES = ['u1', 'u2', 'u3', 'cx']
+            full_circuit = transpile(full_circuit,
+                                     backend=None,
+                                     basis_gates=GATES)
 
             qasm_circuit = full_circuit.qasm()
             del full_circuit

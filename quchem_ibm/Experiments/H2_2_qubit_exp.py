@@ -22,15 +22,26 @@ def main(method_name):
     # IBM_backend = None
 
 
-    # goes up to 4914 for standard VQE and 8190 for unitary partitioning!
-    shot_experiment_list = np.arange(1190 * 3, (8190 * 3) + 1, 2625, dtype=int)
-    if method_name == 'standard_VQE':
-        shot_list=shot_experiment_list/len(input_data['standard_VQE_circuits'])
-    else:
-        shot_list = shot_experiment_list/len(input_data['Seq_Rot_VQE_circuits'])
+    # # goes up to 4914 for standard VQE and 8190 for unitary partitioning!
+    # shot_experiment_list = np.arange(1190 * 3, (8190 * 3) + 1, 2625, dtype=int)
+    # if method_name == 'standard_VQE':
+    #     shot_list=shot_experiment_list/len(input_data['standard_VQE_circuits'])
+    # else:
+    #     shot_list = shot_experiment_list/len(input_data['Seq_Rot_VQE_circuits'])
 
-    # shot_list=[8190 for _ in range(10)] # max for unitary part
-    # shot_list=[4914 for _ in range(10)] # max for standard vqe
+    ## array([1190., 2065., 2940., 3815., 4690., 5565., 6440., 7315., 8190.])
+    ## array([ 714., 1239., 1764., 2289., 2814., 3339., 3864., 4389., 4914.])
+
+    if method_name == 'standard_VQE':
+        shot_list = [714 for _ in range(10)]
+        # shot_list = [*[2814 for _ in range(10)], *[2289 for _ in range(10)],*[1764 for _ in range(10)]]#,
+                     # *[1239 for _ in range(10)], *[714 for _ in range(10)]]
+        # shot_list=[4914 for _ in range(10)] # max for standard vqe
+    else:
+        shot_list=[1190 for _ in range(5)]
+        # shot_list = [*[4690 for _ in range(10)], *[3815 for _ in range(10)],*[2940 for _ in range(10)]]#,
+                     # *[2065 for _ in range(10)], *[1190 for _ in range(10)]]
+        # shot_list=[8190 for _ in range(10)] # max for unitary part
 
     n_system_qubits = input_data['n_system_qubits']
 

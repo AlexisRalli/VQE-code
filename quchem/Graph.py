@@ -139,6 +139,8 @@ def Openfermion_Build_Graph_Nodes(List_of_nodes, Graph, plot_graph=False):
             PauliStrs, _ = node
             PauliStr_list = [''.join(map(str,[element for element in tupl[::-1]])) for tupl in PauliStrs]
             PauliWord= ' '.join(PauliStr_list)
+            if PauliWord =='':
+                PauliWord='I'
             labels[node] = PauliWord
 
 
@@ -154,6 +156,7 @@ def Openfermion_Build_Graph_Nodes(List_of_nodes, Graph, plot_graph=False):
                                alpha=0.8)
 
         nx.draw_networkx_labels(Graph, pos, labels)  # , font_size=8)
+        # plt.savefig('G_raw', dpi=300, transparent=True, )  # edgecolor='black', facecolor='white')
         plt.show()
     return Graph
 
@@ -193,6 +196,8 @@ def Openfermion_Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(Graph, List_of_nod
             PauliStrs, _ = selected_PauliWord
             PauliStr_list = [''.join(map(str, [element for element in tupl[::-1]])) for tupl in PauliStrs]
             PauliWord = ' '.join(PauliStr_list)
+            if PauliWord =='':
+                PauliWord='I'
             labels[selected_PauliWord] = PauliWord
 
     if plot_graph is True:
@@ -208,6 +213,9 @@ def Openfermion_Build_Graph_Edges_COMMUTING_QWC_AntiCommuting(Graph, List_of_nod
 
         nx.draw_networkx_labels(Graph, pos, labels)  # , font_size=8)
         nx.draw_networkx_edges(Graph, pos, width=1.0, alpha=0.5)
+
+        plt.savefig('anti_comm_G', dpi=300, transparent=True, )  # edgecolor='black', facecolor='white')
+
         plt.show()
 
     return Graph
@@ -225,6 +233,8 @@ def Openfermion_Get_Complemenary_Graph(Graph, plot_graph=False):
             PauliStrs, _ = node
             PauliStr_list = [''.join(map(str, [element for element in tupl[::-1]])) for tupl in PauliStrs]
             PauliWord = ' '.join(PauliStr_list)
+            if PauliWord =='':
+                PauliWord='I'
             labels[node] = PauliWord
 
         pos = nx.circular_layout(Complement_Graph)
@@ -237,6 +247,7 @@ def Openfermion_Get_Complemenary_Graph(Graph, plot_graph=False):
 
         nx.draw_networkx_labels(Complement_Graph, pos, labels)  # , font_size=8)
         nx.draw_networkx_edges(Complement_Graph, pos, width=1.0, alpha=0.5)
+        plt.savefig('comp_G', dpi=300, transparent=True, )  # edgecolor='black', facecolor='white')
         plt.show()
     return Complement_Graph
 
@@ -288,6 +299,9 @@ def Openfermion_Get_clique_cover(Graph, strategy='largest_first', plot_graph=Fal
         nx.draw_networkx_labels(Graph, pos, labels)  # , font_size=8)
 
         nx.draw_networkx_edges(Graph, pos, width=1.0, alpha=0.5)
+
+        plt.savefig('coloured_G', dpi=300, transparent=True, )  # edgecolor='black', facecolor='white')
+
         plt.show()
 
     return colour_key_for_nodes
