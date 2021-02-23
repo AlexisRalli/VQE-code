@@ -18,8 +18,11 @@ quchem/*.out
 quchem_ibm/Experiments/Input_data/*
 quchem_ibm/Experiments/Data/*
 quchem_ibm/Experiments/IBM_qasm_simulator/*
+<<<<<<< HEAD
 quchem_ibm/Experiments/LiH_Simulation_result/*.json
 quchem_ibm/Experiments/LiH_Simulation_result/*.pickle
+=======
+>>>>>>> 46634f1694f77622af33be15b49eb2055ce26545
 
 Projects/tmp*
 Projects/*.hdf5
