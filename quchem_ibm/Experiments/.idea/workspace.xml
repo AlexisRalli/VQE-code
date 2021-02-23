@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="9b8d9091-f51f-4e86-8e3f-24574baa6f74" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../../.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.gitignore.save" beforeDir="false" afterPath="$PROJECT_DIR$/../../.gitignore.save" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CORRECT_TF_OPTIMIZER_FUNCTION.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../CORRECT_TF_OPTIMIZER_FUNCTION.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../LICENSE.rst" beforeDir="false" afterPath="$PROJECT_DIR$/../../LICENSE.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/AMPLITUDES - VQE_LiH_BK_STO_6G_Wavefunction.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/AMPLITUDES - VQE_LiH_BK_STO_6G_Wavefunction.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Compare_H_reduction_VS_standard_VQE.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Compare_H_reduction_VS_standard_VQE.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Compare_H_reduction_VS_standard_VQE_wavefunction.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Compare_H_reduction_VS_standard_VQE_wavefunction.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Compare_reduction_VS_standard.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Compare_reduction_VS_standard.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Compare_reduction_VS_standard_shorter.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Compare_reduction_VS_standard_shorter.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Gate Scaling-Copy1.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Gate Scaling-Copy1.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Gate Scaling.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Gate Scaling.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Gate_Count.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Gate_Count.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Grey Code control approach updated.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Grey Code control approach updated.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Grey Code control approach.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Grey Code control approach.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Grey_Circuit_REDUCED.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Grey_Circuit_REDUCED.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Grey_Circuit_non_reduced.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Grey_Circuit_non_reduced.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/H2O BK example.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/H2O BK example.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/H2_BK_Transform.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/H2_BK_Transform.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Individual_LiH_test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Individual_LiH_test.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/LCU_GUG_method.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/LCU_GUG_method.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/LCU_LiH-Copy1.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/LCU_LiH-Copy1.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/LCU_LiH.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/LCU_LiH.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/LCU_water.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/LCU_water.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Latex_table.tex" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Latex_table.tex" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Latex_table1.tex" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Latex_table1.tex" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Latex_table2.tex" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Latex_table2.tex" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Latex_table3.tex" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Latex_table3.tex" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Latex_table4.tex" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Latex_table4.tex" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/LiH_with_NOON_reduction.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/LiH_with_NOON_reduction.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/NewTest.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/NewTest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Optimization_measurement_reduction.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Optimization_measurement_reduction.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Project_Measurement_Reduction.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Project_Measurement_Reduction.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Py_SCF Hamiltonian.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Py_SCF Hamiltonian.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 10|59|57 04-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 10|59|57 04-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 11|13|43 03-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 11|13|43 03-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 11|18|16 03-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 11|18|16 03-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 11|58|55 04-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 11|58|55 04-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 12|05|49 04-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 12|05|49 04-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 13|00|19 03-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 13|00|19 03-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 15|14|51 04-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 15|14|51 04-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 15|43|42 04-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 15|43|42 04-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 17|02|25 02-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 17|02|25 02-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 17|06|29 11-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 17|06|29 11-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 17|07|59 02-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 17|07|59 02-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 17|10|52 02-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method 17|10|52 02-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method_TF 17|32|34 11-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/Standard_method_TF 17|32|34 11-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 10|58|45 04-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 10|58|45 04-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 11|12|34 03-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 11|12|34 03-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 11|57|32 04-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 11|57|32 04-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 12|05|46 04-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 12|05|46 04-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 15|14|42 04-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 15|14|42 04-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 15|43|33 04-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 15|43|33 04-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 16|47|22 11-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 16|47|22 11-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 17|00|52 02-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 17|00|52 02-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 17|06|28 02-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 17|06|28 02-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 17|09|25 02-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method 17|09|25 02-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method_TF 16|58|49 11-12-2019.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Results/unitary_parition_method_TF 16|58|49 11-12-2019.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Standard_VQE.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Standard_VQE.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Standard_VQE_H2_BKtransform.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Standard_VQE_H2_BKtransform.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Standard_VQE_H2_BKtransform_Wavefunction.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Standard_VQE_H2_BKtransform_Wavefunction.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Standard_VQE_H2_BKtransform_Wavefunction_For_PAPER.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Standard_VQE_H2_BKtransform_Wavefunction_For_PAPER.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/Standard_VQE_H2_LCU_JW.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/Standard_VQE_H2_LCU_JW.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/UnitaryPartitioningOnAnsatz.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/UnitaryPartitioningOnAnsatz.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_H2O_BK_STO_6G.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_H2O_BK_STO_6G.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Minimal_ansatz.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Minimal_ansatz.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_12_qubits.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_12_qubits.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_NO_Simplification.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_NO_Simplification.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_for_PAPER.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_for_PAPER.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_for_PAPER_Energy_Convergence.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_for_PAPER_Energy_Convergence.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_reduced_to_3_qubits.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_reduced_to_3_qubits.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_reduced_to_5_qubits.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_LiH_BK_STO_6G_Wavefunction_reduced_to_5_qubits.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/VQE_LiH_BKtransform.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/VQE_LiH_BKtransform.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/control_seq.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/control_seq.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../Projects/tmpq4mnf1qj" beforeDir="false" afterPath="$PROJECT_DIR$/../../Projects/tmpq4mnf1qj" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../README.rst" beforeDir="false" afterPath="$PROJECT_DIR$/../../README.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/Ansatz_Generator_Functions.rst" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/Ansatz_Generator_Functions.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/Graph.rst" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/Graph.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/Hamiltonian_Generator_Functions.rst" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/Hamiltonian_Generator_Functions.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/Installation.rst" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/Installation.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/LICENSE.rst" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/LICENSE.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/Makefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/Media/WelcomeGif.gif" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/Media/WelcomeGif.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/Unitary_partitioning.rst" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/Unitary_partitioning.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/conf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/index.rst" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/index.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/index.rst.save" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/index.rst.save" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../docs/make.bat" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/make.bat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../graphx/Clique Cover TESTS.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../graphx/Clique Cover TESTS.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../graphx/Draw Hamiltonian Graph - PauliWords-Copy1.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../graphx/Draw Hamiltonian Graph - PauliWords-Copy1.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../graphx/Draw Hamiltonian Graph - PauliWords.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../graphx/Draw Hamiltonian Graph - PauliWords.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../graphx/Draw Hamiltonian Graph.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../graphx/Draw Hamiltonian Graph.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../graphx/GraphX test.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../graphx/GraphX test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../graphx/Max Clique Cover.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../graphx/Max Clique Cover.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../graphx/NetworkX - My Tutorial.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../graphx/NetworkX - My Tutorial.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../graphx/NetworkX Tutorial.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../graphx/NetworkX Tutorial.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../graphx/NetworkX example.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../graphx/NetworkX example.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../graphx/Playing with nx functions.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../graphx/Playing with nx functions.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../pictures/exponentiated_pauliword.png" beforeDir="false" afterPath="$PROJECT_DIR$/../../pictures/exponentiated_pauliword.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/LCU_toy_example.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/LCU_toy_example.pdf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/LCU_toy_example.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/LCU_toy_example.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/VQE_overview_circuit.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/VQE_overview_circuit.pdf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/VQE_overview_circuit.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/VQE_overview_circuit.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/cascade_circuit.qpic.pdf" beforeDir="false" afterPath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/cascade_circuit.qpic.pdf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/cascade_circuit.qpic.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../../pictures/quantum_circuits_qpic/cascade_circuit.qpic.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Adam_Optimizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Adam_Optimizer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Ansatz_Generator_Functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Ansatz_Generator_Functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Graph.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Graph.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Hamiltonian_Generator_Functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Hamiltonian_Generator_Functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Misc_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Misc_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Precision.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Precision.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/QWC Graph.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/QWC Graph.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Scipy_Optimizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Scipy_Optimizer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Simulating_Quantum_Circuit.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Simulating_Quantum_Circuit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/TensorFlow_Opt.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/TensorFlow_Opt.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Tree_Functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Tree_Functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Unitary_partitioning_LCU_method.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Unitary_partitioning_LCU_method.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/Unitary_partitioning_Seq_Rot.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/Unitary_partitioning_Seq_Rot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/latex_tables.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/latex_tables.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/quantum_circuit_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/quantum_circuit_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem/standard_method.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem/standard_method.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Ansatz_Generator_Functions.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Ansatz_Generator_Functions.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Ansatz_Generator_Functions_BK_reduction.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Ansatz_Generator_Functions_BK_reduction.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Ansatz_Generator_Functions_Linear_Algebra.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Ansatz_Generator_Functions_Linear_Algebra.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Conj_method.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Conj_method.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Graph-Copy1.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Graph-Copy1.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Graph.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Graph.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Hamiltonian_Generator_Functions.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Hamiltonian_Generator_Functions.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/LCU_method.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/LCU_method.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/LCU_method_Wavefunction.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/LCU_method_Wavefunction.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/LCU_method_long_notes_working.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/LCU_method_long_notes_working.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Multi control gate decomposition.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Multi control gate decomposition.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Prepare_arb_State.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Prepare_arb_State.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Simulating Quantum Circuit.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Simulating Quantum Circuit.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/TensorFlow_Opt.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/TensorFlow_Opt.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Unitary Partitioning working Wavefunction.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Unitary Partitioning working Wavefunction.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Unitary Partitioning working example.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Unitary Partitioning working example.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/Unitary Partitioning.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/Unitary Partitioning.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/quantum circuit functions.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/quantum circuit functions.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/tmp5b1mzidt" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/tmp5b1mzidt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../quchem_examples/tmpctrx5g72" beforeDir="false" afterPath="$PROJECT_DIR$/../../quchem_examples/tmpctrx5g72" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ALL_METHODS_WORKING.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../ALL_METHODS_WORKING.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Chemistry_Functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Chemistry_Functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Converting_cirq_to_qiskit.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../Converting_cirq_to_qiskit.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/DATA_Analysis.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/DATA_Analysis.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/H2_2_qubit_exp.py" beforeDir="false" afterPath="$PROJECT_DIR$/H2_2_qubit_exp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/H2_exp_input_BK.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/H2_exp_input_BK.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=LCU___time=2020Sep24-121220508699.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=LCU___time=2020Sep24-121220508699.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=LCU___time=2020Sep24-130414640531.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=LCU___time=2020Sep24-130414640531.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=LCU___time=2020Sep24-133308587772.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=LCU___time=2020Sep24-133308587772.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=LCU___time=2020Sep24-145742366698.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=LCU___time=2020Sep24-145742366698.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=seq_rot_VQE___time=2020Sep24-112923662392.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=seq_rot_VQE___time=2020Sep24-112923662392.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=seq_rot_VQE___time=2020Sep24-123227593736.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=seq_rot_VQE___time=2020Sep24-123227593736.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=seq_rot_VQE___time=2020Sep24-142951650299.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=seq_rot_VQE___time=2020Sep24-142951650299.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=seq_rot_VQE___time=2020Sep24-152915719183.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_CLOUD/molecule=LiH___n_shots=8190___method=seq_rot_VQE___time=2020Sep24-152915719183.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH___method=LCU___time=2020Sep25-110603280172.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH___method=LCU___time=2020Sep25-110603280172.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH___method=seq_rot_VQE___time=2020Sep25-105530435858.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH___method=seq_rot_VQE___time=2020Sep25-105530435858.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH_fifth_sixth___method=standard_VQE___time=2020Sep25-123003453217.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH_fifth_sixth___method=standard_VQE___time=2020Sep25-123003453217.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH_first_sixth___method=standard_VQE___time=2020Sep25-114936750656.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH_first_sixth___method=standard_VQE___time=2020Sep25-114936750656.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH_fourth_sixth___method=standard_VQE___time=2020Sep25-122029478754.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH_fourth_sixth___method=standard_VQE___time=2020Sep25-122029478754.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH_second_sixth___method=standard_VQE___time=2020Sep25-120134175509.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH_second_sixth___method=standard_VQE___time=2020Sep25-120134175509.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH_third_sixth___method=standard_VQE___time=2020Sep25-121029224266.pickle" beforeDir="false" afterPath="$PROJECT_DIR$/IBM_qasm_simulator_WAVE/WAVE_molecule=LiH_third_sixth___method=standard_VQE___time=2020Sep25-121029224266.pickle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LiH_12_qubit_CLOUD_exp.py" beforeDir="false" afterPath="$PROJECT_DIR$/LiH_12_qubit_CLOUD_exp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LiH_12_qubit_WAVE_exp.py" beforeDir="false" afterPath="$PROJECT_DIR$/LiH_12_qubit_WAVE_exp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LiH_12_qubit_exp.py" beforeDir="false" afterPath="$PROJECT_DIR$/LiH_12_qubit_exp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LiH_12_qubit_unitary_simulator_exp.py" beforeDir="false" afterPath="$PROJECT_DIR$/LiH_12_qubit_unitary_simulator_exp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/LiH_exp_input_BK.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/LiH_exp_input_BK.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/State_vector_test_qiskit.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/State_vector_test_qiskit.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tmpbew2z4hv" beforeDir="false" afterPath="$PROJECT_DIR$/tmpbew2z4hv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tmpix5e26ks" beforeDir="false" afterPath="$PROJECT_DIR$/tmpix5e26ks" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../H2_JW_TEST.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../H2_JW_TEST.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../IBM_Functions_(Not working).ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../IBM_Functions_(Not working).ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../IBM_experiment_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../IBM_experiment_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../IBM_graph.py" beforeDir="false" afterPath="$PROJECT_DIR$/../IBM_graph.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../IBM_workflow.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../IBM_workflow.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Qiskit_Chemistry.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Qiskit_Chemistry.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Qiskit_method_using_matrices.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/../Qiskit_method_using_matrices.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Unitary_Partitioning.py" beforeDir="false" afterPath="$PROJECT_DIR$/../Unitary_Partitioning.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../exp_analysis.py" beforeDir="false" afterPath="$PROJECT_DIR$/../exp_analysis.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tmpagleflr8" beforeDir="false" afterPath="$PROJECT_DIR$/../tmpagleflr8" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../../requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../tests/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../tests/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../tests/test_Ansatz_Generator_Functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../tests/test_Ansatz_Generator_Functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../tests/test_Graph.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../tests/test_Graph.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../tests/test_Hamiltonian_Generator_Functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../tests/test_Hamiltonian_Generator_Functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../tests/test_Simulating_Quantum_Circuit.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../tests/test_Simulating_Quantum_Circuit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../tests/test_Unitary_partitioning.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../tests/test_Unitary_partitioning.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../tests/test_quantum_circuit_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/../../tests/test_quantum_circuit_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../timer.dat" beforeDir="false" afterPath="$PROJECT_DIR$/../../timer.dat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../travis.yml" beforeDir="false" afterPath="$PROJECT_DIR$/../../travis.yml" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="JupyterTrust" id="9397d6f8-4ced-4619-894b-ba01d19a0a6f" />
+  <component name="ProjectId" id="1jbTZPkVyay2RIGXP0hXoV4lJ6B" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="9b8d9091-f51f-4e86-8e3f-24574baa6f74" name="Default Changelist" comment="" />
+      <created>1604071846208</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1604071846208</updated>
+      <workItem from="1604071853584" duration="1202000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+</project>
