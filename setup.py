@@ -34,7 +34,7 @@ setup(
     ],
     extras_require={
         'optimizers': [
-            'tensorflow==1.15.*',
+            'tensorflow>=1.15,<2.5',
             'scipy>=1.0.0',
         ],
         'PSI4': [
