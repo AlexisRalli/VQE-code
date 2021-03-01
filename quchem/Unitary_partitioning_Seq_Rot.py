@@ -341,6 +341,7 @@ class VQE_Experiment_Conj_UP_lin_alg():
 ### SeqRot operator new check method ###
 from scipy.sparse.linalg import expm
 from openfermion import qubit_operator_sparse
+from scipy.sparse import find
 def sparse_allclose(A, B, atol=1e-8, rtol=1e-05):
     # https://stackoverflow.com/questions/47770906/how-to-test-if-two-sparse-arrays-are-almost-equal
 
