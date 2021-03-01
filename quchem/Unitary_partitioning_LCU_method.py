@@ -1548,34 +1548,47 @@ def LCU_Check(AC_set, N_index, N_Qubits, atol=1e-8, rtol=1e-05):
     return sparse_allclose(Pn_mat, RHR, atol=atol, rtol=rtol)
 
 from scipy.sparse.linalg import eigs as sparse_eigs
-def LCU_Energy(AC_set, N_index, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
-    if len(AC_set) < 2:
-        raise ValueError('no unitary partitioning possible for set sizes less than 2')
+from scipy.sparse import csc_matrix
+def LCU_linalg_Energy(anti_commuting_sets, N_indices_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
+    reduced_H_matrix = csc_matrix((2 ** N_Qubits, 2 ** N_Qubits), dtype=complex)
 
-    R_uncorrected, Pn, gamma_l = Get_R_op_list(AC_set, N_index)
-    #     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
+    H_single_terms = QubitOperator()
 
-    R = QubitOperator()
-    for op in R_uncorrected:
-        R += op
+    for key in anti_commuting_sets:
+        AC_set = anti_commuting_sets[key]
 
-    Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
-    R_mat = qubit_operator_sparse(R, n_qubits=N_Qubits)
+        if len(AC_set) < 2:
+            H_single_terms += AC_set[0]
+        else:
+            N_index = N_indices_dict[key]
 
-    full_normalised_set = Get_beta_j_cofactors(AC_set)
+            R_uncorrected, Pn, gamma_l = Get_R_op_list(AC_set, N_index)
+            #     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
 
-    H_S = QubitOperator()
-    for QubitOp in full_normalised_set['PauliWords']:
-        H_S += QubitOp
-    H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+            R = QubitOperator()
+            for op in R_uncorrected:
+                R += op
 
-    RHR_matrix = R_mat.dot(H_S_matrix.dot(R_mat.conj().transpose()))
+            R_mat = qubit_operator_sparse(R, n_qubits=N_Qubits)
+            Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
 
-    eig_values, eig_vectors = sparse_eigs(RHR_matrix)
-    Energy = min(eig_values) * gamma_l
-    if check_reduction:
-        Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
-        check_flag = sparse_allclose(Pn_mat, RHR_matrix, atol=atol, rtol=rtol)
-        return Energy, check_flag
-    else:
-        return Energy
+            RPR_matrix = R_mat.conj().transpose().dot(
+                Pn_mat.dot(R_mat))  # note this is R^{dag}PR and NOT: RHR^{dag}
+
+            if check_reduction:
+                full_normalised_set = Get_beta_j_cofactors(AC_set)
+                H_S = QubitOperator()
+                for QubitOp in full_normalised_set['PauliWords']:
+                    H_S += QubitOp
+                H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+
+                RHR_matrix = R_mat.dot(H_S_matrix.dot(R_mat.conj().transpose()))
+                if sparse_allclose(Pn_mat, RHR_matrix, atol=atol, rtol=rtol) is not True:
+                    raise ValueError('error in unitary partitioning reduction')
+
+            reduced_H_matrix += RPR_matrix * gamma_l
+
+    reduced_H_matrix += qubit_operator_sparse(H_single_terms, n_qubits=N_Qubits)
+    eig_values, eig_vectors = sparse_eigs(reduced_H_matrix)
+    FCI_Energy = min(eig_values)
+    return FCI_Energy
