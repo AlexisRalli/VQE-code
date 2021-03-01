@@ -388,35 +388,51 @@ def SeqRot_Check(AC_set, S_index, N_Qubits, atol=1e-8, rtol=1e-05):
     return sparse_allclose(Ps_mat, RHR, atol=atol, rtol=rtol)
 
 from scipy.sparse.linalg import eigs as sparse_eigs
-def SeqRot_Energy(AC_set, S_index, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
-    if len(AC_set) < 2:
-        raise ValueError('no unitary partitioning possible for set sizes less than 2')
+from scipy.sparse import csc_matrix
+def SeqRot_linalg_Energy(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
+    # TODO: could return reduced_H_matrix sparse matrix!
 
-    X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index)
+    reduced_H_matrix = csc_matrix((2 ** N_Qubits, 2 ** N_Qubits), dtype=complex)
 
-    R_sk_list = []
-    for X_sk_Op, theta_sk in X_sk_theta_sk_list:
-        pauliword_X_sk_MATRIX = qubit_operator_sparse(QubitOperator(list(X_sk_Op.terms.keys())[0], -1j),
-                                                      n_qubits=N_Qubits)
-        const_X_sk = list(X_sk_Op.terms.values())[0]
+    H_single_terms = QubitOperator()
 
-        R_sk_list.append(expm(pauliword_X_sk_MATRIX * theta_sk / 2 * const_X_sk))
+    for key in anti_commuting_sets:
+        AC_set = anti_commuting_sets[key]
 
-    R_S_matrix = reduce(np.dot, R_sk_list[::-1])  # <- note reverse order!
+        if len(AC_set) < 2:
+            H_single_terms += AC_set[0]
+        else:
+            S_index = S_key_dict[key]
 
-    H_S = QubitOperator()
-    for QubitOp in full_normalised_set['PauliWords']:
-        H_S += QubitOp
-    H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+            X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index)
 
-    RHR_matrix = R_S_matrix.dot(H_S_matrix.dot(R_S_matrix.conj().transpose()))
+            R_sk_list = []
+            for X_sk_Op, theta_sk in X_sk_theta_sk_list:
+                pauliword_X_sk_MATRIX = qubit_operator_sparse(QubitOperator(list(X_sk_Op.terms.keys())[0], -1j),
+                                                              n_qubits=N_Qubits)
+                const_X_sk = list(X_sk_Op.terms.values())[0]
 
-    eig_values, eig_vectors = sparse_eigs(RHR_matrix)
-    Energy = min(eig_values) * gamma_l
+                R_sk_list.append(expm(pauliword_X_sk_MATRIX * theta_sk / 2 * const_X_sk))
 
-    if check_reduction:
-        Ps_mat = qubit_operator_sparse(Ps, n_qubits=N_Qubits)
-        check_flag = sparse_allclose(Ps_mat, RHR_matrix, atol=atol, rtol=rtol)
-        return Energy, check_flag
-    else:
-        return Energy
+            R_S_matrix = reduce(np.dot, R_sk_list[::-1])  # <- note reverse order!
+            Ps_mat = qubit_operator_sparse(Ps, n_qubits=N_Qubits)
+
+            RPR_matrix = R_S_matrix.conj().transpose().dot(
+                Ps_mat.dot(R_S_matrix))  # note this is R^{dag}PR and NOT: RHR^{dag}
+
+            if check_reduction:
+                H_S = QubitOperator()
+                for QubitOp in full_normalised_set['PauliWords']:
+                    H_S += QubitOp
+                H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+
+                RHR_matrix = R_S_matrix.dot(H_S_matrix.dot(R_S_matrix.conj().transpose()))
+                if sparse_allclose(Ps_mat, RHR_matrix, atol=atol, rtol=rtol) is not True:
+                    raise ValueError('error in unitary partitioning reduction')
+
+            reduced_H_matrix += RPR_matrix * gamma_l
+
+    reduced_H_matrix += qubit_operator_sparse(H_single_terms, n_qubits=N_Qubits)
+    eig_values, eig_vectors = sparse_eigs(reduced_H_matrix)
+    FCI_Energy = min(eig_values)
+    return FCI_Energy
