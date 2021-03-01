@@ -338,3 +338,84 @@ class VQE_Experiment_Conj_UP_lin_alg():
         return sum(E_list).real
 
 
+### SeqRot operator new check method ###
+from scipy.sparse.linalg import expm
+from openfermion import qubit_operator_sparse
+def sparse_allclose(A, B, atol=1e-8, rtol=1e-05):
+    # https://stackoverflow.com/questions/47770906/how-to-test-if-two-sparse-arrays-are-almost-equal
+
+    if np.array_equal(A.shape, B.shape) == 0:
+        raise ValueError('Matrices different shapes!')
+
+    r1, c1, v1 = find(A)  # row indices, column indices, and values of the nonzero matrix entries
+    r2, c2, v2 = find(B)
+
+    # take all the important rows and columns
+    rows = np.union1d(r1, r2)
+    columns = np.union1d(c1, c2)
+
+    A_check = A[rows, columns]
+    B_check = B[rows, columns]
+
+    return np.allclose(A_check, B_check, atol=atol, rtol=rtol)
+
+
+def SeqRot_Check(AC_set, S_index, N_Qubits, atol=1e-8, rtol=1e-05):
+    if len(AC_set) < 2:
+        raise ValueError('no unitary partitioning possible for set sizes less than 2')
+
+    X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index)
+
+    R_sk_list = []
+    for X_sk_Op, theta_sk in X_sk_theta_sk_list:
+        pauliword_X_sk_MATRIX = qubit_operator_sparse(QubitOperator(list(X_sk_Op.terms.keys())[0], -1j),
+                                                      n_qubits=N_Qubits)
+        const_X_sk = list(X_sk_Op.terms.values())[0]
+
+        R_sk_list.append(expm(pauliword_X_sk_MATRIX * theta_sk / 2 * const_X_sk))
+
+    R_S_matrix = reduce(np.dot, R_sk_list[::-1])  # <- note reverse order!
+
+    Ps_mat = qubit_operator_sparse(Ps, n_qubits=N_Qubits)
+
+    H_S = QubitOperator()
+    for QubitOp in full_normalised_set['PauliWords']:
+        H_S += QubitOp
+    H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+
+    RHR = R_S_matrix.dot(H_S_matrix.dot(R_S_matrix.conj().transpose()))
+    return sparse_allclose(Ps_mat, RHR, atol=atol, rtol=rtol)
+
+from scipy.sparse.linalg import eigs as sparse_eigs
+def SeqRot_Energy(AC_set, S_index, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
+    if len(AC_set) < 2:
+        raise ValueError('no unitary partitioning possible for set sizes less than 2')
+
+    X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index)
+
+    R_sk_list = []
+    for X_sk_Op, theta_sk in X_sk_theta_sk_list:
+        pauliword_X_sk_MATRIX = qubit_operator_sparse(QubitOperator(list(X_sk_Op.terms.keys())[0], -1j),
+                                                      n_qubits=N_Qubits)
+        const_X_sk = list(X_sk_Op.terms.values())[0]
+
+        R_sk_list.append(expm(pauliword_X_sk_MATRIX * theta_sk / 2 * const_X_sk))
+
+    R_S_matrix = reduce(np.dot, R_sk_list[::-1])  # <- note reverse order!
+
+    H_S = QubitOperator()
+    for QubitOp in full_normalised_set['PauliWords']:
+        H_S += QubitOp
+    H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+
+    RHR_matrix = R_S_matrix.dot(H_S_matrix.dot(R_S_matrix.conj().transpose()))
+
+    eig_values, eig_vectors = sparse_eigs(RHR_matrix)
+    Energy = min(eig_values) * gamma_l
+
+    if check_reduction:
+        Ps_mat = qubit_operator_sparse(Ps, n_qubits=N_Qubits)
+        check_flag = sparse_allclose(Ps_mat, RHR_matrix, atol=atol, rtol=rtol)
+        return Energy, check_flag
+    else:
+        return Energy
