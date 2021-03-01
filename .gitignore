@@ -11,6 +11,8 @@
 
 .idea/*
 
+.DS_Store
+
 quchem/*.hdf5
 quchem/*.inp
 quchem/*.out

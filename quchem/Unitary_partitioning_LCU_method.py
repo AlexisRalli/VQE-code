@@ -1519,3 +1519,63 @@ class VQE_Experiment_LCU_UP_single_ancilla():
 
     def Get_wavefunction_of_state(self, sig_figs=3):
         return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
+
+
+### LCU operator new check method ###
+from scipy.sparse.linalg import expm
+from quchem.Unitary_partitioning_Seq_Rot import sparse_allclose
+def LCU_Check(AC_set, N_index, N_Qubits, atol=1e-8, rtol=1e-05):
+    if len(AC_set) < 2:
+        raise ValueError('no unitary partitioning possible for set sizes less than 2')
+    R_uncorrected, Pn, gamma_l = Get_R_op_list(AC_set, N_index)
+    #     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
+
+    R = QubitOperator()
+    for op in R_uncorrected:
+        R += op
+
+    Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
+    R_mat = qubit_operator_sparse(R, n_qubits=N_Qubits)
+
+    full_normalised_set = Get_beta_j_cofactors(AC_set)
+
+    H_S = QubitOperator()
+    for QubitOp in full_normalised_set['PauliWords']:
+        H_S += QubitOp
+    H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+
+    RHR = R_mat.dot(H_S_matrix.dot(R_mat.conj().transpose()))
+    return sparse_allclose(Pn_mat, RHR, atol=atol, rtol=rtol)
+
+from scipy.sparse.linalg import eigs as sparse_eigs
+def LCU_Energy(AC_set, N_index, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
+    if len(AC_set) < 2:
+        raise ValueError('no unitary partitioning possible for set sizes less than 2')
+
+    R_uncorrected, Pn, gamma_l = Get_R_op_list(AC_set, N_index)
+    #     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
+
+    R = QubitOperator()
+    for op in R_uncorrected:
+        R += op
+
+    Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
+    R_mat = qubit_operator_sparse(R, n_qubits=N_Qubits)
+
+    full_normalised_set = Get_beta_j_cofactors(AC_set)
+
+    H_S = QubitOperator()
+    for QubitOp in full_normalised_set['PauliWords']:
+        H_S += QubitOp
+    H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+
+    RHR_matrix = R_mat.dot(H_S_matrix.dot(R_mat.conj().transpose()))
+
+    eig_values, eig_vectors = sparse_eigs(RHR_matrix)
+    Energy = min(eig_values) * gamma_l
+    if check_reduction:
+        Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
+        check_flag = sparse_allclose(Pn_mat, RHR_matrix, atol=atol, rtol=rtol)
+        return Energy, check_flag
+    else:
+        return Energy
