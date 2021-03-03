@@ -1547,7 +1547,9 @@ def LCU_Check(AC_set, N_index, N_Qubits, atol=1e-8, rtol=1e-05):
     RHR = R_mat.dot(H_S_matrix.dot(R_mat.conj().transpose()))
     return sparse_allclose(Pn_mat, RHR, atol=atol, rtol=rtol)
 
-from scipy.sparse.linalg import eigs as sparse_eigs
+# from scipy.sparse.linalg import eigs as sparse_eigs
+from scipy.sparse.linalg import eigsh
+from scipy.linalg import eigh
 from scipy.sparse import csc_matrix
 def LCU_linalg_Energy(anti_commuting_sets, N_indices_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
     reduced_H_matrix = csc_matrix((2 ** N_Qubits, 2 ** N_Qubits), dtype=complex)
@@ -1589,6 +1591,10 @@ def LCU_linalg_Energy(anti_commuting_sets, N_indices_dict, N_Qubits, atol=1e-8, 
             reduced_H_matrix += RPR_matrix * gamma_l
 
     reduced_H_matrix += qubit_operator_sparse(H_single_terms, n_qubits=N_Qubits)
-    eig_values, eig_vectors = sparse_eigs(reduced_H_matrix)
+    # eig_values, eig_vectors = sparse_eigs(reduced_H_matrix)
+    if N_Qubits<4:
+        eig_values, eig_vectors = eigh(reduced_H_matrix.todense()) # NOT sparse!
+    else:
+        eig_values, eig_vectors = eigsh(reduced_H_matrix, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
     FCI_Energy = min(eig_values)
     return FCI_Energy
