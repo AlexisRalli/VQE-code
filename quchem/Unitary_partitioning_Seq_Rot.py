@@ -235,7 +235,7 @@ class VQE_Experiment_Conj_UP():
                 qubitOp = anti_commuting_set[0]
 
                 for PauliWord, const in qubitOp.terms.items():
-                    if PauliWord is not ():
+                    if PauliWord != ():
                         Q_circuit = Generate_Full_Q_Circuit(self.ansatz_circuit, qubitOp)
                         hist_key_str = Get_Histogram_key(qubitOp)
                         int_state_counter = Simulate_Quantum_Circuit(Q_circuit, self.n_shots, hist_key_str)
@@ -321,7 +321,7 @@ class VQE_Experiment_Conj_UP_lin_alg():
                 qubitOp = anti_commuting_set[0]
 
                 for PauliWord, const in qubitOp.terms.items():
-                    if PauliWord is not ():
+                    if PauliWord != ():
                         circuit_matrix = self.ansatz_circuit.unitary()
 
                         final_state_ket = circuit_matrix.dot(self.input_ket)
