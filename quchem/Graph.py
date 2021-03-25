@@ -5,7 +5,30 @@ from tqdm import tqdm
 import jax.numpy as jnp
 from jax import jit
 
+
 class VectorPauliWord():
+    """
+    Object of PauliWord that gives vector repesentation of Openfermion QubitOperator.
+    Vector form first lists PauliX terms then PauliZ terms... as a ( 1 x 2 Nqubits)
+
+    see pg8 of https://arxiv.org/pdf/1907.09386.pdf
+
+    Args:
+        n_qubits (int): Number of qubits
+        QubitOp (Openfermion.ops.QubitOperator): Openfermion QubitOperator of 1 operator ONLY
+
+
+    ** Example **
+
+    >> from openfermion.ops import QubitOperator
+    >> A = QubitOperator('X0 X1 X2', 1)
+    >> Vec_A = VectorPauliWord(3, A)
+    >> print(Vec_A.Pvec)
+
+    output:
+        [1 1 1 0 0 0]
+
+    """
 
     def __init__(self, n_qubits, QubitOp):
         self.n_qubits = n_qubits
@@ -15,6 +38,11 @@ class VectorPauliWord():
         self._init_vector_form()
 
     def _init_vector_form(self):
+        """
+        Build vector from of PauliWord, as a ( 1 x 2 Nqubits) vector
+        First N sites are Pauli X terms. Last N sites are Pauli Z terms
+        """
+
         self.Pvec = jnp.zeros((2*self.n_qubits), dtype=int)
 
         PauliStr, const = tuple(*self.QubitOp.terms.items())
@@ -27,8 +55,19 @@ class VectorPauliWord():
         return None
 
 def Commutes(VectorPauliWord_1, VectorPauliWord_2):
+    """
 
-    # https://arxiv.org/pdf/1907.09386.pdf
+    See https://arxiv.org/pdf/1907.09386.pdf for mathematical background of symplectic approach.
+
+    Args:
+        VectorPauliWord_1 (VectorPauliWord): vector object of PauliWord
+        VectorPauliWord_2 (VectorPauliWord): vector object of other PauliWord
+
+    Returns:
+        bool: True if operators commute else returns False not
+
+    """
+
 
     if VectorPauliWord_1.n_qubits!=VectorPauliWord_2.n_qubits:
         raise ValueError('qubit number mismatch')
@@ -48,7 +87,19 @@ def Commutes(VectorPauliWord_1, VectorPauliWord_2):
         return False
 
 def QWC(VectorPauliWord_1, VectorPauliWord_2):
+    """
 
+    Cannot use symplectic approach. Iteratively goes through each vectorised Pauliword, checking if
+     they all qubit-wise commute (QWC)
+
+    Args:
+        VectorPauliWord_1 (VectorPauliWord): vector object of PauliWord
+        VectorPauliWord_2 (VectorPauliWord): vector object of other PauliWord
+
+    Returns:
+        bool: True if operators QWC else returns False not
+
+    """
     if VectorPauliWord_1.n_qubits != VectorPauliWord_2.n_qubits:
         raise ValueError('qubit number mismatch')
 
@@ -74,7 +125,38 @@ def QWC(VectorPauliWord_1, VectorPauliWord_2):
     return True
 
 class Vector_QubitHamiltonian():
+    """
+    Build matrix form of QubitHamiltonian. Allows fast way to get Hamiltonian graph adjacency matrix
 
+    Args:
+        n_qubits (int): Number of qubits
+        QubitHamiltonian (Openfermion.ops.QubitOperator): Openfermion QubitOperator of 1 or MORE operator
+
+
+    ** Example **
+
+    >> from openfermion.ops import QubitOperator
+    >> n_qubits = 3
+    >> H = QubitOperator('X0 X1 X2') + QubitOperator('X1 X2') + QubitOperator('Z0 Z2') + QubitOperator('X2')
+    >> H_vec = Vector_QubitHamiltonian(H, n_qubits)
+    >> adj_mat = H_vec.Get_adj_mat('C')
+
+    >> print([P.QubitOp for P in H_vec.QubitHamiltonian_VectorPauliWord_list])
+    >> print(adj_mat)
+
+    output:
+        [   1.0 [X0 X1 X2],
+            1.0 [X1 X2],
+            1.0 [Z0 Z2],
+            1.0 [X2]
+        ]
+
+        [[0 1 1 1]
+         [1 0 0 1]
+         [1 0 0 0]
+         [1 1 0 0]]
+
+    """
     def __init__(self, QubitHamiltonian, n_qubits):
         self.QubitHamiltonian_list = list(QubitHamiltonian)
         self.n_qubits = n_qubits
@@ -84,6 +166,11 @@ class Vector_QubitHamiltonian():
 
 
     def _init_binary_matrix_form(self):
+        """
+        Turn QubitHamiltonian of M terms into an (M * 2N_qubits) matrix. Each row represents a Pauli Operator.
+        Useful as can find commutativity relationships in a vectorised way.
+        """
+
         self.binary_mat= jnp.zeros((len(self.QubitHamiltonian_list), 2 * self.n_qubits), dtype=int) # (observabales, Paulivec_len)
         for ind, PauliOp in enumerate(self.QubitHamiltonian_list):
             VectorPWord = VectorPauliWord(self.n_qubits, PauliOp)
@@ -93,7 +180,16 @@ class Vector_QubitHamiltonian():
         return None
 
     def Get_adj_mat(self, Pauli_grouping_type):
+        """
 
+        Args:
+            Pauli_grouping_type (str): Commuting relationship between node edges
+                                       (C = commuting, AC = anticommuting, QWC = qubitwise commuting)
+
+        Returns:
+            adjacency_mat (jaxlib.xla_extension.DeviceArray): matrix repsenting which terms are connected by edge
+                                                              representing commuting relationship met.
+        """
         if (Pauli_grouping_type == 'QWC') or (Pauli_grouping_type=='qubit-wise commuting'):
 
             adjacency_mat = jnp.zeros((self.binary_mat.shape[0], self.binary_mat.shape[0]), dtype=int)
@@ -142,13 +238,14 @@ def Clique_cover_Hamiltonian(QubitHamiltonian, n_qubits, clique_relation, colour
     https://fileadmin.cs.lth.se/cs/Personal/Andrzej_Lingas/k-m.pdf
 
     Args:
-        QubitHamiltonian:
-        n_qubits:
-        clique_relation:
-        colouring_strategy:
+        QubitHamiltonian (Openfermion.ops.QubitOperator): Openfermion QubitOperator of 1 or MORE operator
+        n_qubits: Total number of qubits for system
+        clique_relation: Commuting relationship between terms in Hamiltonian
+        colouring_strategy: Graph Colouring strategy
+        colour_interchange (bool): Flag to perform colour interchange alg
 
     Returns:
-
+        Cliques (dict): Dictionary of cliques following specified clique_relation
     """
 
 
