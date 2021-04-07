@@ -85,20 +85,20 @@ for key in csvqe_results.keys(): # <- note using csvqe_results (has less molecul
     for qNo, Ham in enumerate(reduced_Con_hamiltonians):            
 #         if c.contextualQ_ham(Ham) is False:
 #             raise ValueError('have not found contextual H')
-        Ham_Openf = conv_scr.Get_Operfermion_Hamiltonian(Ham)
+        Ham_Openf = conv_scr.Get_Openfermion_Hamiltonian(Ham)
         Contextual_Hamiltonian_list.append(list(Ham_Openf))
         qNo_list.append(qNo)
     
     updated_hamiltonians[key] = {
                                 'encoding':hamiltonians[key][0],
                                 'n_qubits': hamiltonians[key][1],
-                                'full_H': conv_scr.Get_Operfermion_Hamiltonian(hamiltonians[key][2]),
-#                                 'nonC_H_greedyDFS':Get_Operfermion_Hamiltonian(hamiltonians[key][3]),
+                                'full_H': conv_scr.Get_Openfermion_Hamiltonian(hamiltonians[key][2]),
+#                                 'nonC_H_greedyDFS':Get_Openfermion_Hamiltonian(hamiltonians[key][3]),
                                 'FCI':hamiltonians[key][4],                         
                                 'gstate_noncon':hamiltonians[key][5], 
                                 'Contextual_Hamiltonian_list': Contextual_Hamiltonian_list, #ham_out,   
                                 'Contextual_Hamiltonian_qubitNo_list': qNo_list,  
-                                'non_Contextual_H': conv_scr.Get_Operfermion_Hamiltonian(ham_noncon),# ham_noncon_out, 
+                                'non_Contextual_H': conv_scr.Get_Openfermion_Hamiltonian(ham_noncon),# ham_noncon_out, 
                                 'qubit_removal_order':qubit_removal_order
                              }
 
