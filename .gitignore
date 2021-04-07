@@ -13,16 +13,21 @@
 
 .DS_Store
 
+quchem_examples/tmp*
+
+Projects/Analysis/*.pickle
+Projects/Pickle_out/*pickle
+
 quchem/*.hdf5
 quchem/*.inp
 quchem/*.out
 
-quchem_ibm/Experiments/Input_data/*
-quchem_ibm/Experiments/Data/*
-quchem_ibm/Experiments/IBM_qasm_simulator/*
-quchem_ibm/Experiments/Myriad/*
-quchem_ibm/Experiments/LiH_Simulation_result/*.pickle
-quchem_ibm/Experiments/LiH_Simulation_result/*.json
+old_projects/quchem_ibm/Experiments/Input_data/*
+old_projects/quchem_ibm/Experiments/Data/*
+old_projects/quchem_ibm/Experiments/IBM_qasm_simulator/*
+old_projects/quchem_ibm/Experiments/Myriad/*
+old_projects/quchem_ibm/Experiments/LiH_Simulation_result/*.pickle
+old_projects/quchem_ibm/Experiments/LiH_Simulation_result/*.json
 
 Projects/tmp*
 Projects/*.hdf5
