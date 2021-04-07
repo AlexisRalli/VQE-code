@@ -29,9 +29,10 @@ QuChem
 
 The ``quchem`` module:
 
-* Uses `Psi4 <http://www.psicode.org/>`_ to obtain the molecular Hamiltonian of a system of interest
+* Uses `PySCF <https://sunqm.github.io/pyscf/>`_ to obtain the molecular Hamiltonian of a system of interest
+* Can use `Psi4 <http://www.psicode.org/>`_ to obtain the molecular Hamiltonian of a system of interest too
 * The `openfermion <https://github.com/quantumlib/OpenFermion>`_ library converts this to a qubit Hamiltonian
-   * Currently only the Jordan-Wigner transform is used
+   * Currently only the Jordan-Wigner and bravyi-kitaev transforms are used
 * Google's `cirq <https://github.com/quantumlib/Cirq>`_ library is used to build quantum circuits
    * Hartree-Fock (HF) + Unitary Coupled Cluster Single Double (UCCSD) excitations are currently used as the Ansatz
    * Each quantum  circuit is simulated using a wrapper for `cirq <https://github.com/quantumlib/Cirq>`_'s simulator.
@@ -73,7 +74,7 @@ Special Dependencies
 .. note::
     :class: quchem_Tensor_Note
 
-    TensorFlow version 1 required!
+    TensorFlow version 1 required for one optimizer (only requires installing if used)!
     To install for anaconda distribution do:
 
     .. code-block:: bash
