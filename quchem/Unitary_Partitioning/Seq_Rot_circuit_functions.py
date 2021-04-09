@@ -69,7 +69,7 @@ def Build_R_SeqRot_Q_circuit(anti_commuting_set, S_index,N_Qubits, check_reducti
     return full_RS_circuit, Ps, gamma_l
 
 
-def Generate_Ansatz_SeqRot_R_Q_Circuit(Full_Ansatz_Q_Circuit, anti_commuting_set, S_index, check_reduction=False):
+def Full_SeqRot_Rl_Circuit(Full_Ansatz_Q_Circuit, anti_commuting_set, S_index,N_Qubits, check_reduction_lin_alg=False):
     """
     Function to build full Q Circuit... ansatz circuit + R_S
 
@@ -84,8 +84,8 @@ def Generate_Ansatz_SeqRot_R_Q_Circuit(Full_Ansatz_Q_Circuit, anti_commuting_set
         gamma_l (float): normalization term
 
     """
-    Reduction_circuit_circ, Ps, gamma_l = Build_R_SeqRot_Q_circuit(anti_commuting_set, S_index,
-                                                                  check_reduction=check_reduction)
+    Reduction_circuit_circ, Ps, gamma_l = Build_R_SeqRot_Q_circuit(anti_commuting_set, S_index, N_Qubits,
+                                                                  check_reduction_lin_alg=check_reduction_lin_alg)
 
     measure_PauliS_in_Z_basis_obj = change_pauliword_to_Z_basis_then_measure(Ps)
     measure_PauliS_in_Z_basis_Q_circ = cirq.Circuit(cirq.decompose_once(

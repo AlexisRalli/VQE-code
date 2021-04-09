@@ -23,7 +23,7 @@ def Normalise_Clique(qubitOp_list):
     Returns:
         dict: A dictionary of normalised terms (key = 'PauliWords') and correction factor (key = 'gamma_l')
     """
-    factor = sum([const ** 2 for qubitOp in qubitOp_list for PauliStrs, const in qubitOp.terms.items()])
+    factor = sum([np.abs(const)** 2 for qubitOp in qubitOp_list for PauliStrs, const in qubitOp.terms.items()])
 
     normalised_qubitOp_list = [QubitOperator(PauliStrs, const / np.sqrt(factor)) for qubitOp in qubitOp_list for
                                PauliStrs, const in qubitOp.terms.items()]
@@ -171,7 +171,7 @@ def SeqRot_linalg_Energy(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, r
 
     reduced_H_matrix += qubit_operator_sparse(H_single_terms, n_qubits=N_Qubits)
     # eig_values, eig_vectors = sparse_eigs(reduced_H_matrix)
-    if N_Qubits<4:
+    if reduced_H_matrix.shape[0]<=64:
         eig_values, eig_vectors = eigh(reduced_H_matrix.todense()) # NOT sparse!
     else:
         eig_values, eig_vectors = eigsh(reduced_H_matrix, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.

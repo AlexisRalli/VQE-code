@@ -14,58 +14,61 @@ def absorb_complex_phases(R_linear_comb_list):
     l1 normalization.
 
     ##
-    Op = ∑_{i=0} 𝛼_{j} U_{j}
+    LCU_Op = ∑_{i=0} 𝛼_{j} U_{j}
 
     used to find:
     l1_norm = ∑_{i=0} |𝛼_{𝑗}|
 
     all 𝛼_{j} made positive and phase correction held in R_linear_comb_correction_values list!
     ancilla_amplitudes = ∑_{i=0} (𝛼_{𝑗} / l1_norm)^{0.5} |j>
+    new_LCU_op is amde as before, but with real positive amps = LCU_Op = ∑_{i=0} |𝛼_{i}^{new}| U_{j}^{new}
 
     Args:
         R_linear_comb_list (list): list of qubit operators
 
     Returns:
-        R_linear_comb_correction_values (list): list of corrections to ensure all terms LCU sum are positive.
-        R_linear_comb_corrected_phase (QubitOperator): list of qubit operators for LCU method
-        ancilla_amplitudes: ancillar amplitudes for control U (LCU method)
+        R_linear_comb_phase_values (list): list of phase corrections, which allows all terms in LCU sum to be positive.
+        R_op_list_real_positive_amps (QubitOperator): list of qubit operators of LCU_op where all amps real and positive
+        ancilla_amplitudes: ancillar amplitudes for control U (LCU method) (note l1_normalization)
         l1_norm (float): l1 norm
 
          """
-    R_linear_comb_corrected_phase = []
-    R_linear_comb_correction_values = []
+    R_op_list_real_positive_amps = []
+    R_linear_comb_phase_values = []
     ancilla_amplitudes = []
 
     l1_norm = sum([np.absolute(const) for qubitOp in R_linear_comb_list for PauliWord, const in qubitOp.terms.items()])
 
     for qubitOp in R_linear_comb_list:
-        for pauliword, const in qubitOp.terms.items():
-            if (isinstance(const, complex)) and (const.imag < 0):
-                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.sqrt(np.absolute(const) / l1_norm)))
-                R_linear_comb_correction_values.append(-1j)
-                ancilla_amplitudes.append(np.sqrt(np.absolute(const) / l1_norm))  # .append(np.sqrt(const.imag**2))
-            elif (isinstance(const, complex)) and (const.imag != 0):
-                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.sqrt(np.absolute(const) / l1_norm)))
-                R_linear_comb_correction_values.append(1j)
-                ancilla_amplitudes.append(np.sqrt(np.absolute(const) / l1_norm))  # .append(np.sqrt(const.imag**2))
-            elif const < 0:
-                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.sqrt(np.absolute(const) / l1_norm)))
-                R_linear_comb_correction_values.append(-1)
-                ancilla_amplitudes.append(np.sqrt(np.absolute(const) / l1_norm))  # .append(np.sqrt(const**2))
-            else:
-                R_linear_comb_corrected_phase.append(QubitOperator(pauliword, np.sqrt(np.absolute(const) / l1_norm)))
-                R_linear_comb_correction_values.append(1)
-                ancilla_amplitudes.append(np.sqrt(np.absolute(const) / l1_norm))  # .append(np.sqrt(const**2))
+        pauliword, const = tuple(*qubitOp.terms.items())
+        ancilla_amplitudes.append(np.sqrt(np.absolute(const) / l1_norm))
+
+        if (isinstance(const, complex)) and (const.imag < 0):
+            R_op_list_real_positive_amps.append(QubitOperator(pauliword, np.absolute(const)))
+            R_linear_comb_phase_values.append(-1j)
+        elif (isinstance(const, complex)) and (const.imag != 0):
+            R_op_list_real_positive_amps.append(QubitOperator(pauliword, np.absolute(const)))
+            R_linear_comb_phase_values.append(1j)
+        elif const < 0:
+            R_op_list_real_positive_amps.append(QubitOperator(pauliword, np.absolute(const)))
+            R_linear_comb_phase_values.append(-1)
+        else:
+            R_op_list_real_positive_amps.append(QubitOperator(pauliword, np.absolute(const)))
+            R_linear_comb_phase_values.append(1)
 
     if not np.isclose(sum(np.absolute(amp) ** 2 for amp in ancilla_amplitudes), 1):
         raise ValueError('ancilla amplitudes NOT normalised properly')
 
-    return R_linear_comb_corrected_phase, R_linear_comb_correction_values, ancilla_amplitudes, l1_norm
+    # ## can check if requried:
+    # if [P_op*R_linear_comb_phase_values[ind] for ind, P_op in enumerate(R_op_list_real_positive_amps)] != R_linear_comb_list:
+    #     raise ValueError('R with positive amplitudes not defined correctly')
 
-class Modified_singeQ_Pauligate(cirq.SingleQubitGate):
+    return R_op_list_real_positive_amps, R_linear_comb_phase_values, ancilla_amplitudes, l1_norm
+
+class singeQ_Pauligate_phase(cirq.SingleQubitGate):
     """
 
-    Function performs a pauligate multiplied by a constant.
+    Function performs a pauligate multiplied by a phase (1, -1, 1j, -1j).
 
     Args:
         PauliStr (str): string of Pauli operator to be performed
@@ -74,11 +77,18 @@ class Modified_singeQ_Pauligate(cirq.SingleQubitGate):
     Returns
         A cirq circuit object to be used by cirq.Circuit
 
-    example:
-    1: ───(-0-1j)*X───
+    examples:
+    
+        gate_obj = singeQ_phase_Pauligate('X', -1j)
+        circuit = cirq.Circuit(gate_obj.on(cirq.LineQubit(1)))
+        print(circuit)
 
-    matrix operation = array([  [0.-0.j, 0.-1.j],
-                                [0.-1.j, 0.-0.j]])
+        >> 1: ───(-0-1j) X───
+        
+        print(
+                cirq.Circuit(cirq.decompose(circuit)))
+                
+        >> 1: ───Z───Y───
 
     """
 
@@ -87,28 +97,92 @@ class Modified_singeQ_Pauligate(cirq.SingleQubitGate):
         self.PauliStr = PauliStr
         self.correction_value = correction_value
 
-    def _unitary_(self):
-
-        if self.PauliStr == 'Z':
-            return cirq.Z._unitary_() * self.correction_value
-
-        elif self.PauliStr == 'Y':
-            return cirq.Y._unitary_() * self.correction_value
-
-        elif self.PauliStr == 'X':
-            return cirq.X._unitary_() * self.correction_value
-
-        elif self.PauliStr == 'I':
-            return cirq.I._unitary_() * self.correction_value
-
+    def _decompose_(self, qubits):
+        qubit = qubits[0]
+        #########
+        if self.PauliStr=='Z':
+            if self.correction_value.imag==-1:
+                # Y X = -1jZ
+                yield cirq.X.on(qubit)
+                yield cirq.Y.on(qubit)
+            elif self.correction_value.imag==1:
+                # X Y = 1jZ
+                yield cirq.Y.on(qubit)
+                yield cirq.X.on(qubit)
+                
+            elif self.correction_value.real==-1:
+                yield cirq.ry(2*np.pi).on(qubit)
+                yield cirq.Z.on(qubit)
+            elif self.correction_value.real==1:
+                yield cirq.Z.on(qubit)
+            else:
+                raise ValueError(f'phase does have magnitude of 1: {self.correction_value}')
+        ###############
+        elif self.PauliStr=='Y':
+            if self.correction_value.imag==-1:
+                # X Z = -1jZ
+                yield cirq.Z.on(qubit)
+                yield cirq.X.on(qubit)
+            elif self.correction_value.imag==1:
+                # Z X = 1jZ
+                yield cirq.X.on(qubit)
+                yield cirq.Z.on(qubit)
+            elif self.correction_value.real==-1:
+                yield cirq.ry(2*np.pi).on(qubit)
+                yield cirq.Y.on(qubit)
+            elif self.correction_value.real==1:
+                yield cirq.Y.on(qubit)
+            else:
+                raise ValueError(f'phase does have magnitude of 1: {self.correction_value}')
+        
+        ######################
+        elif self.PauliStr=='X':
+            if self.correction_value.imag==-1:
+                # Z Y = -1jX
+                yield cirq.Y.on(qubit)
+                yield cirq.Z.on(qubit)
+            elif self.correction_value.imag==1:
+                # Y Z = 1j X
+                yield cirq.Z.on(qubit)
+                yield cirq.Y.on(qubit)
+                
+            elif self.correction_value.real==-1:
+                yield cirq.ry(2*np.pi).on(qubit)
+                yield cirq.X.on(qubit)
+            elif self.correction_value.real==1:
+                yield cirq.X.on(qubit)
+            else:
+                raise ValueError(f'phase does have magnitude of 1: {self.correction_value}')
+                
+        ######################
+        elif self.PauliStr=='I':
+            if self.correction_value.imag==-1:
+                # X Z Y = -1j i
+                yield cirq.Y.on(qubit)
+                yield cirq.Z.on(qubit)
+                yield cirq.X.on(qubit)
+            elif self.correction_value.imag==1:
+                # Z X Y = +1j i
+                yield cirq.Y.on(qubit)
+                yield cirq.X.on(qubit)
+                yield cirq.Z.on(qubit) 
+                
+            elif self.correction_value.real==-1:
+                yield cirq.ry(2*np.pi).on(qubit)
+            elif self.correction_value.real==1:
+                yield cirq.I.on(qubit)
+            else:
+                raise ValueError(f'phase does have magnitude of 1: {self.correction_value}')
         else:
-            raise TypeError('not a Pauli operation')
+            raise ValueError(f'not a Pauli operation: {self.PauliStr}')
+        
 
-    def num_qubits(self):
-        return 1
 
     def _circuit_diagram_info_(self, args):
-        return '{}*{}'.format(self.correction_value, self.PauliStr)
+        return '{} {}'.format(str(self.correction_value), self.PauliStr)
+        
+    def num_qubits(self):
+        return 1
 
 class Modified_PauliWord_gate(cirq.Gate):
     """
@@ -124,14 +198,35 @@ class Modified_PauliWord_gate(cirq.Gate):
     Example:
 
     PauliQubitOp = QubitOperator('Y0 X1 X2 X3',1)
+    Pn = QubitOperator('Z2',1)
     correction_val = -1j
+    circuit_obj = Modified_PauliWord_gate(PauliQubitOp, correction_val, Pn).on(*list(cirq.LineQubit.range(4)))
+    circuit=cirq.Circuit(circuit_obj)
+    
+    print(circuit)
 
-    output
+    
 
-    0: ───(-0-1j)*Y───
-    1: ───X───────────
-    2: ───X───────────
-    3: ───X───────────
+    >> 
+
+        0: ───Y0───────────
+              │
+        1: ───X1───────────
+              │
+        2: ───(-0-1j)*X2───
+              │
+        3: ───X3───────────
+
+    print(cirq.Circuit(cirq.decompose(circuit)))
+    >> 
+
+        0: ───Y───────
+
+        1: ───X───────
+
+        2: ───Y───Z───
+
+        3: ───X───────
 
     """
 
@@ -159,14 +254,14 @@ class Modified_PauliWord_gate(cirq.Gate):
 
         if list(self.PauliQubitOp.terms.keys())[0] == ():
             # identity operations
-            yield Modified_singeQ_Pauligate('I', self.correction_val).on(qubits[self.sign_index])
+            yield singeQ_Pauligate_phase('I', self.correction_val).on(qubits[self.sign_index])
         else:
             qubitNos_list, P_strs_list = zip(*list(self.PauliQubitOp.terms.keys())[0])
 
             for index, qNo in enumerate(qubitNos_list):
                 P_str = P_strs_list[index]
                 if qNo == self.sign_index:
-                    yield Modified_singeQ_Pauligate(P_str, self.correction_val).on(qubits[qNo])
+                    yield singeQ_Pauligate_phase(P_str, self.correction_val).on(qubits[qNo])
                 else:
                     if P_str == 'Z':
                         yield cirq.Z.on(qubits[qNo])
@@ -809,4 +904,3 @@ class LCU_VQE_Experiment_UP_circuit_lin_alg():
 
     def Get_wavefunction_of_ansatz_state(self, sig_figs=3):
         return Get_wavefunction(self.ansatz_circuit, sig_figs=sig_figs)
-
