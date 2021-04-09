@@ -13,6 +13,8 @@
 
 .DS_Store
 
+Projects/CS_VQE/data/fullHamiltonians/fullHamiltonians/*
+
 quchem_examples/tmp*
 Projects/CS_VQE/Pickle_out/*.pickle
 Projects/CS_VQE/Analysis/*.pickle
