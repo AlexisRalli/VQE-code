@@ -3,6 +3,37 @@ import numpy as np
 from copy import deepcopy
 from quchem.Qcircuit.misc_quantum_circuit_functions import Get_state_as_str
 
+# import sympy as symp
+# def Single_qubit_rotation(zero_state_amp, one_state_amp):
+#     """
+#     Get rotation to create passed in qubit state
+    
+#     |psi> = cos(theta/2) |0> + e^{-1j * phi/2} sin(theta/2) |1>
+    
+#     See equation 8 and 9 of https://arxiv.org/pdf/quant-ph/0406176v5.pdf
+    
+#     """
+#     zero_state_amp = complex(zero_state_amp)
+#     one_state_amp = complex(one_state_amp)
+    
+#     norm = np.sqrt(zero_state_amp**2 + one_state_amp**2 )
+    
+#     if np.isclose(norm, 0):
+#         theta = 0
+#         a_arg = 0
+#         b_arg = 0
+#         final_t = 0
+#         phi = 0
+#     else:
+#         theta=2*symp.acos(np.abs(zero_state_amp) / norm)
+        
+#         a_arg = symp.atan2(zero_state_amp.imag, zero_state_amp.real)
+#         b_arg = symp.atan2(one_state_amp.imag, one_state_amp.real)
+#         final_t = a_arg + b_arg
+#         phi = b_arg - a_arg
+    
+#     return (norm * symp.exp(1.J * final_t / 2)).evalf(), theta.evalf(), phi.evalf()
+
 def Single_qubit_rotation(zero_state_amp, one_state_amp):
     """
     Get rotation to create passed in qubit state
@@ -12,8 +43,10 @@ def Single_qubit_rotation(zero_state_amp, one_state_amp):
     See equation 8 and 9 of https://arxiv.org/pdf/quant-ph/0406176v5.pdf
     
     """
-    zero_state_amp = complex(zero_state_amp)
-    one_state_amp = complex(one_state_amp)
+    # zero_state_amp = complex(zero_state_amp)
+    # one_state_amp = complex(one_state_amp)
+    zero_state_amp =np.complex128(zero_state_amp)
+    one_state_amp = np.complex128(one_state_amp)
     
     norm = np.sqrt(zero_state_amp**2 + one_state_amp**2 )
     
@@ -24,7 +57,9 @@ def Single_qubit_rotation(zero_state_amp, one_state_amp):
         final_t = 0
         phi = 0
     else:
-        theta = 2 * np.arccos(np.abs(zero_state_amp) / norm)
+        # theta= 2 * np.arccos(np.abs(zero_state_amp) / norm)
+        theta=2*np.arctan2(np.abs(one_state_amp)/ norm.real, np.abs(zero_state_amp)/ norm.real)
+
         a_arg = np.angle(zero_state_amp)
         b_arg = np.angle(one_state_amp)
         final_t = a_arg + b_arg

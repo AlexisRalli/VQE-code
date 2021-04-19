@@ -52,7 +52,7 @@ def diagonalize_epistemic_LCU(model,fn_form,ep_state, N_Qubits, N_index, check_r
         R_LCU = QubitOperator()
         for op in R_LCU_list:
             R_LCU+=op
-        R_LCU.renormalize()
+        R_LCU.renormalize() #<-should NOT need this
 
         unitary_check = R_LCU*hermitian_conjugated(R_LCU)
         # print(unitary_check) # should be idenitty operator
