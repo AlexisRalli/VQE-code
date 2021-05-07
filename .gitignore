@@ -18,7 +18,7 @@ Projects/CS_VQE/data/fullHamiltonians/fullHamiltonians/*
 quchem_examples/tmp*
 Projects/CS_VQE/Pickle_out/*.pickle
 Projects/CS_VQE/Analysis/*.pickle
-File Projects/CS_VQE/data/fullHamiltonians/
+Projects/CS_VQE/data/fullHamiltonians/
 
 quchem/*.hdf5
 quchem/*.inp
