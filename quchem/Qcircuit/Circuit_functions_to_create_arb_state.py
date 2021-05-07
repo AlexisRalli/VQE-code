@@ -294,3 +294,79 @@ def intialization_circuit(qubit_state_vector, start_qubit_ind, end_qubit_ind, ch
         if not np.allclose(np.around(np.array(old_vec, dtype='complex64'), threshold),np.around(results.state_vector(), threshold)):
             raise ValueError('circuit not preparing correct state!')
     return inverse_circuit
+
+
+
+
+
+
+
+### IBM function
+
+def project_V_on_U(u_vec, v_vec):
+    # NOT normalised
+    u_next = (np.dot(u_vec, v_vec)/np.dot(u_vec, u_vec))*u_vec
+    return u_next
+    
+
+def Gram_Schmidt(first_col):
+    """
+    Given the first column of a unitary matrix, will fill all other columns with ortho vectors via
+    Gram-Schmidt process
+    
+    """
+    first_col = np.asarray(first_col, dtype=complex)
+    
+    new_matrix = np.eye(len(first_col.flat), dtype=complex)
+    new_matrix[:,0] = first_col/np.linalg.norm(np.abs(first_col), ord=2)
+    
+    for i in range(1,len(first_col.flat)):
+        vec_V = new_matrix[:,i]
+        ortho = sum([project_V_on_U(new_matrix[:,ortho_col_ind], vec_V) for ortho_col_ind in range(0,i)])
+        new_vec_V = vec_V - ortho
+        norm_vec_V = new_vec_V/np.linalg.norm(np.abs(new_vec_V),ord=2)
+        new_matrix[:,i] =norm_vec_V
+            
+    
+    return new_matrix
+
+
+from qiskit.extensions import UnitaryGate
+from qiskit import QuantumCircuit, Aer, execute
+from qiskit.compiler import transpile
+from cirq.contrib.qasm_import import circuit_from_qasm
+def prepare_arb_state_IBM_to_cirq(state_vector, opt_level=2,allowed_gates=['id', 'rz', 'ry', 'rx', 'cx' ,'s', 'h', 'y','z']):
+
+    UnitaryMatrix = Gram_Schmidt(state_vector)
+
+    qiskit_matrix_gate = UnitaryGate(UnitaryMatrix)
+
+    n_qubits = int(np.log2(UnitaryMatrix.shape[0]))
+
+    qiskit_c = QuantumCircuit(n_qubits)
+    qiskit_c.unitary(qiskit_matrix_gate, list(range(0,n_qubits)), label='initialize')
+
+    compiled_circuit = transpile(qiskit_c,
+                                optimization_level=opt_level, 
+                                basis_gates=allowed_gates, 
+                                approximation_degree=1)
+
+    ibm_qasm = compiled_circuit.qasm()
+
+    cirq_circuit = circuit_from_qasm(ibm_qasm)
+
+    return cirq_circuit
+
+
+
+## cirq matrix gate method
+def prepare_arb_state_cirq_matrix_gate(state_vector):
+    
+    UnitaryMatrix = Gram_Schmidt(state_vector)
+
+    n_qubits = int(np.log2(UnitaryMatrix.shape[0]))
+
+    qubits = list(cirq.LineQubit.range(n_qubits))
+    state_prep_circuit = cirq.Circuit(cirq.MatrixGate(UnitaryMatrix).on(*qubits))
+
+    return state_prep_circuit

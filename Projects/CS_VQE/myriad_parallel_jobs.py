@@ -82,7 +82,7 @@ with open(file_out1, 'wb') as outfile:
 file_name2 = 'LCU_CS_VQE_exp__{}__{}_.pickle'.format(unique_file_time, mol_key)
 file_out2=os.path.join(output_dir, file_name2)
 with open(file_out2, 'wb') as outfile:
-    pickle.dump(csvqe_standard_output, outfile)
+    pickle.dump(csvqe_LCU_output, outfile)
 
 
 print('pickle files dumped unqiue time id: {}'.format(unique_file_time))
