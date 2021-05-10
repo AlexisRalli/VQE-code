@@ -213,7 +213,7 @@ def disentangle_circuit(qubit_state_vector, start_qubit_ind, end_qubit_ind):
 
     circuit = cirq.Circuit()
     n_qubits = np.log2(len(qubit_state_vector))
-    end_ind_corr = end_qubit_ind+1 # as index from 0
+    end_ind_corr = end_qubit_ind
 
     if n_qubits!= len(list(range(start_qubit_ind, end_ind_corr))):
         raise ValueError('incorrect qubit defined qubit indices!')
@@ -251,7 +251,7 @@ def disentangle_circuit(qubit_state_vector, start_qubit_ind, end_qubit_ind):
                     )
     return circuit
 
-def intialization_circuit(qubit_state_vector, start_qubit_ind, end_qubit_ind, check_circuit=False, threshold=7):
+def intialization_circuit(qubit_state_vector, start_qubit_ind, check_circuit=False, threshold=7):
     """
     Function to create arbitrary state.
 
@@ -262,7 +262,6 @@ def intialization_circuit(qubit_state_vector, start_qubit_ind, end_qubit_ind, ch
     """
 
     n_qubits = np.log2(len(qubit_state_vector))
-    end_ind_corr = end_qubit_ind+1
     
     if np.ceil(n_qubits) != np.floor(n_qubits):
         raise ValueError('state vector is not a qubit state')
@@ -283,7 +282,7 @@ def intialization_circuit(qubit_state_vector, start_qubit_ind, end_qubit_ind, ch
     qubit_state_vector = re_ordered_state.tolist()
     ####
 
-    disentangling_circuit = disentangle_circuit(qubit_state_vector, start_qubit_ind, end_qubit_ind)
+    disentangling_circuit = disentangle_circuit(qubit_state_vector, start_qubit_ind, n_qubits+start_qubit_ind)
     inverse_circuit = cirq.inverse(disentangling_circuit)
     
     if check_circuit is True:
@@ -304,22 +303,41 @@ def intialization_circuit(qubit_state_vector, start_qubit_ind, end_qubit_ind, ch
 ### IBM function
 
 def project_V_on_U(u_vec, v_vec):
-    # NOT normalised
+    ### note NOT normalised
+
     u_next = (np.dot(u_vec, v_vec)/np.dot(u_vec, u_vec))*u_vec
     return u_next
     
 
-def Gram_Schmidt(first_col):
+def Gram_Schmidt(first_col, zero_tolerance=1e-10):
     """
     Given the first column of a unitary matrix, will fill all other columns with ortho vectors via
     Gram-Schmidt process
     
     """
     first_col = np.asarray(first_col, dtype=complex)
+
+    if not np.isclose(sum(np.abs(first_col)**2), 1):
+        raise ValueError('first column (input state) is not normalized')
     
+    
+    # find first non zero amplitude index
+    first_non_zero_ind = None
+    for ind, amp in enumerate(first_col.flat):
+        if np.isclose(np.abs(amp),0, atol=zero_tolerance):
+            continue
+        else:
+            first_non_zero_ind = ind
+            break
+
     new_matrix = np.eye(len(first_col.flat), dtype=complex)
-    new_matrix[:,0] = first_col/np.linalg.norm(np.abs(first_col), ord=2)
-    
+    # make sure linearly independent, by putting state along column with first non zero index
+    if first_non_zero_ind==0:
+        new_matrix[:,0] = first_col/np.linalg.norm(np.abs(first_col), ord=2)
+    else:
+        new_matrix[:,first_non_zero_ind] = first_col/np.linalg.norm(np.abs(first_col), ord=2)
+        new_matrix[:,[0, first_non_zero_ind]] = new_matrix[:,[first_non_zero_ind, 0]]
+
     for i in range(1,len(first_col.flat)):
         vec_V = new_matrix[:,i]
         ortho = sum([project_V_on_U(new_matrix[:,ortho_col_ind], vec_V) for ortho_col_ind in range(0,i)])
@@ -335,7 +353,9 @@ from qiskit.extensions import UnitaryGate
 from qiskit import QuantumCircuit, Aer, execute
 from qiskit.compiler import transpile
 from cirq.contrib.qasm_import import circuit_from_qasm
-def prepare_arb_state_IBM_to_cirq(state_vector, opt_level=2,allowed_gates=['id', 'rz', 'ry', 'rx', 'cx' ,'s', 'h', 'y','z']):
+def prepare_arb_state_IBM_to_cirq(state_vector, start_qubit_ind=0, opt_level=0,allowed_gates=['id', 'rz', 'ry', 'rx', 'cx' ,'s', 'h', 'y','z', 'x']):
+    # TODO: bug when using IBM's transpiler
+    raise ValueError('Function not working properly')
 
     UnitaryMatrix = Gram_Schmidt(state_vector)
 
@@ -355,18 +375,45 @@ def prepare_arb_state_IBM_to_cirq(state_vector, opt_level=2,allowed_gates=['id',
 
     cirq_circuit = circuit_from_qasm(ibm_qasm)
 
+
+    ### check global phase
+    mat1 = cirq_circuit.unitary()[:,0]
+    mat2 = np.asarray(state_vector, dtype=complex)
+    for ind, elt in enumerate(mat1.flat):
+            if abs(elt) > 0:
+                original_term = elt
+                new_term = mat2.flat[ind]
+
+                global_phase = np.angle(original_term/new_term) # find phase difference between unitaries!
+
+    if not np.isclose(global_phase, 0):
+        qubit = list(cirq_circuit.all_qubits())[0]
+        op1 = cirq.ZPowGate(exponent=2, global_shift=global_phase/(2*np.pi)).on(qubit) # exponent 2 hence divided global phase by 2 (note also divide by pi as in units of pi in ZpowGate definition)
+        cirq_circuit.append(op1)
+
+
+    ## rename qubits as line qubits and add start qubit index if necessary
+    sorted_original_qubits = [cirq.LineQubit(i) for i in range(start_qubit_ind, start_qubit_ind+n_qubits)]
+    sorted_named_qubits = sorted(list(cirq_circuit.all_qubits()), key= lambda NamedQ: int(NamedQ.name[2:]))
+
+    NamedQ_to_LineQ_dict = dict(zip(sorted_named_qubits, sorted_original_qubits))
+    cirq_circuit = cirq_circuit.transform_qubits(lambda x: NamedQ_to_LineQ_dict[x])
+
     return cirq_circuit
 
 
 
 ## cirq matrix gate method
-def prepare_arb_state_cirq_matrix_gate(state_vector):
+def prepare_arb_state_cirq_matrix_gate(state_vector, start_qubit_ind=0):
     
+    if not np.isclose(sum(np.abs(state_vector)**2), 1):
+        raise ValueError('state_vector is not valid quantum state (not normalized)')
+
     UnitaryMatrix = Gram_Schmidt(state_vector)
 
     n_qubits = int(np.log2(UnitaryMatrix.shape[0]))
 
-    qubits = list(cirq.LineQubit.range(n_qubits))
+    qubits = list(cirq.LineQubit.range(start_qubit_ind, start_qubit_ind+n_qubits))
     state_prep_circuit = cirq.Circuit(cirq.MatrixGate(UnitaryMatrix).on(*qubits))
 
     return state_prep_circuit

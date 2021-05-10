@@ -69,7 +69,7 @@ def Build_R_SeqRot_Q_circuit(anti_commuting_set, S_index,N_Qubits, check_reducti
     return full_RS_circuit, Ps, gamma_l
 
 
-def Full_SeqRot_Rl_Circuit(Full_Ansatz_Q_Circuit, anti_commuting_set, S_index,N_Qubits, check_reduction_lin_alg=False):
+def Full_SeqRot_Rl_Circuit(Full_Ansatz_Q_Circuit, anti_commuting_set, S_index, N_Qubits, check_reduction_lin_alg=False):
     """
     Function to build full Q Circuit... ansatz circuit + R_S
 

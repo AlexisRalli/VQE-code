@@ -375,7 +375,7 @@ from qiskit import QuantumCircuit, Aer, execute
 from qiskit.compiler import transpile
 from cirq.contrib.qasm_import import circuit_from_qasm
 def optimized_cirq_circuit_IBM_compiler(cirq_circuit, opt_level=3,
-                               allowed_gates=['id', 'rz', 'ry', 'rx', 'cx' ,'s', 'h', 'y','z'],
+                               allowed_gates=['id', 'rz', 'ry', 'rx', 'cx' ,'s', 'h', 'y','z', 'x'],
                                 check_optimization = True):
     """
     Function that uses IBM's compiler to optimize cirq circuit.

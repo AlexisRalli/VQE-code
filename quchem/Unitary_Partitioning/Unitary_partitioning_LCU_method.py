@@ -2,7 +2,8 @@ from openfermion.ops import QubitOperator
 from openfermion.linalg import qubit_operator_sparse
 import numpy as np
 from scipy.sparse.linalg import expm
-
+from functools import reduce
+from openfermion.utils import hermitian_conjugated
 
 from quchem.Misc_functions.Misc_functions import sparse_allclose
 from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import Normalise_Clique
@@ -97,21 +98,22 @@ def Get_R_op_list(anti_commuting_set, N_index, N_Qubits, check_reduction=False, 
                                                                    for qubitOp in R_linear_comb_list)))
 
     if check_reduction:
-        R = QubitOperator()
-        for op in R_linear_comb_list:
-            R += op
-        
-        Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
-        R_mat = qubit_operator_sparse(R, n_qubits=N_Qubits)
+        R = reduce(lambda Op1, Op2: Op1+Op2, R_linear_comb_list)
+        H_S = reduce(lambda Op1, Op2: Op1+Op2, normalised_FULL_set['PauliWords'])
 
-        H_S = QubitOperator()
-        for QubitOp in normalised_FULL_set['PauliWords']:
-            H_S += QubitOp
-        H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
-
-        RHR_dag = R_mat.dot(H_S_matrix.dot(R_mat.conj().transpose())) 
-        if not  sparse_allclose(Pn_mat, RHR_dag, atol=atol, rtol=rtol): # checking R.H_{l}.R† == Pn
+        ### symbolic check of unitary partitioning technique
+        R_dag = hermitian_conjugated(R)
+        if Pn != R*H_S*R_dag:
             raise ValueError('error in unitary partitioning reduction: R H_s R† != Pn')
+
+        ### matrix check of unitary partitioning technique
+        # Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
+        # R_mat = qubit_operator_sparse(R, n_qubits=N_Qubits)
+        # H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+
+        # RHR_dag = R_mat.dot(H_S_matrix.dot(R_mat.conj().transpose())) 
+        # if not  sparse_allclose(Pn_mat, RHR_dag, atol=atol, rtol=rtol): # checking R.H_{l}.R† == Pn
+        #     raise ValueError('error in unitary partitioning reduction: R H_s R† != Pn')
 
     return R_linear_comb_list, Pn, gamma_l  
 
@@ -121,25 +123,27 @@ def Get_R_op_list(anti_commuting_set, N_index, N_Qubits, check_reduction=False, 
 def LCU_Check(AC_set, N_index, N_Qubits, atol=1e-8, rtol=1e-05):
     if len(AC_set) < 2:
         raise ValueError('no unitary partitioning possible for set sizes less than 2')
-    R_uncorrected, Pn, gamma_l = Get_R_op_list(AC_set, N_index)
-    #     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
-
-    R = QubitOperator()
-    for op in R_uncorrected:
-        R += op
-
-    Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
-    R_mat = qubit_operator_sparse(R, n_qubits=N_Qubits)
-
+    
+    R_uncorrected, Pn, gamma_l = Get_R_op_list(AC_set, N_index) # NOT using GUG method (hence only R_uncorrect requried)
     full_normalised_set = Normalise_Clique(AC_set)
+    
+    R = reduce(lambda Op1, Op2: Op1+Op2, R_uncorrected)
+    H_S = reduce(lambda Op1, Op2: Op1+Op2, full_normalised_set['PauliWords'])
 
-    H_S = QubitOperator()
-    for QubitOp in full_normalised_set['PauliWords']:
-        H_S += QubitOp
-    H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+    # ### matrix check of unitary partitioning technique
+    # Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
+    # R_mat = qubit_operator_sparse(R, n_qubits=N_Qubits)
+    # H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+    # RHR_dag = R_mat.dot(H_S_matrix.dot(R_mat.conj().transpose())) 
+    # return sparse_allclose(Pn_mat, RHR_dag, atol=atol, rtol=rtol) # R.H_{l}.R† == Pn
 
-    RHR_dag = R_mat.dot(H_S_matrix.dot(R_mat.conj().transpose())) 
-    return sparse_allclose(Pn_mat, RHR_dag, atol=atol, rtol=rtol) # R.H_{l}.R† == Pn
+    ### symbolic check of unitary partitioning technique
+    R_dag = hermitian_conjugated(R)
+    if Pn != R*H_S*R_dag:
+        raise ValueError('error in unitary partitioning reduction: R H_s R† != Pn')
+    else:
+        return True
+
 
 from scipy.sparse.linalg import eigsh
 from scipy.linalg import eigh
@@ -158,29 +162,14 @@ def LCU_linalg_Energy(anti_commuting_sets, N_indices_dict, N_Qubits, atol=1e-8, 
             N_index = N_indices_dict[key]
 
             R_uncorrected, Pn, gamma_l = Get_R_op_list(AC_set, N_index, N_Qubits, check_reduction=check_reduction, atol=atol, rtol=rtol)
-            #     R_corrected_Op_list, R_corr_list, ancilla_amplitudes, l1_norm = absorb_complex_phases(R_uncorrected)
+            # NOT using GUG method (hence only R_uncorrect requried)
 
-            R = QubitOperator()
-            for op in R_uncorrected:
-                R += op
+            R = reduce(lambda Op1, Op2: Op1+Op2, R_uncorrected)
 
             R_mat = qubit_operator_sparse(R, n_qubits=N_Qubits)
             Pn_mat = qubit_operator_sparse(Pn, n_qubits=N_Qubits)
 
-            RPR_matrix = R_mat.conj().transpose().dot(
-                Pn_mat.dot(R_mat))  # note this is R^{dag}PR and NOT: RHR^{dag}
-
-            if check_reduction:
-                full_normalised_set = Normalise_Clique(AC_set)
-                H_S = QubitOperator()
-                for QubitOp in full_normalised_set['PauliWords']:
-                    H_S += QubitOp
-                H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
-
-                RHR_matrix = R_mat.dot(H_S_matrix.dot(R_mat.conj().transpose()))
-                if sparse_allclose(Pn_mat, RHR_matrix, atol=atol, rtol=rtol) is not True:
-                    raise ValueError('error in unitary partitioning reduction')
-
+            RPR_matrix = R_mat.conj().transpose().dot(Pn_mat.dot(R_mat))  # note this is R^{dag}PR and NOT: RHR^{dag}
             reduced_H_matrix += RPR_matrix * gamma_l
 
     reduced_H_matrix += qubit_operator_sparse(H_single_terms, n_qubits=N_Qubits)
