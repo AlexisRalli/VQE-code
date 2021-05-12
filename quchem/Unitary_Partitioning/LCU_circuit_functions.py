@@ -517,19 +517,25 @@ def Get_LCU_G_circuit(method, state_vector, start_qubit_ind, check_G_circuit=Tru
     elif method == 'matrix':
         G_circuit = prepare_arb_state_cirq_matrix_gate(state_vector, start_qubit_ind=start_qubit_ind)
     elif method == 'cirq_disentangle':
-        G_circuit = intialization_circuit(state_vector, start_qubit_ind, check_circuit=False)
+        G_circuit, Global_phase = intialization_circuit(state_vector, start_qubit_ind, check_circuit=False)
     else:
         raise ValueError(f'unknown method to build G: {method}')
 
     if check_G_circuit:
         circuit_final_state = G_circuit.final_state_vector(ignore_terminal_measurements=True)
 
+        if method == 'cirq_disentangle':
+            circuit_final_state=circuit_final_state*Global_phase
+
         if not np.allclose(circuit_final_state, state_vector):
             overlap = np.dot(circuit_final_state,state_vector)
             print(f'Overlap between state_vecotr and final_circuit_state: {overlap: 1.5f}')
             raise ValueError('G circuit not preparing correct state from |00...0> start state')
 
-    return G_circuit
+    if method == 'cirq_disentangle':
+        return G_circuit, Global_phase
+    else:
+        return G_circuit
 
 from quchem.Unitary_Partitioning.Unitary_partitioning_LCU_method import Get_R_op_list
 from functools import reduce
@@ -622,7 +628,12 @@ def Build_GUG_LCU_circuit(anti_commuting_set,
     
 
     #4. build GUG circuit
-    G_circ = Get_LCU_G_circuit(G_method, ancilla_amplitudes, N_system_qubits, check_G_circuit=check_G_circuit, allowed_qiskit_gates=allowed_qiskit_gates, qiskit_opt_level=qiskit_opt_level)
+    if G_method == 'cirq_disentangle':
+        G_circ, Global_phase = Get_LCU_G_circuit(G_method, ancilla_amplitudes, N_system_qubits, check_G_circuit=check_G_circuit, allowed_qiskit_gates=allowed_qiskit_gates, qiskit_opt_level=qiskit_opt_level)
+    else:
+        G_circ = Get_LCU_G_circuit(G_method, ancilla_amplitudes, N_system_qubits, check_G_circuit=check_G_circuit, allowed_qiskit_gates=allowed_qiskit_gates, qiskit_opt_level=qiskit_opt_level)
+        Global_phase=1
+
     G_dagger_circ = cirq.inverse(G_circ)
 
 
@@ -652,6 +663,7 @@ def Build_GUG_LCU_circuit(anti_commuting_set,
         bra = ket.conj().T
 
         G_U_Gdag_mat = R_circ_circ.unitary(qubits_that_should_be_present = cirq.LineQubit.range(0, N_ancilla+N_system_qubits)) # important to specify all qubits present (errors where Identity qubits ignored if not specified)
+        G_U_Gdag_mat = Global_phase * G_U_Gdag_mat
 
         traced_R = bra @ G_U_Gdag_mat @ ket *l1_norm
 
