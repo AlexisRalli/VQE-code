@@ -663,7 +663,7 @@ def Build_GUG_LCU_circuit(anti_commuting_set,
         bra = ket.conj().T
 
         G_U_Gdag_mat = R_circ_circ.unitary(qubits_that_should_be_present = cirq.LineQubit.range(0, N_ancilla+N_system_qubits)) # important to specify all qubits present (errors where Identity qubits ignored if not specified)
-        G_U_Gdag_mat = Global_phase * G_U_Gdag_mat
+        G_U_Gdag_mat = Global_phase * G_U_Gdag_mat # note global phase multiply here!
 
         traced_R = bra @ G_U_Gdag_mat @ ket *l1_norm
 
@@ -671,7 +671,8 @@ def Build_GUG_LCU_circuit(anti_commuting_set,
         # ancilla_0_state = reduce(np.kron, [np.array([[1],[0]]) for _ in range(N_ancilla)])
         # ancilla_0_projector = np.outer(ancilla_0_state, ancilla_0_state)
         # POVM_0_ancilla = np.kron(I_sys, ancilla_0_projector) # forces all zero measurement on ancilla!
-        # G_U_Gdag_mat = R_circ_circ.unitary()
+        # G_U_Gdag_mat = R_circ_circ.unitary(qubits_that_should_be_present = cirq.LineQubit.range(0, N_ancilla+N_system_qubits))  # important to specify all qubits present (errors where Identity qubits ignored if not specified)
+        # G_U_Gdag_mat = Global_phase * G_U_Gdag_mat # note global phase multiply here!
         # projected_GUG = POVM_0_ancilla.dot(G_U_Gdag_mat)
 
         # trace_GUG = projected_GUG.reshape([2 ** N_system_qubits, 2 ** N_ancilla,
