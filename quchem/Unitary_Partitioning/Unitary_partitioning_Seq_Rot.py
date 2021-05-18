@@ -8,6 +8,7 @@ from quchem.Misc_functions.Misc_functions import sparse_allclose
 
 from openfermion.ops import QubitOperator
 from openfermion.linalg import qubit_operator_sparse
+from openfermion import hermitian_conjugated
 from scipy.sparse import csc_matrix
 from scipy.linalg import eigh
 
@@ -87,16 +88,42 @@ def Get_Xsk_op_list(anti_commuting_set, S_index, N_Qubits, check_reduction=False
             beta_S_new = np.sqrt(BetaK[0] ** 2 + beta_S_new ** 2)
 
 
-    ### check transformation - EXPENSIVE!
-    if check_reduction:
-        R_sk_list = []
-        for X_sk_Op, theta_sk in X_sk_theta_sk_list:
-            pauliword_X_sk_MATRIX = qubit_operator_sparse(QubitOperator(list(X_sk_Op.terms.keys())[0], -1j),
-                                                          n_qubits=N_Qubits)
-            const_X_sk = list(X_sk_Op.terms.values())[0]
-            R_sk_list.append(expm(pauliword_X_sk_MATRIX * theta_sk / 2 * const_X_sk))
+    # ### check transformation - EXPENSIVE!
+    # if check_reduction:
+    #     R_sk_list = []
+    #     for X_sk_Op, theta_sk in X_sk_theta_sk_list:
+    #         pauliword_X_sk_MATRIX = qubit_operator_sparse(QubitOperator(list(X_sk_Op.terms.keys())[0], -1j),
+    #                                                       n_qubits=N_Qubits)
+    #         const_X_sk = list(X_sk_Op.terms.values())[0]
+    #         R_sk_list.append(expm(pauliword_X_sk_MATRIX * theta_sk / 2 * const_X_sk))
 
-        R_S_matrix = reduce(np.dot, R_sk_list[::-1])  # <- note reverse order!
+    #     R_S_matrix = reduce(np.dot, R_sk_list[::-1])  # <- note reverse order!
+
+    #     Ps_mat = qubit_operator_sparse(Ps, n_qubits=N_Qubits)
+
+    #     H_S = QubitOperator()
+    #     for QubitOp in normalised_FULL_set['PauliWords']:
+    #         H_S += QubitOp
+    #     H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+
+    #     RHR = R_S_matrix.dot(H_S_matrix.dot(R_S_matrix.conj().transpose()))
+
+    #     if not sparse_allclose(Ps_mat, RHR, atol=atol, rtol=rtol):
+    #         raise ValueError('error in unitary partitioning reduction: R H_s R† != Ps')
+
+
+    ### check transformation - SYMBOLIC (cheaper than above)!
+    if check_reduction:
+        R_sk_OP_list = []
+        for X_sk_Op, theta_sk in X_sk_theta_sk_list:
+            op = np.cos(theta_sk / 2) * QubitOperator('') -1j*np.sin(theta_sk / 2) * X_sk_Op
+            R_sk_OP_list.append(op)
+
+        R_S_op = reduce(lambda x,y: x*y, R_sk_OP_list[::-1])  # <- note reverse order!
+        R_S_matrix=qubit_operator_sparse(R_S_op,n_qubits=N_Qubits)
+
+        R_S_op_dag = hermitian_conjugated(R_S_op)
+        R_S_matrix_dag=qubit_operator_sparse(R_S_op_dag,n_qubits=N_Qubits)
 
         Ps_mat = qubit_operator_sparse(Ps, n_qubits=N_Qubits)
 
@@ -105,7 +132,7 @@ def Get_Xsk_op_list(anti_commuting_set, S_index, N_Qubits, check_reduction=False
             H_S += QubitOp
         H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
 
-        RHR = R_S_matrix.dot(H_S_matrix.dot(R_S_matrix.conj().transpose()))
+        RHR = R_S_matrix.dot(H_S_matrix.dot(R_S_matrix_dag))
 
         if not sparse_allclose(Ps_mat, RHR, atol=atol, rtol=rtol):
             raise ValueError('error in unitary partitioning reduction: R H_s R† != Ps')

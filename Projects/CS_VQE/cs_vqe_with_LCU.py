@@ -36,72 +36,27 @@ def diagonalize_epistemic_LCU(model,fn_form,ep_state, N_Qubits, N_index, check_r
     
     # if there are cliques...
     if fn_form[1] > 0:
-        # rotations to map A to a single Pauli (to be applied on left)
+        # LCU to map A to a single Pauli
 
-        # script_A = QubitOperator()
-        # for op_A in model[1]:
-        #     script_A+=conv_scr.convert_op_str(op_A, 1)
-        # script_A.renormalize()
-        # script_A = list(script_A)
+        script_A = [conv_scr.convert_op_str(op_A, coeff) for op_A, coeff in zip(model[1], ep_state[1])] #AC set (note has already been normalized, look at eq 17 of contextual VQE paper!)
 
-        script_A = [conv_scr.convert_op_str(op_A, 1) for op_A in model[1]] #AC set (note has already been normalized, look at eq 17 of contextual VQE paper!)
+        if N_index != 0:
+            raise ValueError('currently code only works for index 0 in anti-commuting set!')
+
         R_LCU_list, Pn, gamma_l = UP_LCU.Get_R_op_list(script_A, N_index, N_Qubits, check_reduction=check_reduction, atol=1e-8, rtol=1e-05)
         GuA = deepcopy(model[0] + [model[1][0]]) #<--- here N_index fixed to zero (model[1][0] == first op of script_A !) (TODO: could be potential bug if other vals used)
         ep_state_trans = deepcopy(ep_state[0] + [1]) # < - fixes script A eigenvalue!
         
-        R_LCU = QubitOperator()
-        for op in R_LCU_list:
-            R_LCU+=op
-        R_LCU.renormalize() #<-should NOT need this
+        R_LCU = reduce(lambda x,y: x+y, R_LCU_list) 
 
-        unitary_check = R_LCU*hermitian_conjugated(R_LCU)
-        # print(unitary_check) # should be idenitty operator
-        if unitary_check != QubitOperator('', 1):
-            raise ValueError('R_LCU is not unitary!')
+        # R_LCU.renormalize() #<-should NOT need this
+        # unitary_check = R_LCU*hermitian_conjugated(R_LCU)
+        # if unitary_check != QubitOperator('', 1):
+        #     raise ValueError('R_LCU is not unitary!')
+
         R_LCU = list(R_LCU)
-        # # rotations to diagonalize G union with the new A
-        # G_union_A = deepcopy(model[0] + [model[1][0]]) #<--- here N_index fixed to zero (model[1][0] == first op of script_A !) (TODO: could be potential bug if other vals used)
-        # ep_state_trans = deepcopy(ep_state[0] + [1])
-
-        # # apply R_LCU to GuA
-        # GuA= deepcopy(G_union_A)
-        # ROT_LCU_dict = conv_scr.Openfermion_to_dict(Rot_LCU, N_Qubits)
-        # for m in range(len(GuA)):
-        #     for R_op in ROT_LCU_dict:
-        #         P_op = GuA[m]
-        #         if not commute(R_op, P_op):
-        #             p = deepcopy(pauli_mult(R_op, P_op))
-        #             GuA[m] = p[0]
-        #             ep_state_trans[m] = 1j*p[1]*ep_state_trans[m]
-        #         else:
-        #             p = deepcopy(pauli_mult(R_op, P_op))
-        #             GuA[m] = p[0]
-        # print('G union A after R_LCU:', GuA)
-            # rotations to diagonalize G union with the new A
-
-        #########
-
-        # G_union_A = deepcopy(model[0] + [model[1][0]]) #<--- here N_index fixed to zero (model[1][0] == first op of script_A !) (TODO: could be potential bug if other vals used)
-        # ep_state_trans = deepcopy(ep_state[0] + [1])
-
-        # # apply R_LCU to GuA
-        # rotated_GuA = QubitOperator()
-        # for Gop in G_union_A:
-        #     openFop = conv_scr.convert_op_str(Gop, 1)
-
-        #     for R_op in Rot_LCU:
-
-        #         rotated_GuA+= R_op*openFop
 
 
-        #         if not commute(R_op, Gop):
-        #             p = deepcopy(pauli_mult(R_op, P_op))
-        #             GuA[m] = p[0]
-        #             ep_state_trans[m] = 1j*p[1]*ep_state_trans[m]
-        #         else:
-        #             p = deepcopy(pauli_mult(R_op, P_op))
-        #             GuA[m] = p[0]
-        # print('G union A after R_LCU:', GuA)
     # if there are no cliques...
     else:
         # rotations to diagonalize G
@@ -209,19 +164,6 @@ def get_reduced_hamiltonians_LCU(ham,model,fn_form,ep_state,order, N_Qubits, N_i
     
     out = []
 
-    #### MOVED outside order loop!
-    # if Rot_LCU is not None:
-    #     Ham_openF = conv_scr.Get_Openfermion_Hamiltonian(ham)
-    #     rotated_H = QubitOperator()
-    #     for P_Rop in Rot_LCU:
-    #         for P_ham in Ham_openF:
-    #             # left multiply by R
-    #             new_P = P_Rop*P_ham
-    #             rotated_H+=new_P
-
-    #     post_LCU_rot_ham = conv_scr.Openfermion_to_dict(rotated_H, n_q)
-    #     del rotated_H
-    #     del Ham_openF
     if Rot_LCU is not None:
         Ham_openF = conv_scr.Get_Openfermion_Hamiltonian(ham)
         openF_R_LCU = QubitOperator()
@@ -236,6 +178,9 @@ def get_reduced_hamiltonians_LCU(ham,model,fn_form,ep_state,order, N_Qubits, N_i
 
         del rotated_H
         del Ham_openF
+    else:
+        post_LCU_rot_ham_real_and_pruned = ham
+
     ##############
     
     for k in range(order_len+1):
