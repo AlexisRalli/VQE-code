@@ -158,16 +158,24 @@ def Get_Rsl_matrix(Xsk_op_list, N_Qubits):
 
     """
 
+    ### old SLOW method (exponentiated matrices)
+    # R_sk_list = []
+    # for X_sk_Op, theta_sk in Xsk_op_list:
+    #     pauliword_X_sk_MATRIX = qubit_operator_sparse(QubitOperator(list(X_sk_Op.terms.keys())[0], -1j),
+    #                                                   n_qubits=N_Qubits)
+    #     const_X_sk = list(X_sk_Op.terms.values())[0]
+        
+    #     R_sk_list.append(expm(pauliword_X_sk_MATRIX * theta_sk / 2 * const_X_sk))
+    # Rs_l_matrix = reduce(np.dot, R_sk_list[::-1])  # <- note reverse order!
+
+    ### new FAST method (symbolic application of rotation operators!)
     R_sk_list = []
     for X_sk_Op, theta_sk in Xsk_op_list:
-        pauliword_X_sk_MATRIX = qubit_operator_sparse(QubitOperator(list(X_sk_Op.terms.keys())[0], -1j),
-                                                      n_qubits=N_Qubits)
-        const_X_sk = list(X_sk_Op.terms.values())[0]
-        
-        R_sk_list.append(expm(pauliword_X_sk_MATRIX * theta_sk / 2 * const_X_sk))
+        op = np.cos(theta_sk / 2) * QubitOperator('') -1j*np.sin(theta_sk / 2) * X_sk_Op
+        R_sk_list.append(op)
 
-    Rs_l_matrix = reduce(np.dot, R_sk_list[::-1])  # <- note reverse order!
-
+    R_S_op = reduce(lambda x,y: x*y, R_sk_list[::-1])  # <- note reverse order!
+    Rs_l_matrix=qubit_operator_sparse(R_S_op,n_qubits=N_Qubits)
     return Rs_l_matrix
 
 

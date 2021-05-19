@@ -1,4 +1,4 @@
-import numpy as 
+import numpy as np
 import scipy as sp
 
 import cs_vqe as c
