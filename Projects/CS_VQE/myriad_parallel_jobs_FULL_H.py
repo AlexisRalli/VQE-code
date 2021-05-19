@@ -1,4 +1,6 @@
-import numpy as np
+import numpy as 
+import scipy as sp
+
 import cs_vqe as c
 import ast
 import os
@@ -98,7 +100,7 @@ for ind, H_std in enumerate(reduced_H_SeqRot_list):
     if ham_red_sparse.shape[0] <= 64:
         Energy = min(np.linalg.eigvalsh(ham_red_sparse.toarray()))
     else:
-        eig_values, eig_vectors = eigsh(ham_red_sparse, k=1, which='SA')
+        eig_values, eig_vectors = sp.sparse.linalg.eigsh(ham_red_sparse, k=1, which='SA')
         Energy = min(eig_values)
     SeqRot_results[ind] = {'E':Energy , 'H':H_std}
     
@@ -113,7 +115,7 @@ for ind, H_LCU in enumerate(reduced_H_LCU_list):
     if ham_red_sparse.shape[0] <= 64:
         Energy = min(np.linalg.eigvalsh(ham_red_sparse.toarray()))
     else:
-        eig_values, eig_vectors = eigsh(ham_red_sparse, k=1, which='SA')
+        eig_values, eig_vectors = sp.sparse.linalg.eigsh(ham_red_sparse, k=1, which='SA')
         Energy = min(eig_values)
     LCU_results[ind] = {'E':Energy , 'H':H_LCU}
     
