@@ -74,9 +74,6 @@ mol_key = sorted_mol_names[mol_num-1] # UCL supercomputer indexes from 1, hence 
 
 
 # for mol_key in tqdm(list(myriad_LCU_results.keys())): # removed loop and used myriad array input!
-exp_LCU_result = myriad_LCU_results[mol_key]
-exp_SeqRot_result = myriad_SeqRot_results[mol_key]
-
 
 anti_commuting_sets_different_H_SeqRot_sizes={}
 anti_commuting_sets_different_H_LCU_sizes={}
@@ -88,7 +85,7 @@ for ind_key in myriad_SeqRot_results[mol_key]:
     if ind_key==0:
         # only non-contextual problem
         anti_commuting_sets_different_H_SeqRot_sizes[ind_key]= {'AC_sets': {},
-                                                               'E':exp_SeqRot_result[mol_key][ind_key]['E']}
+                                                               'E':myriad_SeqRot_results[mol_key][ind_key]['E']}
         anti_commuting_sets_different_H_LCU_sizes[ind_key]= {'AC_sets': {},
                                                              'E':myriad_LCU_results[mol_key][ind_key]['E']}
     else:
