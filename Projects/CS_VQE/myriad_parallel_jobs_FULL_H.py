@@ -6,6 +6,8 @@ from tqdm import tqdm
 from copy import deepcopy
 
 import cs_vqe_with_LCU as c_LCU
+import quchem.Misc_functions.conversion_scripts as conv_scr 
+from openfermion import qubit_operator_sparse
 
 import pickle
 import datetime
@@ -91,15 +93,13 @@ reduced_H_SeqRot_list = c.get_reduced_hamiltonians(ham, #<-- CON PART ONLY
 ### Get SeqRot Energies
 SeqRot_results={}
 for ind, H_std in enumerate(reduced_H_SeqRot_list):
-    if len(H_std) == 1:
-        Energy = H_std['']     
+    Ham_openF = conv_scr.Get_Openfermion_Hamiltonian(H_std)
+    ham_red_sparse = qubit_operator_sparse(Ham_openF)
+    if ham_red_sparse.shape[0] <= 64:
+        Energy = min(np.linalg.eigvalsh(ham_red_sparse.toarray()))
     else:
-        ham_red_sparse = c.hamiltonian_to_sparse(H_std)
-        if ham_red_sparse.shape[0] <= 64:
-            Energy = min(np.linalg.eigvalsh(ham_red_sparse.toarray()))
-        else:
-            eig_values, eig_vectors = eigsh(ham_red_sparse, k=1, which='SA')
-            Energy = min(eig_values)
+        eig_values, eig_vectors = eigsh(ham_red_sparse, k=1, which='SA')
+        Energy = min(eig_values)
     SeqRot_results[ind] = {'E':Energy , 'H':H_std}
     
 SeqRot_results['exp_conditions'] = exp_conditions
@@ -108,15 +108,13 @@ SeqRot_results['exp_conditions'] = exp_conditions
 ### Get LCU Energies
 LCU_results={}
 for ind, H_LCU in enumerate(reduced_H_LCU_list):
-    if len(H_LCU) == 1:
-        Energy = H_LCU['']     
+    Ham_openF = conv_scr.Get_Openfermion_Hamiltonian(H_LCU)
+    ham_red_sparse = qubit_operator_sparse(Ham_openF)
+    if ham_red_sparse.shape[0] <= 64:
+        Energy = min(np.linalg.eigvalsh(ham_red_sparse.toarray()))
     else:
-        ham_red_sparse = c.hamiltonian_to_sparse(H_LCU)
-        if ham_red_sparse.shape[0] <= 64:
-            Energy = min(np.linalg.eigvalsh(ham_red_sparse.toarray()))
-        else:
-            eig_values, eig_vectors = eigsh(ham_red_sparse, k=1, which='SA')
-            Energy = min(eig_values)
+        eig_values, eig_vectors = eigsh(ham_red_sparse, k=1, which='SA')
+        Energy = min(eig_values)
     LCU_results[ind] = {'E':Energy , 'H':H_LCU}
     
 LCU_results['exp_conditions'] = exp_conditions
