@@ -824,7 +824,10 @@ class LCU_VQE_Experiment_UP_circuit_lin_alg():
         self.anti_commuting_sets = anti_commuting_sets
         self.ansatz_circuit = ansatz_circuit
         self.N_system_qubits = N_system_qubits
-        self.ansatz_vector = ansatz_circuit.final_state_vector(ignore_terminal_measurements=True)
+
+        ansatz_vector = ansatz_circuit.final_state_vector(ignore_terminal_measurements=True)#.reshape((2**self.n_qubits,1))
+        self.ansatz_density_mat = np.outer(ansatz_vector, ansatz_vector)
+        
         self.G_method = G_method
 
         self.N_indices_dict = N_indices_dict
@@ -917,20 +920,9 @@ class LCU_VQE_Experiment_UP_circuit_lin_alg():
 
             else:
                 qubitOp = anti_commuting_set[0]
-
-                for PauliWord, const in qubitOp.terms.items():
-                    if PauliWord != ():
-
-                        final_state_ket = circuit_matrix.dot(self.ansatz_vector)
-                        final_state_bra = final_state_ket.transpose().conj()
-
-                        P_matrix = qubit_operator_sparse(qubitOp, n_qubits=self.n_qubits)
-
-                        exp_result = final_state_bra.dot(P_matrix.todense().dot(final_state_ket))
-                        E_list.append(exp_result.item(0) * const)
-
-                    else:
-                        E_list.append(const)
+                P_matrix = qubit_operator_sparse(qubitOp, n_qubits=self.N_system_qubits)
+                exp_result = np.trace(self.ansatz_density_mat@P_matrix)
+                E_list.append(exp_result)
 
         return sum(E_list).real
 

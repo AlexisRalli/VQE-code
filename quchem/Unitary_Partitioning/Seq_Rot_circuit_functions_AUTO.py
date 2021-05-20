@@ -75,7 +75,7 @@ def Auto_Build_R_SeqRot_Q_circuit_manual_Reduced(anti_commuting_set, N_Qubits, c
         H_S = QubitOperator()
         for QubitOp in full_normalised_set['PauliWords']:
             H_S += QubitOp
-        H_S_matrix = qubit_operator_sparse(H_S)
+        H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
         
         qbits = cirq.LineQubit.range(N_Qubits)
         R_S_matrix = full_RS_circuit.unitary(qubits_that_should_be_present=qbits)
@@ -155,7 +155,7 @@ def Auto_Build_R_SeqRot_Q_circuit_IBM_Reduced(anti_commuting_set, N_Qubits, chec
         H_S = QubitOperator()
         for QubitOp in full_normalised_set['PauliWords']:
             H_S += QubitOp
-        H_S_matrix = qubit_operator_sparse(H_S)
+        H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
         
         # qbits = [cirq.NamedQubit(f'q_{i}') for i in range(N_Qubits)] # IBM compiler causes linequbits to change to Namedqubits
         qbits = cirq.LineQubit.range(N_Qubits)
@@ -263,7 +263,8 @@ class Auto_Seq_Rot_VQE_Experiment_UP_manual_reduced_circuit_lin_alg():
         self.ansatz_circuit = ansatz_circuit
         self.n_qubits = len(ansatz_circuit.all_qubits())
 
-        self.ansatz_vector = (ansatz_circuit.final_state_vector(ignore_terminal_measurements=True)).reshape((2**self.n_qubits,1))
+        ansatz_vector = ansatz_circuit.final_state_vector(ignore_terminal_measurements=True)#.reshape((2**self.n_qubits,1))
+        self.ansatz_density_mat = np.outer(ansatz_vector, ansatz_vector)
 
     def Calc_Energy(self, check_reduction_lin_alg=False, check_circuit=False, maximise_CNOT_reduction=True):
 
@@ -283,30 +284,25 @@ class Auto_Seq_Rot_VQE_Experiment_UP_manual_reduced_circuit_lin_alg():
                                                                                     maximise_CNOT_reduction=maximise_CNOT_reduction)
 
                 
-                final_state_ket = (Q_circuit.final_state_vector(ignore_terminal_measurements=True))#.reshape((2**self.n_qubits,1))
+                final_state_ket = Q_circuit.final_state_vector(ignore_terminal_measurements=True)#.reshape((2**self.n_qubits,1))
 
                 # note Q_circuit HAS change of basis for Ps! hence measure Z op version now
                 PauliStr_Ps, beta_S = tuple(*Ps.terms.items())
                 PauliStr_Ps_Z = [(qNo, 'Z')for qNo, Pstr in PauliStr_Ps]
-                Ps = QubitOperator(PauliStr_Ps_Z, beta_S)
+                Ps_Zchange = QubitOperator(PauliStr_Ps_Z, beta_S)
 
-                Ps_matrix = qubit_operator_sparse(Ps, n_qubits=self.n_qubits)
-                exp_result = np.trace(np.outer(final_state_ket, final_state_ket)@Ps_matrix)
-                E_list.append(exp_result * gamma_l)
+                Ps_matrix = qubit_operator_sparse(Ps_Zchange, n_qubits=self.n_qubits)
+                # exp_result = np.trace(np.outer(final_state_ket, final_state_ket)@Ps_matrix)
+                # E_list.append(exp_result * gamma_l)
+
+                exp_result = final_state_ket.conj().T @ Ps_matrix @ final_state_ket
+                E_list.append(exp_result.item(0) * gamma_l)
 
             else:
                 qubitOp = anti_commuting_set[0]
-
-                for PauliWord, const in qubitOp.terms.items():
-                    if PauliWord != ():
-
-                        P_matrix = qubit_operator_sparse(qubitOp, n_qubits=self.n_qubits)
-
-                        exp_result = np.trace(np.outer(self.ansatz_vector, self.ansatz_vector)@P_matrix)
-                        E_list.append(exp_result * const)
-
-                    else:
-                        E_list.append(const)
+                P_matrix = qubit_operator_sparse(qubitOp, n_qubits=self.n_qubits)
+                exp_result = np.trace(self.ansatz_density_mat@P_matrix)
+                E_list.append(exp_result)
 
         return sum(E_list).real
 
@@ -322,7 +318,9 @@ class Auto_Seq_Rot_VQE_Experiment_UP_IBM_reduced_circuit_lin_alg():
 
         self.allowed_qiskit_gates = allowed_qiskit_gates
         self.IBM_opt_lvl = IBM_opt_lvl
-        self.ansatz_vector = ansatz_circuit.final_state_vector(ignore_terminal_measurements=True)
+
+        ansatz_vector = ansatz_circuit.final_state_vector(ignore_terminal_measurements=True)#.reshape((2**self.n_qubits,1))
+        self.ansatz_density_mat = np.outer(ansatz_vector, ansatz_vector)
 
     def Calc_Energy(self, check_reduction_lin_alg=False, check_circuit=False, maximise_CNOT_reduction=True):
 
@@ -343,7 +341,7 @@ class Auto_Seq_Rot_VQE_Experiment_UP_IBM_reduced_circuit_lin_alg():
                                                                                     allowed_qiskit_gates=self.allowed_qiskit_gates,
                                                                                     IBM_opt_level=self.IBM_opt_lvl)
                 
-                final_state_ket = (Q_circuit.final_state_vector(ignore_terminal_measurements=True))#.reshape((2**self.n_qubits,1))
+                final_state_ket = Q_circuit.final_state_vector(ignore_terminal_measurements=True)#.reshape((2**self.n_qubits,1))
 
                 # note Q_circuit HAS change of basis for Ps! hence measure Z op version now
                 PauliStr_Ps, beta_S = tuple(*Ps.terms.items())
@@ -351,21 +349,16 @@ class Auto_Seq_Rot_VQE_Experiment_UP_IBM_reduced_circuit_lin_alg():
                 Ps = QubitOperator(PauliStr_Ps_Z, beta_S)
 
                 Ps_matrix = qubit_operator_sparse(Ps, n_qubits=self.n_qubits)
-                exp_result = np.trace(np.outer(final_state_ket, final_state_ket)@Ps_matrix)
-                E_list.append(exp_result * gamma_l)
+                # exp_result = np.trace(np.outer(final_state_ket, final_state_ket)@Ps_matrix)
+                # E_list.append(exp_result * gamma_l)
+
+                exp_result = final_state_ket.conj().T @ Ps_matrix @ final_state_ket
+                E_list.append(exp_result.item(0) * gamma_l)
 
             else:
                 qubitOp = anti_commuting_set[0]
-
-                for PauliWord, const in qubitOp.terms.items():
-                    if PauliWord != ():
-
-                        P_matrix = qubit_operator_sparse(qubitOp, n_qubits=self.n_qubits)
-
-                        exp_result = np.trace(np.outer(self.ansatz_vector, self.ansatz_vector)@P_matrix)
-                        E_list.append(exp_result * const)
-
-                    else:
-                        E_list.append(const)
+                P_matrix = qubit_operator_sparse(qubitOp, n_qubits=self.n_qubits)
+                exp_result = np.trace(self.ansatz_density_mat@P_matrix)
+                E_list.append(exp_result)
 
         return sum(E_list).real

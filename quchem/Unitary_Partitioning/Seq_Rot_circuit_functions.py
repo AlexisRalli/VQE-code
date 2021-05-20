@@ -111,9 +111,10 @@ class Seq_Rot_VQE_Experiment_UP_circuit_lin_alg():
         self.S_key_dict = S_key_dict
         self.n_qubits = len(ansatz_circuit.all_qubits())
 
-        self.ansatz_vector = ansatz_circuit.final_state_vector(ignore_terminal_measurements=True)
+        ansatz_vector = ansatz_circuit.final_state_vector(ignore_terminal_measurements=True)#.reshape((2**self.n_qubits,1))
+        self.ansatz_density_mat = np.outer(ansatz_vector, ansatz_vector)
 
-    def Calc_Energy(self):
+    def Calc_Energy(self, check_reduction_lin_alg=False, atol=1e-8, rtol=1e-05, check_circuit=False):
 
         E_list = []
         for set_key in self.anti_commuting_sets:
@@ -125,12 +126,14 @@ class Seq_Rot_VQE_Experiment_UP_circuit_lin_alg():
                 if self.S_key_dict is None:
                     full_RS_circuit, Ps, gamma_l= Build_R_SeqRot_Q_circuit(anti_commuting_set, 
                                                                             0,  # <- S_index set to 0 
-                                                                            check_reduction=False)
+                                                                            self.n_qubits,
+                                                                            check_reduction_lin_alg=check_reduction_lin_alg, atol=atol, rtol=rtol, check_circuit=check_circuit)
 
                 else:
                     full_RS_circuit, Ps, gamma_l= Build_R_SeqRot_Q_circuit(anti_commuting_set, 
                                                         self.S_key_dict[set_key],
-                                                        check_reduction=False)
+                                                        self.n_qubits,
+                                                        check_reduction_lin_alg=check_reduction_lin_alg, atol=atol, rtol=rtol, check_circuit=check_circuit)
 
                 # note Build_R_SeqRot_Q_circuit doesn't use a change of basis for Ps!
                 Q_circuit = cirq.Circuit(
@@ -140,32 +143,20 @@ class Seq_Rot_VQE_Experiment_UP_circuit_lin_alg():
                                 ]
                             )
 
-                circuit_matrix = Q_circuit.unitary(ignore_terminal_measurements=True)
 
-                final_state_ket = circuit_matrix.dot(self.input_ket)
-                final_state_bra = final_state_ket.transpose().conj()
+                final_state_ket = (Q_circuit.final_state_vector(ignore_terminal_measurements=True)).reshape((2**self.n_qubits,1))
+                denisty_mat = np.outer(final_state_ket, final_state_ket)
 
                 Ps_matrix = qubit_operator_sparse(Ps, n_qubits=self.n_qubits)
 
-                exp_result = final_state_bra.dot(Ps_matrix.todense().dot(final_state_ket))
-                E_list.append(exp_result.item(0) * gamma_l)
+                exp_result = np.trace(denisty_mat@Ps_matrix)
+                E_list.append(exp_result*gamma_l)
 
             else:
                 qubitOp = anti_commuting_set[0]
-
-                for PauliWord, const in qubitOp.terms.items():
-                    if PauliWord != ():
-
-                        final_state_ket = circuit_matrix.dot(self.ansatz_vector)
-                        final_state_bra = final_state_ket.transpose().conj()
-
-                        P_matrix = qubit_operator_sparse(qubitOp, n_qubits=self.n_qubits)
-
-                        exp_result = final_state_bra.dot(P_matrix.todense().dot(final_state_ket))
-                        E_list.append(exp_result.item(0) * const)
-
-                    else:
-                        E_list.append(const)
+                P_matrix = qubit_operator_sparse(qubitOp, n_qubits=self.n_qubits)
+                exp_result = np.trace(self.ansatz_density_mat@P_matrix)
+                E_list.append(exp_result)
 
         return sum(E_list).real
 

@@ -174,7 +174,7 @@ def LCU_linalg_Energy(anti_commuting_sets, N_indices_dict, N_Qubits, atol=1e-8, 
 
     reduced_H_matrix += qubit_operator_sparse(H_single_terms, n_qubits=N_Qubits)
     # eig_values, eig_vectors = sparse_eigs(reduced_H_matrix)
-    if N_Qubits<4:
+    if N_Qubits<6:
         eig_values, eig_vectors = eigh(reduced_H_matrix.todense()) # NOT sparse!
     else:
         eig_values, eig_vectors = eigsh(reduced_H_matrix, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
