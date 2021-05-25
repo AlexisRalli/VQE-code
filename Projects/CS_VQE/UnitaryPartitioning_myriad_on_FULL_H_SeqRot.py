@@ -76,6 +76,8 @@ for ind_key in myriad_SeqRot_results[mol_key]:
         H_SeqRot_pruned = {P_key: coeff.real for P_key, coeff in H_SeqRot_dict.items() if not np.isclose(coeff.real,0)}
 
         H_SeqRot= conv_scr.Get_Openfermion_Hamiltonian(H_SeqRot_pruned)
+        n_qubits = len(list(H_SeqRot_dict.keys())[0])
+        
         anti_commuting_sets_SeqRot = Clique_cover_Hamiltonian(H_SeqRot, 
                                          n_qubits, 
                                          commutativity_flag, 
