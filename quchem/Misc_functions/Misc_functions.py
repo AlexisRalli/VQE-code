@@ -374,6 +374,7 @@ def lexicographical_sort_BASIS_MATCH(list_P_ops):
 from qiskit import QuantumCircuit, Aer, execute
 from qiskit.compiler import transpile
 from cirq.contrib.qasm_import import circuit_from_qasm
+from cirq.testing import assert_allclose_up_to_global_phase
 def optimized_cirq_circuit_IBM_compiler(cirq_circuit, opt_level=3,
                                allowed_gates=['id', 'rz', 'ry', 'rx', 'cx' ,'s', 'h', 'y','z', 'x'],
                                 check_optimization = True):
@@ -445,15 +446,15 @@ def optimized_cirq_circuit_IBM_compiler(cirq_circuit, opt_level=3,
 
     ### correct global phase
     has_modified_Zpow = False
-    if not np.isclose(global_phase,0):
-        qubit = list(simplified_cirq_circuit.all_qubits())[0]
-        op1 = cirq.ZPowGate(exponent=2, global_shift=global_phase/(2*np.pi)).on(qubit) # exponent 2 hence divided global phase by 2 (note also divide by pi as in units of pi in ZpowGate definition)
-        simplified_cirq_circuit.append(op1)
-        has_modified_Zpow = True
+    # if not np.isclose(global_phase,0):
+    #     qubit = list(simplified_cirq_circuit.all_qubits())[0]
+    #     op1 = cirq.ZPowGate(exponent=2, global_shift=global_phase/(2*np.pi)).on(qubit) # exponent 2 hence divided global phase by 2 (note also divide by pi as in units of pi in ZpowGate definition)
+    #     simplified_cirq_circuit.append(op1)
+    #     has_modified_Zpow = True
 
-        if check_optimization:
-            if not np.allclose(cirq_circuit.unitary(), simplified_cirq_circuit.unitary()):
-                raise ValueError('circuit compile incorrect (includes global phase)')
+    #     if check_optimization:
+    #         if not np.allclose(cirq_circuit.unitary(), simplified_cirq_circuit.unitary()):
+    #             raise ValueError('circuit compile incorrect (includes global phase)')
 
     # convert from named qubit to line qubits
     # note qiskit re-labels from 0 index, therefore need to match qubits by increasing size

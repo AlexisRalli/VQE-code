@@ -171,6 +171,138 @@ def Auto_Build_R_SeqRot_Q_circuit_IBM_Reduced(anti_commuting_set, N_Qubits, chec
 
     return full_RS_circuit, Ps, gamma_l
 
+from pytket.extensions.cirq import cirq_to_tk, tk_to_cirq
+from pytket.qasm import circuit_to_qasm_str
+from cirq.contrib.qasm_import import circuit_from_qasm
+
+from pytket.passes import PauliSimp, FullPeepholeOptimise, RebasePyZX, RebaseCirq, CliffordSimp
+def Auto_Build_R_SeqRot_Q_circuit_tiket_Reduced(anti_commuting_set, N_Qubits, check_reduction_lin_alg=False, atol=1e-8, rtol=1e-05, check_circuit=False, maximise_CNOT_reduction=True):
+    """
+    Function to build R_S where S_index has been chosen automatically - see ```choose_Pn_index``` function. A lexicographical sort has also been used to optimize
+    number of cancellations in rotation circuits. Here change of basis single qubit gates have been targeted
+
+    Args:
+        anti_commuting_set(list): list of anti commuting QubitOperators
+        N_Qubits (int): number of qubits
+        check_reduction_lin_alg (optional, bool): use linear algebra to check that 𝑅s† 𝐻s 𝑅s == 𝑃s
+        check_circuit (bool): check if circuit unitary performs unitary partitioning correctly via lin alg on anti-commuting subset
+        maximise_CNOT_reduction (bool): whether to order terms in set to maxmise change of basis or CNOT cancellations
+    returns:
+        full_RS_circuit(cirq.Circuit): Q_circuit for R_s operator
+        Ps (QubitOperator): Pauli_S operator with cofactor of 1!
+        gamma_l (float): normalization term
+
+    """
+    anti_commuting_set = copy(anti_commuting_set)
+    Ps_index = choose_Pn_index(anti_commuting_set)
+    B_Ps = anti_commuting_set.pop(Ps_index) # REMOVE BETA_S_P_S from AC set
+    
+    if maximise_CNOT_reduction:
+        re_orded_AC_set = lexicographical_sort_LADDER_CNOT_cancel(anti_commuting_set)
+    else:
+        re_orded_AC_set = lexicographical_sort_BASIS_MATCH(anti_commuting_set)
+
+    re_orded_AC_set.append(B_Ps) # add Ps back in at last index!
+    S_index =-1 # hence s index is last term in list
+    
+    
+    X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(re_orded_AC_set,
+                                                                            S_index, 
+                                                                            N_Qubits,
+                                                                         check_reduction=check_reduction_lin_alg,
+                                                                          atol=atol, 
+                                                                          rtol=rtol)
+    
+    full_RS_circuit_unopt = cirq.Circuit()
+    for X_sk_Op, theta_sk in X_sk_theta_sk_list:
+        pauliword_X_sk = list(X_sk_Op.terms.keys())[0]
+        const_X_sk = list(X_sk_Op.terms.values())[0]
+
+        full_exp_circ_obj = full_exponentiated_PauliWord_circuit(QubitOperator(pauliword_X_sk, -1j),
+                                                                 theta_sk / 2 * const_X_sk)
+
+        circuit = cirq.Circuit(
+            cirq.decompose_once((full_exp_circ_obj(*cirq.LineQubit.range(full_exp_circ_obj.num_qubits())))))
+
+        full_RS_circuit_unopt.append(circuit)
+
+    
+    ## tiket optimization
+#     tiket_circuit = cirq_to_tk(full_RS_circuit_unopt)
+#     PauliSimp().apply(tiket_circuit)
+#     FullPeepholeOptimise().apply(tiket_circuit)
+
+#     RebasePyZX().apply(tiket_circuit)
+# #     RebaseCirq().apply(tiket_circuit)
+#     full_RS_circuit = tk_to_cirq(tiket_circuit)
+   
+    
+#     cirq.testing.assert_allclose_up_to_global_phase(full_RS_circuit.unitary(),
+#                                                full_RS_circuit_unopt.unitary(),
+#                                                atol=1e-8)
+    try:
+        tiket_circuit = cirq_to_tk(full_RS_circuit_unopt)
+        PauliSimp().apply(tiket_circuit)
+        FullPeepholeOptimise().apply(tiket_circuit)
+        RebasePyZX().apply(tiket_circuit)
+    #     RebaseCirq().apply(tiket_circuit)
+    
+        full_RS_circuit = tk_to_cirq(tiket_circuit)
+#         qasm_circuit = circuit_to_qasm_str(tiket_circuit)
+#         full_RS_circuit = circuit_from_qasm(qasm_circuit)
+        
+        
+        cirq.testing.assert_allclose_up_to_global_phase(full_RS_circuit_unopt.unitary(),
+                                                   full_RS_circuit.unitary(),
+                                                   atol=1e-8)
+    except:
+        tiket_circuit = cirq_to_tk(full_RS_circuit_unopt)
+        # No PauliSimp performed! This leads to a less good reduction
+        FullPeepholeOptimise().apply(tiket_circuit)
+        CliffordSimp(allow_swaps=False).apply(tiket_circuit) # uses CliffordSimp instead
+        RebasePyZX().apply(tiket_circuit)
+        
+        
+        full_RS_circuit = tk_to_cirq(tiket_circuit)
+#         qasm_circuit = circuit_to_qasm_str(tiket_circuit)
+#         full_RS_circuit = circuit_from_qasm(qasm_circuit)
+        
+        
+        cirq.testing.assert_allclose_up_to_global_phase(full_RS_circuit_unopt.unitary(),
+                                                   full_RS_circuit.unitary(),
+                                                   atol=1e-8)
+     ## tiket opt end
+    
+#     # rename to LineQubits
+#     sorted_original_qubits = [cirq.LineQubit(i) for i in range(N_Qubits)]
+#     sorted_named_qubits = sorted(list(full_RS_circuit.all_qubits()), key= lambda NamedQ: int(NamedQ.name[2:]))
+
+#     NamedQ_to_LineQ_dict = dict(zip(sorted_named_qubits, sorted_original_qubits))
+#     full_RS_circuit = full_RS_circuit.transform_qubits(lambda x: NamedQ_to_LineQ_dict[x])
+    
+    if check_circuit:
+        H_S = QubitOperator()
+        for QubitOp in full_normalised_set['PauliWords']:
+            H_S += QubitOp
+        H_S_matrix = qubit_operator_sparse(H_S, n_qubits=N_Qubits)
+        
+        qbits = cirq.LineQubit.range(N_Qubits)
+        R_S_matrix = full_RS_circuit.unitary(qubits_that_should_be_present=qbits)
+
+        Ps_mat=qubit_operator_sparse(Ps, n_qubits=N_Qubits)
+        reduction_mat = R_S_matrix.dot(H_S_matrix.dot(R_S_matrix.conj().transpose()))
+
+        if not sparse_allclose(Ps_mat, reduction_mat):
+            print('reduction circuit incorrect...   𝑅s 𝐻s 𝑅s† != 𝑃s')
+            fro_norm = np.linalg.norm(Ps_mat-reduction_mat, ord='fro')
+            print(f'frobius norm between R @ H @ R† and Ps: {fro_norm}')
+#             cirq.testing.assert_allclose_up_to_global_phase(Ps_mat.toarray(),
+#                                                reduction_mat,
+#                                                atol=1e-8)
+
+    return full_RS_circuit, Ps, gamma_l
+
+
 
 def Full_SeqRot_auto_Rl_Circuit_manual_Reduced(Full_Ansatz_Q_Circuit, anti_commuting_set, N_Qubits, check_reduction_lin_alg=False, check_circuit=False, maximise_CNOT_reduction=True):
     """
@@ -252,7 +384,44 @@ def Full_SeqRot_auto_Rl_Circuit_IBM_Reduced(Full_Ansatz_Q_Circuit, anti_commutin
     )
     return full_circuit, Ps, gamma_l
 
+def Full_SeqRot_auto_Rl_Circuit_tiket_Reduced(Full_Ansatz_Q_Circuit, anti_commuting_set, N_Qubits, check_reduction_lin_alg=False, check_circuit=False, 
+                                            maximise_CNOT_reduction=True):
+    """
+    Function to build full Q Circuit... ansatz circuit + R_S
+    Here choice of Pauli_S has been automated and circuit has been reduced using IBM compiler
 
+    Args:
+        Full_Ansatz_Q_Circuit (cirq.Circuit): ansatz quantum circuit
+        anti_commuting_set(list): list of anti commuting QubitOperators
+        S_index(int): index for Ps in anti_commuting_set list
+        check_reduction (optional, bool): use linear algebra to check that 𝑅s† 𝐻s 𝑅s == 𝑃s
+    returns:
+        full_RS_circuit(cirq.Circuit): Q_circuit for R_s operator
+        Ps (QubitOperator): Pauli_S operator with cofactor of 1!
+        gamma_l (float): normalization term
+
+    """
+    Reduction_circuit_circ, Ps, gamma_l = Auto_Build_R_SeqRot_Q_circuit_tiket_Reduced(
+                                                            anti_commuting_set,
+                                                            N_Qubits, 
+                                                            check_reduction_lin_alg=check_reduction_lin_alg, 
+                                                            atol=1e-8, 
+                                                            rtol=1e-05, 
+                                                            check_circuit=check_circuit,
+                                                            maximise_CNOT_reduction=maximise_CNOT_reduction)
+
+    measure_PauliS_in_Z_basis_obj = change_pauliword_to_Z_basis_then_measure(Ps)
+    measure_PauliS_in_Z_basis_Q_circ = cirq.Circuit(cirq.decompose_once(
+        (measure_PauliS_in_Z_basis_obj(*cirq.LineQubit.range(measure_PauliS_in_Z_basis_obj.num_qubits())))))
+
+    full_circuit = cirq.Circuit(
+        [
+            Full_Ansatz_Q_Circuit.all_operations(),
+            *Reduction_circuit_circ.all_operations(),
+            *measure_PauliS_in_Z_basis_Q_circ.all_operations(),
+        ]
+    )
+    return full_circuit, Ps, gamma_l
 
 ########## Linear Algebra auto choice of Ps circuit approach
 
@@ -361,4 +530,54 @@ class Auto_Seq_Rot_VQE_Experiment_UP_IBM_reduced_circuit_lin_alg():
                 exp_result = np.trace(self.ansatz_density_mat@P_matrix)
                 E_list.append(exp_result)
 
+        return sum(E_list).real
+
+
+class Auto_Seq_Rot_VQE_Experiment_UP_tiket_reduced_circuit_lin_alg():
+
+    def __init__(self, anti_commuting_sets, ansatz_circuit):
+        self.anti_commuting_sets = anti_commuting_sets
+        self.ansatz_circuit = ansatz_circuit
+        self.n_qubits = len(ansatz_circuit.all_qubits())
+
+        ansatz_vector = ansatz_circuit.final_state_vector(ignore_terminal_measurements=True)#.reshape((2**self.n_qubits,1))
+        self.ansatz_density_mat = np.outer(ansatz_vector, ansatz_vector)
+
+    def Calc_Energy(self, check_reduction_lin_alg=False, check_circuit=False, maximise_CNOT_reduction=True):
+
+        E_list = []
+        for set_key in self.anti_commuting_sets:
+
+            anti_commuting_set = self.anti_commuting_sets[set_key]
+
+            if len(anti_commuting_set) > 1:
+                
+                Q_circuit, Ps, gamma_l = Full_SeqRot_auto_Rl_Circuit_tiket_Reduced( self.ansatz_circuit,
+                                                                                    anti_commuting_set, 
+                                                                                    self.n_qubits,
+                                                                                   check_reduction_lin_alg=check_reduction_lin_alg,
+                                                                                    check_circuit=check_circuit, 
+                                                                                    maximise_CNOT_reduction=maximise_CNOT_reduction)
+
+                
+                final_state_ket = Q_circuit.final_state_vector(ignore_terminal_measurements=True)#.reshape((2**self.n_qubits,1))
+
+                # note Q_circuit HAS change of basis for Ps! hence measure Z op version now
+                PauliStr_Ps, beta_S = tuple(*Ps.terms.items())
+                PauliStr_Ps_Z = [(qNo, 'Z')for qNo, Pstr in PauliStr_Ps]
+                Ps_Zchange = QubitOperator(PauliStr_Ps_Z, beta_S)
+
+                Ps_matrix = qubit_operator_sparse(Ps_Zchange, n_qubits=self.n_qubits)
+                # exp_result = np.trace(np.outer(final_state_ket, final_state_ket)@Ps_matrix)
+                # E_list.append(exp_result * gamma_l)
+
+                exp_result = final_state_ket.conj().T @ Ps_matrix @ final_state_ket
+                E_list.append(exp_result.item(0) * gamma_l)
+
+            else:
+                qubitOp = anti_commuting_set[0]
+                P_matrix = qubit_operator_sparse(qubitOp, n_qubits=self.n_qubits)
+                exp_result = np.trace(self.ansatz_density_mat@P_matrix)
+                E_list.append(exp_result)
+        
         return sum(E_list).real

@@ -8,3 +8,6 @@ openfermionpsi4>=0.4
 openfermionpyscf>=0.4
 mock>=4.0.1
 pyscf>=1.7.6
+qiskit>=0.17.0
+pytket>0.10.1
+pytket-cirq

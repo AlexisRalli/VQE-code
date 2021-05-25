@@ -625,6 +625,7 @@ from qiskit.extensions import UnitaryGate
 from qiskit import QuantumCircuit, Aer, execute
 from qiskit.compiler import transpile
 from cirq.contrib.qasm_import import circuit_from_qasm
+from cirq.testing import assert_allclose_up_to_global_phase
 def prepare_arb_state_IBM_to_cirq(state_vector, start_qubit_ind=0, opt_level=0,allowed_gates=['id', 'rz', 'ry', 'rx', 'cx' ,'s', 'h', 'y','z', 'x']):
     # TODO: bug when using IBM's transpiler
     raise ValueError('Function not working properly')
@@ -649,14 +650,15 @@ def prepare_arb_state_IBM_to_cirq(state_vector, start_qubit_ind=0, opt_level=0,a
 
 
     ### check global phase
-    mat1 = cirq_circuit.unitary()[:,0]
-    mat2 = np.asarray(state_vector, dtype=complex)
-    for ind, elt in enumerate(mat1.flat):
-            if abs(elt) > 0:
+    cirq_mat = cirq_circuit.unitary()
+    assert_allclose_up_to_global_phase(cirq_mat, UnitaryMatrix, atol=1e-8)
+    for ind, elt in enumerate(cirq_mat.flat):
+            if abs(elt) > 1e-12:
                 original_term = elt
-                new_term = mat2.flat[ind]
+                new_term = UnitaryMatrix.flat[ind]
 
                 global_phase = np.angle(original_term/new_term) # find phase difference between unitaries!
+                break
 
     if not np.isclose(global_phase, 0):
         qubit = list(cirq_circuit.all_qubits())[0]
