@@ -119,7 +119,7 @@ def Get_Xsk_op_list(anti_commuting_set, S_index, N_Qubits, check_reduction=False
             op = np.cos(theta_sk / 2) * QubitOperator('') -1j*np.sin(theta_sk / 2) * X_sk_Op
             R_sk_OP_list.append(op)
 
-        R_S_op = reduce(lambda x,y: x*y, R_sk_OP_list[::-1])  # <- note reverse order!
+        R_S_op = reduce(lambda x,y: x*y, R_sk_OP_list[::-1])  # <- note reverse order and is a multiplication (not an addition as LCU)!
         R_S_matrix=qubit_operator_sparse(R_S_op,n_qubits=N_Qubits)
 
         R_S_op_dag = hermitian_conjugated(R_S_op)
