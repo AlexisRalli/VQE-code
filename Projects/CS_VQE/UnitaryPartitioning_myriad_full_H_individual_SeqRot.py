@@ -57,8 +57,8 @@ prune_threshold = 1e-6
 ind_key  = int(sys.argv[1])-1 # minus one as array script idexes from 1
 mol_key = sys.argv[2]
 
- if mol_key not in myriad_SeqRot_results.keys():
-  raise ValueError('molecule key not correct')
+if mol_key not in myriad_SeqRot_results.keys():
+    raise ValueError('molecule key not correct')
 
 ########
 
