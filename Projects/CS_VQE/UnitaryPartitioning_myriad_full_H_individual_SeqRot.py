@@ -117,6 +117,6 @@ with open(file_out1, 'wb') as outfile:
     pickle.dump(unitary_paritioning_SeqRot, outfile)
 
 
-print('pickle files dumped unqiue time id: {}'.format(unique_file_time))
+print('pickle files dumped at: {}'.format(file_out1))
 
 print('end time: {}'.format(datetime.datetime.now().strftime('%Y%b%d-%H%M%S%f')))
