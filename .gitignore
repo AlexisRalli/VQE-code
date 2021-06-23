@@ -20,6 +20,7 @@ Projects/CS_VQE/Pickle_out/*.pickle
 Projects/CS_VQE/Analysis/*.pickle
 Projects/CS_VQE/data/fullHamiltonians/
 Projects/CS_VQE/data/Hamiltonians_pre_tapering.txt
+Projects/CS_VQE/Analysis/NewUnitaryPartitioning_results_with_pruning/*
 
 quchem/*.hdf5
 quchem/*.inp
