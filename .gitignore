@@ -14,6 +14,31 @@
 .DS_Store
 
 Projects/CS_VQE/data/fullHamiltonians/fullHamiltonians/*
+Projects/CS_VQE/Analysis/Be1_STO-3G_singlet
+Projects/CS_VQE/Analysis/C1-O1_STO-3G_singlet
+Projects/CS_VQE/Analysis/F2_STO-3G_singlet
+Projects/CS_VQE/Analysis/H1-Cl1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H1-F1_3-21G_singlet
+Projects/CS_VQE/Analysis/H1-F1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H1-He1_3-21G_singlet_1+
+Projects/CS_VQE/Analysis/H1-Li1-O1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H1-Li1_3-21G_singlet
+Projects/CS_VQE/Analysis/H1-Li1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H1-Na1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H1-O1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H2-Be1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H2-Mg1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H2-S1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H2_3-21G_singlet
+Projects/CS_VQE/Analysis/H2_6-31G_singlet
+Projects/CS_VQE/Analysis/H3-N1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H3_3-21G_singlet_1+
+Projects/CS_VQE/Analysis/H3_STO-3G_singlet_1+
+Projects/CS_VQE/Analysis/H4-C1_STO-3G_singlet
+Projects/CS_VQE/Analysis/H4-N1_STO-3G_singlet_1+
+Projects/CS_VQE/Analysis/Mg1_STO-3G_singlet
+Projects/CS_VQE/Analysis/N2_STO-3G_singlet
+Projects/CS_VQE/Analysis/O2_STO-3G_singlet
 
 quchem_examples/tmp*
 Projects/CS_VQE/Pickle_out/*.pickle
