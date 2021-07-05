@@ -97,10 +97,11 @@ for ind_key in myriad_SeqRot_results[mol_key]:
                                          commutativity_flag, 
                                          Graph_colouring_strategy)
 
+        reduced_H_matrix = qubit_operator_sparse(H_SeqRot, n_qubits=n_qubits)
         if H_SeqRot.shape[0]<=64:
-            eig_values, eig_vectors = eigh(H_SeqRot.todense()) # NOT sparse!
+            eig_values, eig_vectors = eigh(reduced_H_matrix.todense()) # NOT sparse!
         else:
-            eig_values, eig_vectors = eigsh(H_SeqRot, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
+            eig_values, eig_vectors = eigsh(reduced_H_matrix, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
 
 
         idx = eig_values.argsort()[::-1]   
