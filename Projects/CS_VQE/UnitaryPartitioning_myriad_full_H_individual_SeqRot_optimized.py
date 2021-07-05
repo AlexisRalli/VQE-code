@@ -62,7 +62,7 @@ if mol_key not in myriad_SeqRot_results.keys():
 
 AC_sets_dir_name = 'AC_sets_SeqRot'
 AC_dir = os.path.join(working_dir, AC_sets_dir_name)
-input_AC_file_path = os.path.join(AC_dir, mol_key) # AC of given molecule
+input_AC_file_path = os.path.join(AC_dir, mol_key + '.pickle') # AC of given molecule
 
 
 with open(input_AC_file_path,'rb') as infile:
