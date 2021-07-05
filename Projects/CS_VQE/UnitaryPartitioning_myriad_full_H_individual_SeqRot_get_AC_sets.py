@@ -114,7 +114,7 @@ for ind_key in myriad_SeqRot_results[mol_key]:
 
 
 # save file
-file_out1 = os.path.join(AC_dir, mol_key)
+file_out1 = os.path.join(AC_dir, mol_key + '.pickle')
 
 ####### SAVE OUTPUT
 with open(file_out1, 'wb') as outfile:
