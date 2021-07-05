@@ -8,7 +8,7 @@ import re
 from quchem.Unitary_Partitioning.Graph import Clique_cover_Hamiltonian
 import quchem.Misc_functions.conversion_scripts as conv_scr 
 from copy import deepcopy
-from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import SeqRot_linalg_Energy
+from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import Get_reduced_H_matrix_SeqRot
 
 from openfermion import qubit_operator_sparse
 
