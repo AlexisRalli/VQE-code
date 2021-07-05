@@ -307,3 +307,38 @@ def SeqRot_linalg_Energy(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, r
         eig_values, eig_vectors = eigsh(reduced_H_matrix, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
     FCI_Energy = min(eig_values)
     return FCI_Energy
+
+def Get_reduced_H_matrix_SeqRot(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
+    """
+    Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets. Note this uses symbolic operators and only builds sparse matrix once.
+
+
+    Args:
+        anti_commuting_sets (dict): dictionary of int keys with list of anti commuting QubitOperators sets
+        S_key_dict(dict): dictionary keys match that of anti_commuting_sets. Value gives index of P_s operator
+        N_Qubits(int): number of qubits
+
+    returns:
+        reduced_H_matrix(scipy.sparse_matrix): sparse Hamiltonian matrix after unitary partitioning via SeqRot
+
+    """
+    H_single_terms = QubitOperator()
+    gammal_Rdag_P_R_terms = QubitOperator()
+    for key in anti_commuting_sets:
+        AC_set = anti_commuting_sets[key]
+
+        if len(AC_set) < 2:
+            H_single_terms += AC_set[0]
+        else:
+            S_index = S_key_dict[key]
+
+            X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index, N_Qubits, check_reduction=check_reduction, atol=atol, rtol=rtol)
+
+
+            R_S = Get_Rsl_matrix_as_qubitops(X_sk_theta_sk_list)
+            R_dag_P_R = hermitian_conjugated(R_S) * Ps * R_S
+            gammal_Rdag_P_R_terms += gamma_l*R_dag_P_R
+
+    all_symbolic_ops = H_single_terms + gammal_Rdag_P_R_terms
+    reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, n_qubits=N_Qubits)
+    return reduced_H_matrix

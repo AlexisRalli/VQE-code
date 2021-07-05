@@ -148,7 +148,22 @@ def LCU_Check(AC_set, N_index, N_Qubits, atol=1e-8, rtol=1e-05):
 from scipy.sparse.linalg import eigsh
 from scipy.linalg import eigh
 from scipy.sparse import csc_matrix
-def LCU_linalg_Energy(anti_commuting_sets, N_indices_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
+def LCU_linalg_Energy_matrix(anti_commuting_sets, N_indices_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
+    """
+    Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets.
+    Note this function builds up full matrix iteratively. See LCU_linalg_Energy function for symbolic method.
+
+
+    Args:
+        anti_commuting_sets (dict): dictionary of int keys with list of anti commuting QubitOperators sets
+        N_indices_dict(dict): dictionary keys match that of anti_commuting_sets. Value gives index of P_s operator
+        N_Qubits(int): number of qubits
+
+    returns:
+        FCI_Energy(float): Ground state energy
+
+    """
+    # TODO: could return reduced_H_matrix sparse matrix!
     reduced_H_matrix = csc_matrix((2 ** N_Qubits, 2 ** N_Qubits), dtype=complex)
 
     H_single_terms = QubitOperator()
@@ -173,6 +188,52 @@ def LCU_linalg_Energy(anti_commuting_sets, N_indices_dict, N_Qubits, atol=1e-8, 
             reduced_H_matrix += RPR_matrix * gamma_l
 
     reduced_H_matrix += qubit_operator_sparse(H_single_terms, n_qubits=N_Qubits)
+    # eig_values, eig_vectors = sparse_eigs(reduced_H_matrix)
+    if N_Qubits<6:
+        eig_values, eig_vectors = eigh(reduced_H_matrix.todense()) # NOT sparse!
+    else:
+        eig_values, eig_vectors = eigsh(reduced_H_matrix, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
+    FCI_Energy = min(eig_values)
+    return FCI_Energy
+
+
+def LCU_linalg_Energy(anti_commuting_sets, N_indices_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
+    """
+    Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets. Note this uses symbolic operators and only builds sparse matrix once.
+
+
+    Args:
+        anti_commuting_sets (dict): dictionary of int keys with list of anti commuting QubitOperators sets
+        N_indices_dict(dict): dictionary keys match that of anti_commuting_sets. Value gives index of P_s operator
+        N_Qubits(int): number of qubits
+
+    returns:
+        FCI_Energy(float): Ground state energy
+
+    """
+    # TODO: could return reduced_H_matrix sparse matrix!
+
+    H_single_terms = QubitOperator()
+    gammal_Rdag_P_R_terms = QubitOperator()
+
+    for key in anti_commuting_sets:
+        AC_set = anti_commuting_sets[key]
+
+        if len(AC_set) < 2:
+            H_single_terms += AC_set[0]
+        else:
+            N_index = N_indices_dict[key]
+
+            R_uncorrected, Pn, gamma_l = Get_R_op_list(AC_set, N_index, N_Qubits, check_reduction=check_reduction, atol=atol, rtol=rtol)
+            # NOT using GUG method (hence only R_uncorrect requried)
+
+            R = reduce(lambda Op1, Op2: Op1+Op2, R_uncorrected)
+            R_dag_P_R = hermitian_conjugated(R) * Pn * R  # note this is R^{dag}PR and NOT: RHR^{dag}
+            gammal_Rdag_P_R_terms += gamma_l*R_dag_P_R
+
+
+    all_symbolic_ops = H_single_terms + gammal_Rdag_P_R_terms
+    reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, n_qubits=N_Qubits)
     # eig_values, eig_vectors = sparse_eigs(reduced_H_matrix)
     if N_Qubits<6:
         eig_values, eig_vectors = eigh(reduced_H_matrix.todense()) # NOT sparse!
