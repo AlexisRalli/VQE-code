@@ -10,6 +10,8 @@ from copy import deepcopy
 from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import SeqRot_linalg_Energy
 
 from openfermion import qubit_operator_sparse
+from scipy.sparse.linalg import eigsh
+from scipy.linalg import eigh
 
 import pickle
 import datetime
@@ -104,7 +106,7 @@ for ind_key in myriad_SeqRot_results[mol_key]:
             eig_values, eig_vectors = eigsh(reduced_H_matrix, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
 
 
-        idx = eig_values.argsort()[::-1]   
+        idx = eig_values.argsort()   
         eigenValues = eig_values[idx]
         eigenVectors = eig_vectors[:,idx]
 
