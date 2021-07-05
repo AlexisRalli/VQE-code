@@ -78,7 +78,7 @@ if anti_commuting_sets_SeqRot:
     ### SeqRot
     all_zero_Ps_index_dict = {set_key: 0 for set_key in anti_commuting_sets_SeqRot}
 
-    H_SeqRot_dict = myriad_SeqRot_results[mol_key][set_id]['H']
+    H_SeqRot_dict = myriad_SeqRot_results[mol_key][AC_set_index]['H']
     n_qubits = len(list(H_SeqRot_dict.keys())[0])
 
     H_sparse = Get_reduced_H_matrix_SeqRot(anti_commuting_sets_SeqRot,
@@ -96,7 +96,7 @@ if anti_commuting_sets_SeqRot:
 else:
     # only non-contextual problem
     AC_set_and_Energy_output = {'AC_sets': anti_commuting_sets_SeqRot,
-                                                           'E':myriad_SeqRot_results[mol_key][set_id]['E']}    
+                                                           'E':myriad_SeqRot_results[mol_key][AC_set_index]['E']}    
 
 
 ####### SAVE OUTPUT details
@@ -110,7 +110,7 @@ if not os.path.exists(output_dir):
 
 
 # save file
-file_name1 = 'Unitary_Partitinging_SeqRot_CS_VQE_SeqRot_exp_set_ind_{}_mol_{}_time_{}.pickle'.format(set_id, mol_key, unique_file_time)
+file_name1 = 'Unitary_Partitinging_SeqRot_CS_VQE_SeqRot_exp_set_ind_{}_mol_{}_time_{}.pickle'.format(AC_set_index, mol_key, unique_file_time)
 file_out1=os.path.join(output_dir, file_name1)
 
 ####### SAVE OUTPUT
