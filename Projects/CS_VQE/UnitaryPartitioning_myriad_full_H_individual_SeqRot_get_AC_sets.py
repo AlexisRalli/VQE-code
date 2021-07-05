@@ -54,7 +54,7 @@ prune_threshold = 1e-6
 ######## take commandline arguement to run in parallel
 # sys.argv[0] = python file_name
 mol_key_index = int(sys.argv[1])-1 # minus one as array script idexes from 1
-mol_key = sorted(list(myriad_CS_VQE_SeqRot_results.keys()))[mol_key_index]
+mol_key = sorted(list(myriad_SeqRot_results.keys()))[mol_key_index]
 if mol_key not in myriad_SeqRot_results.keys():
     raise ValueError('molecule key not correct')
 
