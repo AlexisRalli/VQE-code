@@ -67,7 +67,7 @@ if mol_key not in myriad_SeqRot_results.keys():
 ####### SAVE OUTPUT details
 # output_dir = os.path.join(working_dir, 'Pickle_out')
 
-AC_sets_dir_name = ' AC_sets_SeqRot'
+AC_sets_dir_name = 'AC_sets_SeqRot'
 AC_dir = os.path.join(working_dir, AC_sets_dir_name) # saves in VQE-code area! (not Scratch)
 # Create target Directory if it doesn't exist
 if not os.path.exists(AC_dir):
