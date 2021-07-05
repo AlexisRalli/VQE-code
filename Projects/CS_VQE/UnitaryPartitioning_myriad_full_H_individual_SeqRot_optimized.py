@@ -69,7 +69,7 @@ with open(input_AC_file_path,'rb') as infile:
     all_anti_commuting_sets_SeqRot = pickle.load(infile)
 
 anti_commuting_sets_SeqRot = all_anti_commuting_sets_SeqRot[AC_set_index]['AC_sets']
-ground_state_ket = = all_anti_commuting_sets_SeqRot[AC_set_index]['ground_state']
+ground_state_ket = all_anti_commuting_sets_SeqRot[AC_set_index]['ground_state']
 
 
 ## Get Energy
@@ -110,7 +110,7 @@ if not os.path.exists(output_dir):
 
 
 # save file
-file_name1 = 'Unitary_Partitinging_SeqRot_CS_VQE_SeqRot_exp_set_ind_{}_mol_{}_time_{}.pickle'.format(AC_set_index, mol_key, unique_file_time)
+file_name1 = 'AC_set_and_Energy_output_set_key_{}.pickle'.format(AC_set_index)
 file_out1=os.path.join(output_dir, file_name1)
 
 ####### SAVE OUTPUT
