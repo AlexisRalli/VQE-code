@@ -308,6 +308,7 @@ def SeqRot_linalg_Energy(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, r
     FCI_Energy = min(eig_values)
     return FCI_Energy
 
+from quchem.Misc_functions.Misc_functions import fast_qubit_operator_sparse
 def Get_reduced_H_matrix_SeqRot(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
     """
     Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets. Note this uses symbolic operators and only builds sparse matrix once.
@@ -340,5 +341,6 @@ def Get_reduced_H_matrix_SeqRot(anti_commuting_sets, S_key_dict, N_Qubits, atol=
             gammal_Rdag_P_R_terms += gamma_l*R_dag_P_R
 
     all_symbolic_ops = H_single_terms + gammal_Rdag_P_R_terms
-    reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, n_qubits=N_Qubits)
+    # reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, n_qubits=N_Qubits)
+    reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, N_Qubits)
     return reduced_H_matrix

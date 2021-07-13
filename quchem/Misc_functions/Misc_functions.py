@@ -468,3 +468,69 @@ def optimized_cirq_circuit_IBM_compiler(cirq_circuit, opt_level=3,
 
     print('does circuit have modified Zpow:', 'yes'if has_modified_Zpow else 'no')
     return simplified_cirq_circuit, global_phase, has_modified_Zpow
+
+
+def _fast_symplectic_qubit_operator_sparse(symplectic_Pauli_array, coeff):
+    # https://github.com/Qiskit/qiskit-aqua/issues/636
+    # https://qiskit.org/documentation/_modules/qiskit/quantum_info/operators/symplectic/pauli_table.html#PauliTable.to_matrix
+    
+    symp_Pauli = np.asarray(symplectic_Pauli_array).flatten(order='C')
+    N_qubits = len(symp_Pauli)//2
+    
+    twos_arr =  1<< np.arange(N_qubits-1,-1,-1) # reverse order needed to match bitstring int val of each bit in binary [... 32, 16, 8, 4, 2, 1]
+    X_arr =  symp_Pauli[:N_qubits]
+    x_int = np.array(X_arr).dot(twos_arr) # int(''.join(str(bit) for bit in X_arr),2)
+    Z_arr = symp_Pauli[N_qubits:]
+    z_int = np.array(Z_arr).dot(twos_arr) # int(''.join(str(bit) for bit in Z_arr),2)
+    
+    y_number = X_arr@Z_arr
+    global_phase = (-1j) **y_number
+    
+    dimension = 2**N_qubits
+    row_ind = np.arange(dimension) # only have 2^N indices
+    col_ind = row_ind^x_int # [c^x_int for c in range(dimension)]
+    
+    ##### worse method
+#     vals =[]
+#     for state in range(dimension):
+#         sign = np.binary_repr(state&z_int)
+#         value = (-1)**(sum([int(bit) for bit in sign])) * global_phase
+#         vals.append(value)
+#     ##### faster
+#     state_list = row_ind&z_int # all_state & z_int
+#     count1_in_bitstring_and_power_minus_one = lambda x: (-1)**(np.binary_repr(int(x), width=None).count('1'))
+#     vfunc = np.vectorize(count1_in_bitstring_and_power_minus_one)
+#     vals = global_phase * vfunc(state_list)
+#     #####
+
+   ##### even faster
+    def count1_in_bitstring(i):
+        """
+        Count number of "1" bits in a binary representation of integar i (input)
+        
+        https://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer#109025
+        """
+        i = i - ((i >> 1) & 0x55555555) # add pairs of bits
+        i = (i & 0x33333333) + ((i >> 2) & 0x33333333) # quads
+        return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xffffffff) >> 24
+    
+    vals = global_phase * (-1)**(count1_in_bitstring(row_ind&z_int))
+    ##### 
+    sparse_matrix = csr_matrix(
+                        (vals, (row_ind, col_ind)),
+                        shape = (dimension, dimension),
+                        dtype = complex
+    )
+    
+    return coeff*sparse_matrix
+
+from quchem.Unitary_Partitioning.Graph import VectorPauliWord
+def fast_qubit_operator_sparse(QubitOp, n_qubits):
+
+    M = csr_matrix((2**n_qubits, 2**n_qubits), dtype=complex)
+    for CiPi in QubitOp:
+        Pi, Ci = tuple(*CiPi.terms.items())
+        p_sym = VectorPauliWord(n_qubits, CiPi).Pvec.todense()
+        M+= _fast_symplectic_qubit_operator_sparse(p_sym, Ci)
+    
+    return M
