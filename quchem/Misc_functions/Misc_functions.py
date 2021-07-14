@@ -509,6 +509,7 @@ def _fast_symplectic_qubit_operator_sparse(symplectic_Pauli_array, coeff):
         Count number of "1" bits in a binary representation of integar i (input)
         
         https://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer#109025
+        https://web.archive.org/web/20151229003112/http://blogs.msdn.com/b/jeuge/archive/2005/06/08/hakmem-bit-count.aspx
         """
         i = i - ((i >> 1) & 0x55555555) # add pairs of bits
         i = (i & 0x33333333) + ((i >> 2) & 0x33333333) # quads

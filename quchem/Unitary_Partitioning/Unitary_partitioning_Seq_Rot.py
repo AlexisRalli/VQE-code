@@ -342,5 +342,5 @@ def Get_reduced_H_matrix_SeqRot(anti_commuting_sets, S_key_dict, N_Qubits, atol=
 
     all_symbolic_ops = H_single_terms + gammal_Rdag_P_R_terms
     # reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, n_qubits=N_Qubits)
-    reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, N_Qubits)
+    reduced_H_matrix = fast_qubit_operator_sparse(all_symbolic_ops, N_Qubits)
     return reduced_H_matrix
