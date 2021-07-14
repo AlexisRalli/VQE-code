@@ -8,7 +8,10 @@ import re
 from quchem.Unitary_Partitioning.Graph import Clique_cover_Hamiltonian
 import quchem.Misc_functions.conversion_scripts as conv_scr 
 from copy import deepcopy
-from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import Get_reduced_H_matrix_SeqRot
+from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import Get_reduced_H_matrix_SeqRot_matrix_FAST
+
+from scipy.linalg import eigh
+from scipy.sparse.linalg import eigsh
 
 from openfermion import qubit_operator_sparse
 
@@ -81,15 +84,22 @@ if anti_commuting_sets_SeqRot:
     H_SeqRot_dict = myriad_SeqRot_results[mol_key][AC_set_index]['H']
     n_qubits = len(list(H_SeqRot_dict.keys())[0])
 
-    H_sparse = Get_reduced_H_matrix_SeqRot(anti_commuting_sets_SeqRot,
+    H_sparse = Get_reduced_H_matrix_SeqRot_matrix_FAST(anti_commuting_sets_SeqRot,
                                      all_zero_Ps_index_dict,
                                      n_qubits,
                                      atol=1e-8,
                                      rtol=1e-05,
                                      check_reduction=check_reduction_SeqRot)
 
-    denisty_mat = np.outer(ground_state_ket, ground_state_ket)
-    E_SeqRot = np.trace(denisty_mat@H_sparse)
+    # denisty_mat = np.outer(ground_state_ket, ground_state_ket)
+    # E_SeqRot = np.trace(denisty_mat@H_sparse)
+
+    if n_qubits<6:
+        eig_values, eig_vectors = eigh(H_sparse.todense()) # NOT sparse!
+    else:
+        eig_values, eig_vectors = eigsh(H_sparse, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
+
+    E_SeqRot = min(eig_values)
 
     AC_set_and_Energy_output = {'AC_sets': anti_commuting_sets_SeqRot,
                                                            'E':E_SeqRot}

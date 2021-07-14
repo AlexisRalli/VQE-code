@@ -344,3 +344,42 @@ def Get_reduced_H_matrix_SeqRot(anti_commuting_sets, S_key_dict, N_Qubits, atol=
     # reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, n_qubits=N_Qubits)
     reduced_H_matrix = fast_qubit_operator_sparse(all_symbolic_ops, N_Qubits)
     return reduced_H_matrix
+
+
+def Get_reduced_H_matrix_SeqRot_matrix_FAST(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
+    """
+    Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets. Note this uses symbolic operators and only builds sparse matrix once.
+
+
+    Args:
+        anti_commuting_sets (dict): dictionary of int keys with list of anti commuting QubitOperators sets
+        S_key_dict(dict): dictionary keys match that of anti_commuting_sets. Value gives index of P_s operator
+        N_Qubits(int): number of qubits
+
+    returns:
+        reduced_H_matrix(scipy.sparse_matrix): sparse Hamiltonian matrix after unitary partitioning via SeqRot
+
+    """
+
+    reduced_H_matrix = csr_matrix((2 ** N_Qubits, 2 ** N_Qubits), dtype=complex)
+    for key in anti_commuting_sets:
+        AC_set = anti_commuting_sets[key]
+
+        if len(AC_set) < 2:
+            CiPi = AC_set[0]
+            CiPi_matrix = fast_qubit_operator_sparse(CiPi, N_Qubits)
+            reduced_H_matrix+=CiPi_matrix
+        else:
+            S_index = S_key_dict[key]
+
+            X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index, N_Qubits, check_reduction=check_reduction, atol=atol, rtol=rtol)
+
+
+            R_S = Get_Rsl_matrix_as_qubitops(X_sk_theta_sk_list)
+
+            R_S_matrix = fast_qubit_operator_sparse(R_S, N_Qubits)
+            P_S_matrix = fast_qubit_operator_sparse(Ps, N_Qubits)
+            Rdag_P_R= R_S_matrix.conj().T @ P_S_matrix @ R_S_matrix
+            reduced_H_matrix+=gamma_l*Rdag_P_R
+
+    return reduced_H_matrix
