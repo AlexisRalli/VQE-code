@@ -5,10 +5,11 @@ import ast
 import os
 import re
 
+from scipy.sparse import csc_matrix
 from quchem.Unitary_Partitioning.Graph import Clique_cover_Hamiltonian
 import quchem.Misc_functions.conversion_scripts as conv_scr 
 from copy import deepcopy
-from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import Get_reduced_H_matrix_SeqRot_matrix_FAST
+from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import Get_reduced_H_matrix_SeqRot_matrix_FAST, Get_reduced_H_matrix_SeqRot
 
 from scipy.linalg import eigh
 from scipy.sparse.linalg import eigsh
@@ -52,7 +53,7 @@ for filename in os.listdir(full_H_results_dir):
 # sys.argv[0] = python file_name
 AC_set_index  = int(sys.argv[1])-1 # minus one as array script idexes from 1
 mol_key = sys.argv[2]
-
+decimal_place_threshold = 10 # in ground state ket remove terms with vals lower than 1e-10
 check_reduction_SeqRot = False
 
 if mol_key not in myriad_SeqRot_results.keys():
@@ -84,7 +85,7 @@ if anti_commuting_sets_SeqRot:
     H_SeqRot_dict = myriad_SeqRot_results[mol_key][AC_set_index]['H']
     n_qubits = len(list(H_SeqRot_dict.keys())[0])
 
-    H_sparse = Get_reduced_H_matrix_SeqRot_matrix_FAST(anti_commuting_sets_SeqRot,
+    H_sparse = Get_reduced_H_matrix_SeqRot(anti_commuting_sets_SeqRot,
                                      all_zero_Ps_index_dict,
                                      n_qubits,
                                      atol=1e-8,
@@ -94,15 +95,21 @@ if anti_commuting_sets_SeqRot:
     # denisty_mat = np.outer(ground_state_ket, ground_state_ket)
     # E_SeqRot = np.trace(denisty_mat@H_sparse)
 
-    if n_qubits<6:
-        eig_values, eig_vectors = eigh(H_sparse.todense()) # NOT sparse!
-    else:
-        eig_values, eig_vectors = eigsh(H_sparse, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
+    # if n_qubits<6:
+    #     eig_values, eig_vectors = eigh(H_sparse.todense()) # NOT sparse!
+    # else:
+    #     eig_values, eig_vectors = eigsh(H_sparse, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
 
-    E_SeqRot = min(eig_values)
+    # E_SeqRot = min(eig_values)
+    # AC_set_and_Energy_output = {'AC_sets': anti_commuting_sets_SeqRot,
+    #                                                        'E':E_SeqRot}
+
+    sparse_ket = csc_matrix(np.around(ground_state_ket,decimal_place_threshold).reshape([ground_state_ket.shape[0],1]), dtype=complex)
+
+    E_SeqRot = sparse_ket.conj().T @ H_sparse @ sparse_ket
 
     AC_set_and_Energy_output = {'AC_sets': anti_commuting_sets_SeqRot,
-                                                           'E':E_SeqRot}
+                                                   'E':E_SeqRot.todense().item(0)}
 else:
     # only non-contextual problem
     AC_set_and_Energy_output = {'AC_sets': anti_commuting_sets_SeqRot,
