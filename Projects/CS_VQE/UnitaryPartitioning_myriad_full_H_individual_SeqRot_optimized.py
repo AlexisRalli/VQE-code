@@ -9,7 +9,7 @@ from scipy.sparse import csc_matrix
 from quchem.Unitary_Partitioning.Graph import Clique_cover_Hamiltonian
 import quchem.Misc_functions.conversion_scripts as conv_scr 
 from copy import deepcopy
-from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import Get_reduced_H_matrix_SeqRot_matrix_FAST, Get_reduced_H_matrix_SeqRot
+from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import SeqRot_linalg_Energy_iterative
 
 from scipy.linalg import eigh
 from scipy.sparse.linalg import eigsh
@@ -49,16 +49,22 @@ for filename in os.listdir(full_H_results_dir):
 
 
 
-######## take commandline arguement to run in parallel
-# sys.argv[0] = python file_name
-AC_set_index  = int(sys.argv[1])-1 # minus one as array script idexes from 1
-mol_key = sys.argv[2]
-decimal_place_threshold = 10 # in ground state ket remove terms with vals lower than 1e-10
-check_reduction_SeqRot = False
+# ######## take commandline arguement to run in parallel
+# # sys.argv[0] = python file_name
+# AC_set_index  = int(sys.argv[1])-1 # minus one as array script idexes from 1
+# mol_key = sys.argv[2]
 
+# check_reduction_SeqRot = False
+
+
+######## take commandline arguement to run in parallel
+mol_num = int(sys.argv[1]) 
+sorted_mol_names = sorted(list(myriad_SeqRot_results.keys()))
+mol_key = sorted_mol_names[mol_num-1] # UCL supercomputer indexes from 1, hence minus one here!
+decimal_place_threshold = 14 # in ground state ket remove terms with vals lower than 1e-14
 if mol_key not in myriad_SeqRot_results.keys():
     raise ValueError('molecule key not correct')
-
+###
 
 
 ########
@@ -72,48 +78,45 @@ input_AC_file_path = os.path.join(AC_dir, mol_key + '.pickle') # AC of given mol
 with open(input_AC_file_path,'rb') as infile:
     all_anti_commuting_sets_SeqRot = pickle.load(infile)
 
-anti_commuting_sets_SeqRot = all_anti_commuting_sets_SeqRot[AC_set_index]['AC_sets']
-ground_state_ket = all_anti_commuting_sets_SeqRot[AC_set_index]['ground_state']
 
 
-## Get Energy
+# loop over all AC_sets of a given mol_key
+anti_commuting_sets_different_H_SeqRot_sizes={}
+for ind_key in all_anti_commuting_sets_SeqRot:
+    
+    anti_commuting_sets_SeqRot = all_anti_commuting_sets_SeqRot[AC_set_index]['AC_sets']
+    ground_state_ket = all_anti_commuting_sets_SeqRot[AC_set_index]['ground_state']
+    
+    ## Get Energy
+    if anti_commuting_sets_SeqRot:
+        ### SeqRot
+        all_zero_Ps_index_dict = {set_key: 0 for set_key in anti_commuting_sets_SeqRot}
 
-if anti_commuting_sets_SeqRot:
-    ### SeqRot
-    all_zero_Ps_index_dict = {set_key: 0 for set_key in anti_commuting_sets_SeqRot}
+        H_SeqRot_dict = myriad_SeqRot_results[mol_key][AC_set_index]['H']
+        n_qubits = len(list(H_SeqRot_dict.keys())[0])
 
-    H_SeqRot_dict = myriad_SeqRot_results[mol_key][AC_set_index]['H']
-    n_qubits = len(list(H_SeqRot_dict.keys())[0])
+        E_SeqRot = SeqRot_linalg_Energy_iterative(anti_commuting_sets_SeqRot,
+                                 all_zero_Ps_index_dict,
+                                 n_qubits,
+                                 ground_state_ket,
+                                 atol=1e-8,
+                                 rtol=1e-05,
+                                 decimal_place_threshold=decimal_place_threshold)
 
-    H_sparse = Get_reduced_H_matrix_SeqRot(anti_commuting_sets_SeqRot,
-                                     all_zero_Ps_index_dict,
-                                     n_qubits,
-                                     atol=1e-8,
-                                     rtol=1e-05,
-                                     check_reduction=check_reduction_SeqRot)
+        anti_commuting_sets_different_H_SeqRot_sizes = {'AC_sets': anti_commuting_sets_SeqRot,
+                                   'E':E_SeqRot}
+    else:
+        # only non-contextual problem
+        anti_commuting_sets_different_H_SeqRot_sizes = {'AC_sets': anti_commuting_sets_SeqRot,
+                                   'E':myriad_SeqRot_results[mol_key][AC_set_index]['E']}
 
-    # denisty_mat = np.outer(ground_state_ket, ground_state_ket)
-    # E_SeqRot = np.trace(denisty_mat@H_sparse)
 
-    # if n_qubits<6:
-    #     eig_values, eig_vectors = eigh(H_sparse.todense()) # NOT sparse!
-    # else:
-    #     eig_values, eig_vectors = eigsh(H_sparse, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
 
-    # E_SeqRot = min(eig_values)
-    # AC_set_and_Energy_output = {'AC_sets': anti_commuting_sets_SeqRot,
-    #                                                        'E':E_SeqRot}
 
-    sparse_ket = csc_matrix(np.around(ground_state_ket,decimal_place_threshold).reshape([ground_state_ket.shape[0],1]), dtype=complex)
+unitary_paritioning_SeqRot[mol_key]= deepcopy(anti_commuting_sets_different_H_SeqRot_sizes)
+del anti_commuting_sets_different_H_SeqRot_sizes
 
-    E_SeqRot = sparse_ket.conj().T @ H_sparse @ sparse_ket
 
-    AC_set_and_Energy_output = {'AC_sets': anti_commuting_sets_SeqRot,
-                                                   'E':E_SeqRot.todense().item(0)}
-else:
-    # only non-contextual problem
-    AC_set_and_Energy_output = {'AC_sets': anti_commuting_sets_SeqRot,
-                                                           'E':myriad_SeqRot_results[mol_key][AC_set_index]['E']}    
 
 
 ####### SAVE OUTPUT details
@@ -127,12 +130,12 @@ if not os.path.exists(output_dir):
 
 
 # save file
-file_name1 = 'AC_set_and_Energy_output_set_key_{}.pickle'.format(AC_set_index)
+file_name1 = 'Unitary_Partitinging_SeqRot_CS_VQE_SeqRot_exp__{}__{}.pickle'.format(unique_file_time, mol_key)
 file_out1=os.path.join(output_dir, file_name1)
 
 ####### SAVE OUTPUT
 with open(file_out1, 'wb') as outfile:
-    pickle.dump(AC_set_and_Energy_output, outfile)
+    pickle.dump(unitary_paritioning_SeqRot, outfile)
 
 
 print('pickle files dumped at: {}'.format(file_out1))
