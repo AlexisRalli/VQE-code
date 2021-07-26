@@ -80,9 +80,9 @@ with open(input_AC_file_path,'rb') as infile:
 
 
 
-# loop over all AC_sets of a given mol_key
+# loop over all different sized AC_sets of a given mol_key
 anti_commuting_sets_different_H_SeqRot_sizes={}
-for ind_key in all_anti_commuting_sets_SeqRot:
+for AC_set_index in all_anti_commuting_sets_SeqRot:
     
     anti_commuting_sets_SeqRot = all_anti_commuting_sets_SeqRot[AC_set_index]['AC_sets']
     ground_state_ket = all_anti_commuting_sets_SeqRot[AC_set_index]['ground_state']
