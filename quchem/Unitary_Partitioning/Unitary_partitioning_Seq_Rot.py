@@ -441,14 +441,14 @@ def SeqRot_linalg_Energy_iterative(anti_commuting_sets, S_key_dict, N_Qubits,gro
         AC_set = anti_commuting_sets[key]
 
         if len(AC_set) < 2:
-            matrix_to_measure = fast_qubit_operator_sparse(AC_set[0], n_qubits) 
+            matrix_to_measure = fast_qubit_operator_sparse(AC_set[0], N_Qubits) 
             active_ket = ground_state_ket.copy()
         else:
             S_index = S_key_dict[key]
 
             X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index, N_Qubits, check_reduction=check_reduction, atol=atol, rtol=rtol)
 
-            matrix_to_measure = gamma_l * fast_qubit_operator_sparse(Ps, n_qubits) 
+            matrix_to_measure = gamma_l * fast_qubit_operator_sparse(Ps, N_Qubits) 
             active_ket = Apply_Rsl_to_gs_ket(X_sk_theta_sk_list, 
                                              ground_state_ket,
                                              N_Qubits, 
