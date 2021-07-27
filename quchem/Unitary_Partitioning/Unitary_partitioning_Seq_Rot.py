@@ -417,7 +417,7 @@ def Apply_Rsl_to_gs_ket(Xsk_op_list, ground_state_ket, n_qubits, decimal_place_t
 
 
 def SeqRot_linalg_Energy_iterative(anti_commuting_sets, S_key_dict, N_Qubits,ground_state_ket,
-                                   atol=1e-8, rtol=1e-05, decimal_place_threshold=14):
+                                   atol=1e-8, rtol=1e-05, decimal_place_threshold=14, check_Xsk_ops_reduction=False):
     """
     Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets.
     Note this actually applies R_s to ground state vector then measures the expectation val of P_s
@@ -446,7 +446,7 @@ def SeqRot_linalg_Energy_iterative(anti_commuting_sets, S_key_dict, N_Qubits,gro
         else:
             S_index = S_key_dict[key]
 
-            X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index, N_Qubits, check_reduction=check_reduction, atol=atol, rtol=rtol)
+            X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index, N_Qubits, check_reduction=check_Xsk_ops_reduction, atol=atol, rtol=rtol)
 
             matrix_to_measure = gamma_l * fast_qubit_operator_sparse(Ps, N_Qubits) 
             active_ket = Apply_Rsl_to_gs_ket(X_sk_theta_sk_list, 
