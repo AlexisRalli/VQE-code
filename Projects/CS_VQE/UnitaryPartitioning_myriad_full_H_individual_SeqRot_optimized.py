@@ -112,7 +112,7 @@ for AC_set_index in all_anti_commuting_sets_SeqRot:
 
 
 
-
+unitary_paritioning_SeqRot={}
 unitary_paritioning_SeqRot[mol_key]= deepcopy(anti_commuting_sets_different_H_SeqRot_sizes)
 del anti_commuting_sets_different_H_SeqRot_sizes
 
