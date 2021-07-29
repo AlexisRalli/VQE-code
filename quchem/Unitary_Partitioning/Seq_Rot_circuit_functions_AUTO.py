@@ -43,7 +43,7 @@ def Auto_Build_R_SeqRot_Q_circuit_manual_Reduced(anti_commuting_set, N_Qubits, c
     if maximise_CNOT_reduction:
         re_orded_AC_set = lexicographical_sort_LADDER_CNOT_cancel(anti_commuting_set)
     else:
-        re_orded_AC_set = lexicographical_sort_BASIS_MATCH(anti_commuting_set)
+        re_orded_AC_set = lexicographical_sort_BASIS_MATCH(anti_commuting_set, N_Qubits)
 
     re_orded_AC_set.append(B_Ps) # add Ps back in at last index!
     S_index =-1 # hence s index is last term in list
@@ -116,7 +116,7 @@ def Auto_Build_R_SeqRot_Q_circuit_IBM_Reduced(anti_commuting_set, N_Qubits, chec
     if maximise_CNOT_reduction:
         re_orded_AC_set = lexicographical_sort_LADDER_CNOT_cancel(anti_commuting_set)
     else:
-        re_orded_AC_set = lexicographical_sort_BASIS_MATCH(anti_commuting_set)
+        re_orded_AC_set = lexicographical_sort_BASIS_MATCH(anti_commuting_set, N_Qubits)
 
     re_orded_AC_set.append(B_Ps) # add Ps back in at last index!
     S_index =-1 # hence s index is last term in list
@@ -200,7 +200,7 @@ def Auto_Build_R_SeqRot_Q_circuit_tiket_Reduced(anti_commuting_set, N_Qubits, ch
     if maximise_CNOT_reduction:
         re_orded_AC_set = lexicographical_sort_LADDER_CNOT_cancel(anti_commuting_set)
     else:
-        re_orded_AC_set = lexicographical_sort_BASIS_MATCH(anti_commuting_set)
+        re_orded_AC_set = lexicographical_sort_BASIS_MATCH(anti_commuting_set, N_Qubits)
 
     re_orded_AC_set.append(B_Ps) # add Ps back in at last index!
     S_index =-1 # hence s index is last term in list

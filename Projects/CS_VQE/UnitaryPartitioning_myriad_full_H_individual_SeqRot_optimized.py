@@ -103,11 +103,11 @@ for AC_set_index in all_anti_commuting_sets_SeqRot:
                                  rtol=1e-05,
                                  decimal_place_threshold=decimal_place_threshold)
 
-        anti_commuting_sets_different_H_SeqRot_sizes = {'AC_sets': anti_commuting_sets_SeqRot,
+        anti_commuting_sets_different_H_SeqRot_sizes[AC_set_index] = {'AC_sets': anti_commuting_sets_SeqRot,
                                    'E':E_SeqRot}
     else:
         # only non-contextual problem
-        anti_commuting_sets_different_H_SeqRot_sizes = {'AC_sets': anti_commuting_sets_SeqRot,
+        anti_commuting_sets_different_H_SeqRot_sizes[AC_set_index] = {'AC_sets': anti_commuting_sets_SeqRot,
                                    'E':myriad_SeqRot_results[mol_key][AC_set_index]['E']}
 
 

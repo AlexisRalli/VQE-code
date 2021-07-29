@@ -182,49 +182,71 @@ def lexicographical_sort_LADDER_CNOT_cancel(list_P_ops):
     lex_sorted = (np.array(list_P_ops)[re_ordered_ind]).tolist()
     return lex_sorted
 
-def lexicographical_sort_BASIS_MATCH(list_P_ops):
+
+
+
+def Count_basis_canellations_from_list(P_list, P_active, n_qubits):
+    """
+    Function gives a score for how many change of basis Pauli operators can obtained for P_active
+    iterating backwards through P_list. Idea is to use this to re_order terms in SeqRot to maximize
+    change of basis cancellations
+    
+    """
+    
+    
+    P_dict =  dict(tuple(*P_active.terms.keys())) 
+    qNos_active = np.array(list(P_dict.keys()))
+    Pstrs_active = np.array([P_dict.get(qNo, 'I') for qNo in range(n_qubits)], dtype=object)
+    
+    largest_canellation = len(qNos_active)
+    N_cancellations=0
+    for P_op in P_list[::-1]: # reverse order
+        P_comp_dict =  dict(tuple(*P_op.terms.keys())) 
+        Pstrs_comp = np.array([P_comp_dict.get(qNo, 'I') for qNo in range(n_qubits)], dtype=object)
+        
+        ind_to_delete=[]
+        for j, act_ind in enumerate(qNos_active):
+            if Pstrs_comp[act_ind]== Pstrs_active[act_ind]:
+                ind_to_delete.append(j)
+                N_cancellations+=1
+                
+            elif Pstrs_comp[act_ind] == 'I':
+                continue
+            else:
+                # case when mismatch!
+                ind_to_delete.append(j)
+                # delete term BUT don't add to cancellation counter
+        
+        qNos_active = np.delete(qNos_active, ind_to_delete, 0)
+        
+    score = N_cancellations/largest_canellation
+    return score
+
+
+def lexicographical_sort_BASIS_MATCH(list_P_ops, n_qubits):
     """
     maximises adjacent single qubit pauli terms in Pauliword list (allowing best change of basis cancellation)
     """
-    fullOp = reduce(lambda Op1, Op2: Op1+Op2, list_P_ops)
-    max_qubits = count_qubits(fullOp)
-
-    P_Words = []
-    for op in list_P_ops:
-        
-#         Q_Nos, P_strings = zip(*list(*op.terms.keys()))
-#         P_dict = dict(zip(Q_Nos, P_strings)) # zip(keys, values)
-
-        P_dict =  dict(tuple(*op.terms.keys())) 
-        arr = [P_dict.get(qNo, 'I') for qNo in range(max_qubits)]
-          
-        P_Words.append(arr)
+    list_P_ops = deepcopy(list_P_ops)
+    final_list_size = len(list_P_ops)
     
-    P_Words_copy = deepcopy(P_Words)
-    re_ordered_ind =[]
-    sorted_list = []
-    while P_Words!=[]:
-        if sorted_list==[]:
-            ind_match=0
-        else:
-            op_prev = sorted_list[-1] # take last sorted term
-            
-            # get similarity in binary and sum array
-            # the larger the int the better the match between sigma terms!
-            similarity_list = [(op_j,sum((np.array(op_prev)==np.array(op_j)).astype(int))) for op_j in P_Words if op_j != op_i]
-            largest_match = max(similarity_list, key=lambda x:x[1])
-            ind_similarity_list = similarity_list.index(largest_match)
+    size_of_terms = [(ind, len(list(*op.terms.keys()))) for ind, op in enumerate(list_P_ops)]
+    selected_ind = max(size_of_terms, key=lambda x:x[1])[0] # get ind of longest term
+    re_ordered_P_op_list = [list_P_ops.pop(selected_ind)] # first term in longest
+    
+#     re_ordered_P_op_list = [list_P_ops.pop(0)] # first term is first thing in list
+    
+    while len(re_ordered_P_op_list)<final_list_size:
 
-            op_j = similarity_list[ind_similarity_list][0]
-            ind_match = P_Words.index(op_j)
-            
-        op_i = P_Words.pop(ind_match)
-        sorted_list.append(op_i)
-        re_ordered_ind.append(P_Words_copy.index(op_i))
+        score_list = [(ind, Count_basis_canellations_from_list(re_ordered_P_op_list, op, n_qubits)) 
+                      for ind, op in enumerate(list_P_ops)]
+        
 
+        selected_ind = max(score_list, key=lambda x:x[1])[0]
+        re_ordered_P_op_list.append(list_P_ops.pop(selected_ind))
 
-    lex_sorted = (np.array(list_P_ops)[re_ordered_ind]).tolist()
-    return lex_sorted
+    return re_ordered_P_op_list
+
 
 
 
