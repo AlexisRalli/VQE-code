@@ -4,7 +4,6 @@ import scipy as sp
 import cs_vqe as c
 import ast
 import os
-from tqdm import tqdm
 from copy import deepcopy
 
 import cs_vqe_with_LCU as c_LCU

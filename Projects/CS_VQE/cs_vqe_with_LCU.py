@@ -184,11 +184,7 @@ def get_reduced_hamiltonians_LCU(ham,model,fn_form,ep_state,order, check_reducti
     ##############
     
     for k in range(order_len+1):
-
-    
         ham_rotated = deepcopy(post_LCU_rot_ham_real_and_pruned)
-
-    
         for r in rotations: # rotate the full Hamiltonian to the basis with diagonal noncontextual generators
             ham_next = {}
             for t in ham_rotated.keys():
@@ -199,15 +195,12 @@ def get_reduced_hamiltonians_LCU(ham,model,fn_form,ep_state,order, check_reducti
                     else:
                         ham_next[t_next] = t_set_next[t_next]*ham_rotated[t]
             ham_rotated = deepcopy(ham_next)
-       
         z_indices = []
         for d in diagonal_set:
             for i in range(n_q):
                 if d[i] == 'Z':
                     z_indices.append(i)
-        
         ham_red = {}
-    
         for t in ham_rotated.keys():
         
             sgn = 1

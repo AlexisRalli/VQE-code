@@ -1,0 +1,1 @@
+/var/opt/sge/node-i00a-002/job_scripts/7691249: line 35: 28724 Killed                  python ~/VQE-code/Projects/CS_VQE/UnitaryPartitioning_myriad_full_H_individual_SeqRot.py $SGE_TASK_ID H1-Li1_3-21G_singlet

@@ -681,7 +681,8 @@ def exp_vals(fn_form,ep_state):
 def get_reduced_hamiltonians(ham,model,fn_form,ep_state,order):
 
     rotations, diagonal_set, vals = diagonalize_epistemic(model,fn_form,ep_state)
-    
+
+    # scipt_A_generator_position = diagonal_set[0].index('Z')
     n_q = len(diagonal_set[0])
     
     order_len = len(order)
@@ -1174,3 +1175,4 @@ def greedy_dfs(ham,cutoff,criterion='weight'):
         i = top[1]
     
     return best_guesses
+

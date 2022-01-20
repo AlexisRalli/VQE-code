@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "quchem"
+version = "0.1.1"
+description = ""
+authors = ["AlexisRalli <rallilex@hotmail.co.uk>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.11"
+numpy = ">=1.19"
+networkx = ">=2.3"
+scipy = ">=1.6.2"
+tqdm = ">=4"
+cirq = ">=0.10.0"
+openfermion = ">=1.0.1"
+openfermionpsi4 = ">=0.4"
+openfermionpyscf = ">=0.4"
+mock = ">=4.0.1"
+pyscf = ">=1.7.6"
+qiskit = ">=0.17.0"
+pytket = ">0.10.1"
+pytket-cirq = "^0.19.0"
+jupyter = "^1.0.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

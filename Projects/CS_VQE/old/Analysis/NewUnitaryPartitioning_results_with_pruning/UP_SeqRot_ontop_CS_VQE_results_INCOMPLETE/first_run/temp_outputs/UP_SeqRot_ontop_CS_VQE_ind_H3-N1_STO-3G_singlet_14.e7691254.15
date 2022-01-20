@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/ucapar1/VQE-code/Projects/CS_VQE/UnitaryPartitioning_myriad_full_H_individual_SeqRot.py", line 73, in <module>
+    H_SeqRot_dict = myriad_SeqRot_results[mol_key][ind_key]['H']
+KeyError: 14
