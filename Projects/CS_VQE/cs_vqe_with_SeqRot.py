@@ -582,10 +582,10 @@ def diagonalize_epistemic_dictionary_generator(model, fn_form, ep_state, check_r
 
 
         if (R_sk_OP_list is not None) and (i==len(GuA)-1):
-            mapping_GuA_to_singleZ_with_ep_exp_vals[GuA_fixed[i]] = {'single_Z': g, 'noncon_gs_exp_val': ep_state_fixed[i],
+            mapping_GuA_to_singleZ_with_ep_exp_vals[GuA_fixed[i]] = {'single_Z': GuA[i], 'noncon_gs_exp_val': ep_state_fixed[i],
                                                     'do_unitary_part': True}
         else:
-            mapping_GuA_to_singleZ_with_ep_exp_vals[GuA_fixed[i]] = {'single_Z': g, 'noncon_gs_exp_val': ep_state_fixed[i],
+            mapping_GuA_to_singleZ_with_ep_exp_vals[GuA_fixed[i]] = {'single_Z': GuA[i], 'noncon_gs_exp_val': ep_state_fixed[i],
                                                     'do_unitary_part': False}
 
     # need to find out Will's ordering of qubit removals
@@ -691,7 +691,7 @@ def get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_
 
     n_q = len(diagonal_set[0])
     vals = list(vals)
-
+    
     if do_unitary_part is True:
         # do unitary part rotation!
         rot_H = conv_scr.Get_Openfermion_Hamiltonian(ham)
