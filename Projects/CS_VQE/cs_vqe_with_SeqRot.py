@@ -678,14 +678,17 @@ def diagonalize_epistemic_dictionary_generator(model, fn_form, ep_state, check_r
                     p = deepcopy(c.pauli_mult(J, GuA[m]))
                     GuA[m] = p[0]
 
-    if (R_sk_OP_list is not None) and (i==len(GuA)-1):
-        mapping_GuA_to_singleZ_with_ep_exp_vals[GuA_fixed[i]] = {'single_Z': g, 'noncon_gs_exp_val': ep_state_fixed[i],
-                                                'do_unitary_part': True}
-    else:
-        mapping_GuA_to_singleZ_with_ep_exp_vals[GuA_fixed[i]] = {'single_Z': g, 'noncon_gs_exp_val': ep_state_fixed[i],
-                                                'do_unitary_part': False}
 
-    return mapping_GuA_to_singleZ_with_ep_exp_vals, R_sk_OP_list
+        if (R_sk_OP_list is not None) and (i==len(GuA)-1):
+            mapping_GuA_to_singleZ_with_ep_exp_vals[GuA_fixed[i]] = {'single_Z': g, 'noncon_gs_exp_val': ep_state_fixed[i],
+                                                    'do_unitary_part': True}
+        else:
+            mapping_GuA_to_singleZ_with_ep_exp_vals[GuA_fixed[i]] = {'single_Z': g, 'noncon_gs_exp_val': ep_state_fixed[i],
+                                                    'do_unitary_part': False}
+
+    # need to find out Will's ordering of qubit removals
+    GuA_full_rotated = GuA
+    return mapping_GuA_to_singleZ_with_ep_exp_vals, R_sk_OP_list, GuA_full_rotated
 
 
 def diagonalize_epistemic_SeqRot(model, conversion_dict, qubits_to_fix):
@@ -694,14 +697,14 @@ def diagonalize_epistemic_SeqRot(model, conversion_dict, qubits_to_fix):
     ep_state_trans=[]
     do_unitary_part = False
     for pauli in conversion_dict.keys():
-        for Z_op in conversion_dict[pauli]['single_Z']:
-            Z_ind = Z_op.index('Z')
-            if Z_ind in qubits_to_fix:
-                GuA.append(pauli)
-                ep_state_trans.append(conversion_dict[pauli]['noncon_gs_exp_val'])
+        Z_op= conversion_dict[pauli]['single_Z']
+        Z_ind = Z_op.index('Z')
+        if Z_ind in qubits_to_fix:
+            GuA.append(pauli)
+            ep_state_trans.append(conversion_dict[pauli]['noncon_gs_exp_val'])
 
-                if conversion_dict[pauli]['do_unitary_part']:
-                    do_unitary_part = True
+            if conversion_dict[pauli]['do_unitary_part']:
+                do_unitary_part = True
 
     rotations = []
     for i in range(len(GuA)):
@@ -781,76 +784,134 @@ def diagonalize_epistemic_SeqRot(model, conversion_dict, qubits_to_fix):
     return rotations, do_unitary_part, ep_state_trans, GuA
 
 
-def get_reduced_hamiltonians(ham, model, conversion_dict, qubits_to_fix_ordered):
+def get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_to_fix_ordered, R_unitary_part):
     rotations, do_unitary_part, vals, diagonal_set = diagonalize_epistemic_SeqRot(model, conversion_dict, qubits_to_fix_ordered)
 
-    # scipt_A_generator_position = diagonal_set[0].index('Z')
     n_q = len(diagonal_set[0])
-
-    order_len = len(qubits_to_fix_ordered)
-
     vals = list(vals)
 
-    # rectify order
-    for i in range(len(qubits_to_fix_ordered)):
-        for j in range(i):
-            if qubits_to_fix_ordered[j] < qubits_to_fix_ordered[i]:
-                qubits_to_fix_ordered[i] -= 1
+    if do_unitary_part is True:
+        # do unitary part rotation!
+        rot_H = conv_scr.Get_Openfermion_Hamiltonian(ham)
+        for rot in R_unitary_part:
+            H_next = QubitOperator()
+            for t in rot_H:
+                t_set_next = rot * t * hermitian_conjugated(rot)
+                H_next+=t_set_next
+            rot_H = deepcopy(list(H_next))
 
-    out = []
+        post_SeqRot_rot_ham = conv_scr.Openfermion_to_dict(rot_H, n_q)
 
-    for k in range(order_len + 1):
-
+        #prune small coeffs!
+        ham_rotated = {P_key: coeff.real for P_key, coeff in post_SeqRot_rot_ham.items() if not np.isclose(coeff.real,0)}
+        del rot_H
+        del H_next
+        del post_SeqRot_rot_ham
+    else:
         ham_rotated = deepcopy(ham)
 
-        for r in rotations:  # rotate the full Hamiltonian to the basis with diagonal noncontextual generators
-            ham_next = {}
-            for t in ham_rotated.keys():
-                t_set_next = c.apply_rotation(r, t)
-                for t_next in t_set_next.keys():
-                    if t_next in ham_next.keys():
-                        ham_next[t_next] = ham_next[t_next] + t_set_next[t_next] * ham_rotated[t]
-                    else:
-                        ham_next[t_next] = t_set_next[t_next] * ham_rotated[t]
-            ham_rotated = deepcopy(ham_next)
+    # rotate stabilizers
+    for r in rotations:  # rotate the full Hamiltonian to the basis with diagonal noncontextual generators
+        ham_next = {}
+        for t in ham_rotated.keys():
+            t_set_next = c.apply_rotation(r, t)
+            for t_next in t_set_next.keys():
+                if t_next in ham_next.keys():
+                    ham_next[t_next] = ham_next[t_next] + t_set_next[t_next] * ham_rotated[t]
+                else:
+                    ham_next[t_next] = t_set_next[t_next] * ham_rotated[t]
+        ham_rotated = deepcopy(ham_next)
+
+    z_indices = []
+    for d in diagonal_set:
+        for i in range(n_q):
+            if d[i] == 'Z':
+                z_indices.append(i)
+
+    # print('z ind:', z_indices)
+    # print('order:', qubits_to_fix_ordered)
+    # print(sorted(diagonal_set, key=lambda x: x.index('Z')))
+    # print()
+
+    ham_red = {}
+    for t in ham_rotated.keys():
+        sgn = 1
+        for j in range(len(diagonal_set)):  # enforce diagonal generator's assigned values in diagonal basis
+            z_index = z_indices[j]
+            if t[z_index] == 'Z':
+                sgn = sgn * vals[j]
+            elif t[z_index] != 'I':
+                sgn = 0
+        if sgn != 0:
+            # construct term in reduced Hilbert space
+            t_red = ''
+            for i in range(n_q):
+                if not i in z_indices:
+                    t_red = t_red + t[i]
+            if t_red in ham_red.keys():
+                ham_red[t_red] = ham_red[t_red] + ham_rotated[t] * sgn
+            else:
+                ham_red[t_red] = ham_rotated[t] * sgn
+
+    return ham_red
+
+
+# def get_reduced_hamiltonians_by_order(ham, model, conversion_dict, order, R_unitary_part):
+#     reduced_hamilts = [ham]
+#     for i in range(1, len(order) + 1):
+#         qubits_to_fix_ordered = order[:i]
+#         H_red = get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_to_fix_ordered, R_unitary_part)
+#         reduced_hamilts.append(H_red)
+#     return reduced_hamilts
+
+def get_reduced_hamiltonians_by_order(ham, model, conversion_dict, order, R_unitary_part):
+    reduced_hamilts = []
+
+    n_qubits = len(list(ham.keys())[0])
+    all_qubits = set(range(n_qubits))
+    for i in range(len(order)):
+        quantum_part = set(order[:i])
+        qubits_to_fix_ordered = list(all_qubits.difference(quantum_part))
+        H_red = get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_to_fix_ordered, R_unitary_part)
+        reduced_hamilts.append(H_red)
+
+    reduced_hamilts.append(ham)
+    return reduced_hamilts
+
+
+def get_wills_order(diagonal_set, order):
+    n_q = len(diagonal_set[0])
+    order_len = len(order)
+
+    # rectify order
+    for i in range(len(order)):
+        for j in range(i):
+            if order[j] < order[i]:
+                order[i] -= 1
+
+    all_qubits = set(range(n_q))
+    updated_order = []
+    set_previous = {}
+    for k in range(order_len + 1):
 
         z_indices = []
         for d in diagonal_set:
             for i in range(n_q):
                 if d[i] == 'Z':
                     z_indices.append(i)
+        qubits_quantum_part = all_qubits.difference(set(z_indices))
 
-        ham_red = {}
+        qubit_added = qubits_quantum_part.difference(set_previous)
+        set_previous = deepcopy(qubits_quantum_part)
 
-        for t in ham_rotated.keys():
+        if qubit_added:
+            # ignores full noncontextual problem (all z terms fixed)
+            updated_order.append(list(qubit_added)[0])
 
-            sgn = 1
-
-            for j in range(len(diagonal_set)):  # enforce diagonal generator's assigned values in diagonal basis
-                z_index = z_indices[j]
-                if t[z_index] == 'Z':
-                    sgn = sgn * vals[j]
-                elif t[z_index] != 'I':
-                    sgn = 0
-
-            if sgn != 0:
-                # construct term in reduced Hilbert space
-                t_red = ''
-                for i in range(n_q):
-                    if not i in z_indices:
-                        t_red = t_red + t[i]
-                if t_red in ham_red.keys():
-                    ham_red[t_red] = ham_red[t_red] + ham_rotated[t] * sgn
-                else:
-                    ham_red[t_red] = ham_rotated[t] * sgn
-
-        out.append(ham_red)
-
-        if qubits_to_fix_ordered:
+        if order:
             # Drop a qubit:
-            i = qubits_to_fix_ordered[0]
-            qubits_to_fix_ordered.remove(i)
+            i = order[0]
+            order.remove(i)
             diagonal_set = diagonal_set[:i] + diagonal_set[i + 1:]
-            vals = vals[:i] + vals[i + 1:]
 
-    return out
+    return updated_order

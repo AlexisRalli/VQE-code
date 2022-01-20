@@ -696,7 +696,9 @@ def get_reduced_hamiltonians(ham,model,fn_form,ep_state,order):
                 order[i] -= 1
     
     out = []
-    
+
+    all_qubits = set(range(n_q))
+
     for k in range(order_len+1):
     
         ham_rotated = deepcopy(ham)
@@ -717,9 +719,13 @@ def get_reduced_hamiltonians(ham,model,fn_form,ep_state,order):
             for i in range(n_q):
                 if d[i] == 'Z':
                     z_indices.append(i)
-        
+        # print('z ind:', z_indices)
+        # print('order:', order)
+        # print(sorted(diagonal_set, key=lambda x: x.index('Z')))
+        # print(all_qubits.difference(set(z_indices)))
+        # print()
+
         ham_red = {}
-    
         for t in ham_rotated.keys():
         
             sgn = 1
