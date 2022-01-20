@@ -214,8 +214,6 @@ def quantum_correction_SeqRot(ham,model,fn_form,ep_state, check_reduction=False)
             return sp.sparse.linalg.eigsh(ham_red_sparse, which='SA', k=1)[0][0]
 
 
-
-
 # Given ham (the full Hamiltonian), model (the quasi-quantized model for the noncontextual part),
 # fn_form (the output of energy_function_form(ham_noncon,model)), and order (a list specifying the order in which to remove the qubits),
 # returns a list whose elements are the reduced quantum search Hamiltonians for contextual subspace VQE,
@@ -456,102 +454,6 @@ def csvqe_approximations_heuristic_SeqRot(ham, ham_noncon, n_qubits, true_gs, ch
         
         return [true_gs, approxs_out, errors_out, order_out]
 
-
-# def get_reduced_hamiltonians_SeqRot_improved(ham, model, fn_form, ep_state, order, check_reduction=False):
-#     """
-#     Improvement is Ham is only rotated by unitary part operator if necessary!
-#     Args:
-#         ham:
-#         model:
-#         fn_form:
-#         ep_state:
-#         order:
-#         check_reduction:
-#
-#     Returns:
-#
-#     """
-#     R_SeqRot, rotations_dict, diagonal_set = diagonalize_epistemic_SeqRot(model, fn_form, ep_state,
-#                                                                            check_reduction=check_reduction)
-#
-#     n_q = len(diagonal_set[0])
-#
-#     # allows to select diagonal term via ordering (qubit order)
-#     qubit_ind_to_diagonal_op = {PauliOp.index('Z'): PauliOp for PauliOp in diagonal_set}
-#
-#     order_labeled = dict(zip(order, order))
-#
-#     # anti commuting term
-#     if R_SeqRot is not None:
-#         scriptA_Pauli = diagonal_set[0]
-#     else:
-#         scriptA_Pauli = None
-#
-#     ham_rotated = deepcopy(ham)
-#     out =[]
-#     for q_ordered in order:
-#
-#         q_removed = order_labeled[q_ordered]
-#         diagonal_op_fixed = qubit_ind_to_diagonal_op[q_removed]
-#
-#         vals = rotations_dict[diagonal_op_fixed]['ep_state_trans']
-#         fixed_val = vals[diagonal_set.index(diagonal_op_fixed)]
-#
-#         if diagonal_op_fixed == scriptA_Pauli:
-#             H_rot_openf = conv_scr.Get_Openfermion_Hamiltonian(ham_rotated)
-#             for rot in R_SeqRot:
-#                 H_next = QubitOperator()
-#                 for t in H_rot_openf:
-#                     t_set_next = rot * t * hermitian_conjugated(rot)
-#                     H_next += t_set_next
-#                 H_rot_openf = deepcopy(list(H_next))
-#
-#             rot_H_unpruned = conv_scr.Openfermion_to_dict(H_rot_openf, n_q)
-#             # prune H
-#             ham_rotated = {P_key: coeff.real for P_key, coeff in rot_H_unpruned.items() if
-#                                                    not np.isclose(coeff.real, 0)}
-#             del H_rot_openf
-#             del H_next
-#
-#         # rotatations that rotate diagonal op to single qubit Z
-#         for r in rotations_dict[diagonal_op_fixed]['rotations']:
-#             ham_next = {}
-#             for t in ham_rotated.keys():
-#                 t_set_next = c.apply_rotation(r, t)
-#                 for t_next in t_set_next.keys():
-#                     if t_next in ham_next.keys():
-#                         ham_next[t_next] = ham_next[t_next] + t_set_next[t_next] * ham_rotated[t]
-#                     else:
-#                         ham_next[t_next] = t_set_next[t_next] * ham_rotated[t]
-#             ham_rotated = deepcopy(ham_next)
-#
-#         ham_red = {} # new hamiltonian
-#         z_index = q_removed
-#         for t in ham_rotated.keys():
-#             sgn = 1
-#             if t[z_index] == 'Z':
-#                 sgn = sgn * fixed_val
-#             elif t[z_index] != 'I':
-#                 sgn = 0
-#
-#             # construct term in reduced Hilbert space
-#             if sgn != 0:
-#                 t_red = t[:z_index] + t[z_index+1:]
-#                 if t_red in ham_red.keys():
-#                     ham_red[t_red] = ham_red[t_red] + ham_rotated[t] * sgn
-#                 else:
-#                     ham_red[t_red] = ham_rotated[t] * sgn
-#
-#         out.append(ham_red)
-#
-#         # renumber qubits (as deleted qubit)
-#         n_q-=1
-#         del qubit_ind_to_diagonal_op[q_removed]
-#         qubit_relabel = dict(zip(sorted(qubit_ind_to_diagonal_op.keys()), range(n_q)))
-#         qubit_ind_to_diagonal_op = {qubit_relabel[qu_ind]: PauliOp for qu_ind, PauliOp in qubit_ind_to_diagonal_op.items()}
-#         order_labeled = {order: qubit_relabel[relabel_ordered] for order, relabel_ordered in order_labeled.items()}
-#
-#     return out
 
 
 def diagonalize_epistemic_dictionary_generator(model, fn_form, ep_state, check_reduction=False):
@@ -856,14 +758,6 @@ def get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_
     return ham_red
 
 
-# def get_reduced_hamiltonians_by_order(ham, model, conversion_dict, order, R_unitary_part):
-#     reduced_hamilts = [ham]
-#     for i in range(1, len(order) + 1):
-#         qubits_to_fix_ordered = order[:i]
-#         H_red = get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_to_fix_ordered, R_unitary_part)
-#         reduced_hamilts.append(H_red)
-#     return reduced_hamilts
-
 def get_reduced_hamiltonians_by_order(ham, model, conversion_dict, order, R_unitary_part):
     reduced_hamilts = []
 
@@ -915,3 +809,4 @@ def get_wills_order(diagonal_set, order):
             diagonal_set = diagonal_set[:i] + diagonal_set[i + 1:]
 
     return updated_order
+
