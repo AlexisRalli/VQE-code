@@ -5,9 +5,10 @@ import itertools
 from copy import deepcopy
 from openfermion import hermitian_conjugated
 from openfermion.ops import QubitOperator
-
+import quchem.Unitary_Partitioning.Unitary_partitioning_LCU_method as UP_LCU
 
 import cs_vqe as c
+from functools import reduce
 import quchem.Misc_functions.conversion_scripts as conv_scr 
 from quchem.Unitary_Partitioning.Unitary_partitioning_Seq_Rot import Get_Xsk_op_list
 
@@ -455,8 +456,10 @@ def csvqe_approximations_heuristic_SeqRot(ham, ham_noncon, n_qubits, true_gs, ch
         return [true_gs, approxs_out, errors_out, order_out]
 
 
+# USEFUL code below
 
-def diagonalize_epistemic_dictionary_generator(model, fn_form, ep_state, check_reduction=False):
+
+def diagonalize_epistemic_dictionary_generator(model, fn_form, ep_state, check_reduction=False, up_method='SeqRot'):
     """
     Function to find mapping of GuA to single qubit Pauli Z
     This can be used to determine which stabilizers Will fixes.
@@ -474,30 +477,38 @@ def diagonalize_epistemic_dictionary_generator(model, fn_form, ep_state, check_r
     assert (len(model[1]) == fn_form[1])
 
     # if there are cliques...
-    R_sk_OP_list = None
+    R_unitary_part_dict = None
     if fn_form[1] > 0:
 
         # AC set (note has already been normalized, look at eq 17 of contextual VQE paper!)
         script_A = [conv_scr.convert_op_str(op_A, coeff) for op_A, coeff in zip(model[1], ep_state[1])]
 
+        if up_method == 'SeqRot':
+            S_index = 0
+            N_Qubits = len(model[1][0])
+            X_sk_theta_sk_list, normalised_FULL_set, Ps, gamma_l = Get_Xsk_op_list(script_A,
+                                                                                   S_index,
+                                                                                   N_Qubits,
+                                                                                   check_reduction=check_reduction,
+                                                                                   atol=1e-8,
+                                                                                   rtol=1e-05)
+            R_upart_op_list = []
+            for X_sk_Op, theta_sk in X_sk_theta_sk_list:
+                op = np.cos(theta_sk / 2) * QubitOperator('') - 1j * np.sin(theta_sk / 2) * X_sk_Op
+                R_upart_op_list.append(op)
+        elif up_method == 'LCU':
+            N_index = 0
+            N_Qubits = len(model[1][0])
+            R_LCU_list, Pn, gamma_l = UP_LCU.Get_R_op_list(script_A, N_index, N_Qubits, check_reduction=check_reduction,
+                                                           atol=1e-8, rtol=1e-05)
+            R_upart_op_list = reduce(lambda x, y: x + y, R_LCU_list)
+        else:
+            raise ValueError(f'unknown unitary partitioning method: {up_method}')
 
-        S_index = 0
-        N_Qubits = len(model[1][0])
-        X_sk_theta_sk_list, normalised_FULL_set, Ps, gamma_l = Get_Xsk_op_list(script_A,
-                                                                               S_index,
-                                                                               N_Qubits,
-                                                                               check_reduction=check_reduction,
-                                                                               atol=1e-8,
-                                                                               rtol=1e-05)
         GuA = deepcopy(model[0] + [model[1][
                                        0]])  # <--- here N_index fixed to zero (model[1][0] == first op of script_A !) (TODO: could be potential bug if other vals used)
         ep_state_trans = deepcopy(ep_state[0] + [1])  # < - fixes script A eigenvalue!
-
-        R_sk_OP_list = []
-        for X_sk_Op, theta_sk in X_sk_theta_sk_list:
-            op = np.cos(theta_sk / 2) * QubitOperator('') - 1j * np.sin(theta_sk / 2) * X_sk_Op
-            R_sk_OP_list.append(op)
-
+        R_unitary_part_dict = {'unitary_part_method': up_method, 'R_op': R_upart_op_list}
     else:
         # rotations to diagonalize G
         GuA = deepcopy(model[0])
@@ -581,20 +592,32 @@ def diagonalize_epistemic_dictionary_generator(model, fn_form, ep_state, check_r
                     GuA[m] = p[0]
 
 
-        if (R_sk_OP_list is not None) and (i==len(GuA)-1):
+        if (R_unitary_part_dict is not None) and (i==len(GuA)-1):
             mapping_GuA_to_singleZ_with_ep_exp_vals[GuA_fixed[i]] = {'single_Z': GuA[i], 'noncon_gs_exp_val': ep_state_fixed[i],
                                                     'do_unitary_part': True}
         else:
             mapping_GuA_to_singleZ_with_ep_exp_vals[GuA_fixed[i]] = {'single_Z': GuA[i], 'noncon_gs_exp_val': ep_state_fixed[i],
                                                     'do_unitary_part': False}
 
-    # need to find out Will's ordering of qubit removals
-    GuA_full_rotated = GuA
-    return mapping_GuA_to_singleZ_with_ep_exp_vals, R_sk_OP_list, GuA_full_rotated
+    # need to find out Will's ordering of qubit removals so need all generators mapped to single Z!
+    GuA_full_rotated_set = GuA
+    return mapping_GuA_to_singleZ_with_ep_exp_vals, R_unitary_part_dict, GuA_full_rotated_set
 
 
-def diagonalize_epistemic_SeqRot(model, conversion_dict, qubits_to_fix):
+def diagonalize_epistemic_by_fixed_qubit(model, conversion_dict, qubits_to_fix):
+    """
+    Use conversion dict (contains original GuA and their single qubit translated form) and from qubits to fix map back
+    from single qubit Z to original GuA... THEN find rotations to give single qubit Z (note rotations depend on previous
+    rotations, hence why this is a very roundabout way of doing this. TODO: specifiy generator fixed only!)
 
+    Args:
+        model:
+        conversion_dict:
+        qubits_to_fix:
+
+    Returns:
+
+    """
     GuA = []
     ep_state_trans=[]
     do_unitary_part = False
@@ -686,29 +709,48 @@ def diagonalize_epistemic_SeqRot(model, conversion_dict, qubits_to_fix):
     return rotations, do_unitary_part, ep_state_trans, GuA
 
 
-def get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_to_fix_ordered, R_unitary_part):
-    rotations, do_unitary_part, vals, diagonal_set = diagonalize_epistemic_SeqRot(model, conversion_dict, qubits_to_fix_ordered)
+def get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_to_fix_ordered, R_unitary_part_dict):
+
+    rotations, do_unitary_part, vals, diagonal_set = diagonalize_epistemic_by_fixed_qubit(model,
+                                                                                          conversion_dict,
+                                                                                          qubits_to_fix_ordered)
 
     n_q = len(diagonal_set[0])
     vals = list(vals)
-    
-    if do_unitary_part is True:
-        # do unitary part rotation!
-        rot_H = conv_scr.Get_Openfermion_Hamiltonian(ham)
-        for rot in R_unitary_part:
-            H_next = QubitOperator()
-            for t in rot_H:
-                t_set_next = rot * t * hermitian_conjugated(rot)
-                H_next+=t_set_next
-            rot_H = deepcopy(list(H_next))
 
-        post_SeqRot_rot_ham = conv_scr.Openfermion_to_dict(rot_H, n_q)
+    if do_unitary_part is True:
+
+        # Sequence of rotations!
+        if R_unitary_part_dict['unitary_part_method'] == 'SeqRot':
+            R_unitary_part = R_unitary_part_dict['R_op']
+
+            # do unitary part rotation!
+            rot_H = conv_scr.Get_Openfermion_Hamiltonian(ham)
+            for rot in R_unitary_part:
+                H_next = QubitOperator()
+                for t in rot_H:
+                    t_set_next = rot * t * hermitian_conjugated(rot)
+                    H_next+=t_set_next
+                rot_H = deepcopy(list(H_next))
+
+            post_up_ham = conv_scr.Openfermion_to_dict(rot_H, n_q)
+            del H_next
+            
+        elif R_unitary_part_dict['unitary_part_method'] == 'LCU':
+            Ham_openF = conv_scr.Get_Openfermion_Hamiltonian(ham)
+            R_LCU = R_unitary_part_dict['R_op']
+            rot_H = R_LCU * Ham_openF * hermitian_conjugated(R_LCU)  # R H R_dagger!
+
+            post_up_ham = conv_scr.Openfermion_to_dict(rot_H, n_q)
+            del R_LCU
+        else:
+            err = R_unitary_part_dict['unitary_part_method']
+            raise ValueError(f'unknown unitary part method: {err}')
 
         #prune small coeffs!
-        ham_rotated = {P_key: coeff.real for P_key, coeff in post_SeqRot_rot_ham.items() if not np.isclose(coeff.real,0)}
+        ham_rotated = {P_key: coeff.real for P_key, coeff in post_up_ham.items() if not np.isclose(coeff.real,0)}
         del rot_H
-        del H_next
-        del post_SeqRot_rot_ham
+        del post_up_ham
     else:
         ham_rotated = deepcopy(ham)
 
@@ -758,7 +800,7 @@ def get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_
     return ham_red
 
 
-def get_reduced_hamiltonians_by_order(ham, model, conversion_dict, order, R_unitary_part):
+def get_reduced_hamiltonians_by_order(ham, model, conversion_dict, order, R_unitary_part_dict):
     reduced_hamilts = []
 
     n_qubits = len(list(ham.keys())[0])
@@ -766,7 +808,7 @@ def get_reduced_hamiltonians_by_order(ham, model, conversion_dict, order, R_unit
     for i in range(len(order)):
         quantum_part = set(order[:i])
         qubits_to_fix_ordered = list(all_qubits.difference(quantum_part))
-        H_red = get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_to_fix_ordered, R_unitary_part)
+        H_red = get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_to_fix_ordered, R_unitary_part_dict)
         reduced_hamilts.append(H_red)
 
     reduced_hamilts.append(ham)
