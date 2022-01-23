@@ -735,7 +735,7 @@ def get_reduced_hamiltonian_by_qubits_fixed(ham, model, conversion_dict, qubits_
 
             post_up_ham = conv_scr.Openfermion_to_dict(rot_H, n_q)
             del H_next
-            
+
         elif R_unitary_part_dict['unitary_part_method'] == 'LCU':
             Ham_openF = conv_scr.Get_Openfermion_Hamiltonian(ham)
             R_LCU = R_unitary_part_dict['R_op']
