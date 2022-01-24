@@ -13,6 +13,7 @@
 
 .DS_Store
 
+Projects/CS_VQE/Analysis/myriad_results/*
 Projects/CS_VQE/old/data/fullHamiltonians/*
 Projects/CS_VQE/data/fullHamiltonians/fullHamiltonians/*
 Projects/CS_VQE/Analysis/Be1_STO-3G_singlet

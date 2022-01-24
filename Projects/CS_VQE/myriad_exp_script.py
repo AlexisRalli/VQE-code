@@ -134,7 +134,8 @@ m_red_seqrot_with_seqrot_cs_vqe = {}
 for ind_key, H_seqrot in enumerate(reduced_H_csvqe_seqrot['H_csvqe']):
     if ind_key == 0:
         # only non-contextual problem
-        m_red_seqrot_with_seqrot_cs_vqe[ind_key] = {'AC_sets': {}, 'energy': 0}
+        m_red_seqrot_with_seqrot_cs_vqe[ind_key] = {'AC_sets': {},
+                                                    'energy': list(H_seqrot.values())[0].real}
     else:
         ### SeqRot
         H_SeqRot_pruned = {P_key: coeff.real for P_key, coeff in H_seqrot.items() if
@@ -169,7 +170,8 @@ m_red_LCU_with_LCU_cs_vqe = {}
 for ind_key, H_LCU in enumerate(reduced_H_csvqe_LCU['H_csvqe']):
     if ind_key == 0:
         # only non-contextual problem
-        m_red_LCU_with_LCU_cs_vqe[ind_key] = {'AC_sets': {}, 'energy': 0}
+        m_red_LCU_with_LCU_cs_vqe[ind_key] = {'AC_sets': {},
+                                              'energy': list(H_LCU.values())[0].real}
     else:
         ### LCU
         H_LCU_pruned = {P_key: coeff.real for P_key, coeff in H_LCU.items() if
