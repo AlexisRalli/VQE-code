@@ -852,3 +852,23 @@ def get_wills_order(diagonal_set, order):
 
     return updated_order
 
+
+def get_reduced_H_minimal_rotations(ham, model,fn_form,ground_state_params, qubit_removal_order,
+                                    check_reduction=False, up_method='SeqRot'):
+
+    (mapping_GuA_to_singleZ_with_ep_exp_vals,
+     R_op_dict,
+     GuA_full_rotated) = diagonalize_epistemic_dictionary_generator(model,
+                                                                    fn_form,
+                                                                    ground_state_params,
+                                                                    check_reduction=check_reduction,
+                                                                    up_method=up_method)
+    actual_qubit_removal_order = get_wills_order(GuA_full_rotated, qubit_removal_order)
+
+    H_reduced_list = get_reduced_hamiltonians_by_order(ham,
+                                                       model,
+                                                       mapping_GuA_to_singleZ_with_ep_exp_vals,
+                                                       actual_qubit_removal_order,  # <-- actual GOOD order!
+                                                       R_op_dict)
+
+    return {'unitary_part': up_method, 'H_csvqe': H_reduced_list, 'R_op': R_op_dict, 'true_order': actual_qubit_removal_order}
