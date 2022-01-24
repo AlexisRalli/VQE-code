@@ -228,7 +228,6 @@ def SeqRot_linalg_Energy_matrix(anti_commuting_sets, S_key_dict, N_Qubits, atol=
     return FCI_Energy
 
 
-
 def Get_Rsl_matrix_as_qubitops(Xsk_op_list):
 
     """
@@ -263,10 +262,57 @@ def Get_Rsl_matrix_as_qubitops(Xsk_op_list):
     return R_S_q_ops
 
 
+from quchem.Misc_functions.Misc_functions import fast_qubit_operator_sparse
+def Get_reduced_H_matrix_SeqRot(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
+    """
+    Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets.
+    Note this uses symbolic operators and only builds sparse matrix once.
+
+    Args:
+        anti_commuting_sets (dict): dictionary of int keys with list of anti commuting QubitOperators sets
+        S_key_dict(dict): dictionary keys match that of anti_commuting_sets. Value gives index of P_s operator
+        N_Qubits(int): number of qubits
+
+    returns:
+        reduced_H_matrix(scipy.sparse_matrix): sparse Hamiltonian matrix after unitary partitioning via SeqRot
+
+    """
+
+    H_single_terms = QubitOperator()
+    gammal_Rdag_P_R_terms = QubitOperator()
+    for key in anti_commuting_sets:
+        AC_set = anti_commuting_sets[key]
+
+        if len(AC_set) < 2:
+            H_single_terms += AC_set[0]
+        else:
+            S_index = S_key_dict[key]
+            X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set,
+                                                                                   S_index,
+                                                                                   N_Qubits,
+                                                                                   check_reduction=check_reduction,
+                                                                                   atol=atol,
+                                                                                   rtol=rtol)
+
+            # perform R_seqrot iteratively (faster than building R_s from multiplying all terms together)!
+            iter_new_op = Ps
+            for X_sk_Op, theta_sk in X_sk_theta_sk_list[::-1]:
+                R_sk_op = np.cos(theta_sk / 2) * QubitOperator('') - 1j * np.sin(theta_sk / 2) * X_sk_Op
+                iter_new_op = hermitian_conjugated(R_sk_op) * iter_new_op * R_sk_op
+
+            gammal_Rdag_P_R_terms += gamma_l*iter_new_op
+
+    all_symbolic_ops = H_single_terms + gammal_Rdag_P_R_terms
+    reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, n_qubits=N_Qubits)
+    # reduced_H_matrix = fast_qubit_operator_sparse(all_symbolic_ops, N_Qubits)
+    return reduced_H_matrix
+
+
 from openfermion.utils import hermitian_conjugated
 def SeqRot_linalg_Energy(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
     """
-    Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets. Note this uses symbolic operators and only builds sparse matrix once.
+    Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets.
+    Note this uses symbolic operators and only builds sparse matrix once.
 
 
     Args:
@@ -278,183 +324,18 @@ def SeqRot_linalg_Energy(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, r
         FCI_Energy(float): Ground state energy
 
     """
-    # TODO: could return reduced_H_matrix sparse matrix!
+    reduced_H_matrix = Get_reduced_H_matrix_SeqRot(anti_commuting_sets,
+                                                   S_key_dict,
+                                                   N_Qubits,
+                                                   atol=atol,
+                                                   rtol=rtol,
+                                                   check_reduction=check_reduction)
 
-
-    H_single_terms = QubitOperator()
-    gammal_Rdag_P_R_terms = QubitOperator()
-    for key in anti_commuting_sets:
-        AC_set = anti_commuting_sets[key]
-
-        if len(AC_set) < 2:
-            H_single_terms += AC_set[0]
-        else:
-            S_index = S_key_dict[key]
-
-            X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index, N_Qubits, check_reduction=check_reduction, atol=atol, rtol=rtol)
-
-
-            R_S = Get_Rsl_matrix_as_qubitops(X_sk_theta_sk_list)
-            R_dag_P_R = hermitian_conjugated(R_S) * Ps * R_S
-            gammal_Rdag_P_R_terms += gamma_l*R_dag_P_R
-
-    all_symbolic_ops = H_single_terms + gammal_Rdag_P_R_terms
-    reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, n_qubits=N_Qubits)
     # eig_values, eig_vectors = sparse_eigs(reduced_H_matrix)
-    if reduced_H_matrix.shape[0]<=64:
+    if reduced_H_matrix.shape[0]<=128:
         eig_values, eig_vectors = eigh(reduced_H_matrix.todense()) # NOT sparse!
     else:
         eig_values, eig_vectors = eigsh(reduced_H_matrix, k=1, which='SA') # < solves eigenvalue problem for a complex Hermitian matrix.
     FCI_Energy = min(eig_values)
+
     return FCI_Energy
-
-from quchem.Misc_functions.Misc_functions import fast_qubit_operator_sparse
-def Get_reduced_H_matrix_SeqRot(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
-    """
-    Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets. Note this uses symbolic operators and only builds sparse matrix once.
-
-
-    Args:
-        anti_commuting_sets (dict): dictionary of int keys with list of anti commuting QubitOperators sets
-        S_key_dict(dict): dictionary keys match that of anti_commuting_sets. Value gives index of P_s operator
-        N_Qubits(int): number of qubits
-
-    returns:
-        reduced_H_matrix(scipy.sparse_matrix): sparse Hamiltonian matrix after unitary partitioning via SeqRot
-
-    """
-    H_single_terms = QubitOperator()
-    gammal_Rdag_P_R_terms = QubitOperator()
-    for key in anti_commuting_sets:
-        AC_set = anti_commuting_sets[key]
-
-        if len(AC_set) < 2:
-            H_single_terms += AC_set[0]
-        else:
-            S_index = S_key_dict[key]
-
-            X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index, N_Qubits, check_reduction=check_reduction, atol=atol, rtol=rtol)
-
-
-            R_S = Get_Rsl_matrix_as_qubitops(X_sk_theta_sk_list)
-            R_dag_P_R = hermitian_conjugated(R_S) * Ps * R_S
-            gammal_Rdag_P_R_terms += gamma_l*R_dag_P_R
-
-    all_symbolic_ops = H_single_terms + gammal_Rdag_P_R_terms
-    # reduced_H_matrix = qubit_operator_sparse(all_symbolic_ops, n_qubits=N_Qubits)
-    reduced_H_matrix = fast_qubit_operator_sparse(all_symbolic_ops, N_Qubits)
-    return reduced_H_matrix
-
-
-def Get_reduced_H_matrix_SeqRot_matrix_FAST(anti_commuting_sets, S_key_dict, N_Qubits, atol=1e-8, rtol=1e-05, check_reduction=False):
-    """
-    Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets. Note this uses symbolic operators and only builds sparse matrix once.
-
-
-    Args:
-        anti_commuting_sets (dict): dictionary of int keys with list of anti commuting QubitOperators sets
-        S_key_dict(dict): dictionary keys match that of anti_commuting_sets. Value gives index of P_s operator
-        N_Qubits(int): number of qubits
-
-    returns:
-        reduced_H_matrix(scipy.sparse_matrix): sparse Hamiltonian matrix after unitary partitioning via SeqRot
-
-    """
-
-    reduced_H_matrix = csr_matrix((2 ** N_Qubits, 2 ** N_Qubits), dtype=complex)
-    for key in anti_commuting_sets:
-        AC_set = anti_commuting_sets[key]
-
-        if len(AC_set) < 2:
-            CiPi = AC_set[0]
-            CiPi_matrix = fast_qubit_operator_sparse(CiPi, N_Qubits)
-            reduced_H_matrix+=CiPi_matrix
-        else:
-            S_index = S_key_dict[key]
-
-            X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index, N_Qubits, check_reduction=check_reduction, atol=atol, rtol=rtol)
-
-
-            R_S = Get_Rsl_matrix_as_qubitops(X_sk_theta_sk_list)
-
-            R_S_matrix = fast_qubit_operator_sparse(R_S, N_Qubits)
-            P_S_matrix = fast_qubit_operator_sparse(Ps, N_Qubits)
-            Rdag_P_R= R_S_matrix.conj().T @ P_S_matrix @ R_S_matrix
-            reduced_H_matrix+=gamma_l*Rdag_P_R
-
-    return reduced_H_matrix
-
-
-def Apply_Rsl_to_gs_ket(Xsk_op_list, ground_state_ket, n_qubits, decimal_place_threshold=14):
-
-    """
-    Given a list of X_sk operators (in correct order), apply R_sk iteratively to ground state ket...
-
-    Overall |ψ_out> =  R_s|ψ_ground>  =  R_sk_0 @ R_sk_1 @....|ψ_ground>
-
-    Used as subroutine in SeqRot_linalg_Energy_iterative function
-
-    Args:
-        X_sk_theta_sk_list(list): list of tuples containing X_sk QubitOperator and Theta_sk value
-        ground_state_ket (np.array): 1D numpy array of ground state
-        n_qubits (int): number of qubits
-        decimal_place_threshold (int): d.p threshold for amplitudes of ground state
-
-    returns:
-        ket (csr_matrix): sparse vector, where Rs has been applied to ground state.
-
-    """
-    ket =  csc_matrix(np.around(ground_state_ket,decimal_place_threshold).reshape([ground_state_ket.shape[0],1]), dtype=complex)
-
-    for X_sk_Op, theta_sk in Xsk_op_list:
-        R_sk_op = np.cos(theta_sk / 2) * QubitOperator('') -1j*np.sin(theta_sk / 2) * X_sk_Op
-
-        ket = fast_qubit_operator_sparse(R_sk_op, n_qubits) @ ket
-        
-
-    return ket
-
-
-
-def SeqRot_linalg_Energy_iterative(anti_commuting_sets, S_key_dict, N_Qubits,ground_state_ket,
-                                   atol=1e-8, rtol=1e-05, decimal_place_threshold=14, check_Xsk_ops_reduction=False):
-    """
-    Function giving ground state energy of Hamiltonian given as a dictionary of anti-commuting sets.
-    Note this actually applies R_s to ground state vector then measures the expectation val of P_s
-
-    THIS seems faster than other matrix approaches!
-
-    Args:
-        anti_commuting_sets (dict): dictionary of int keys with list of anti commuting QubitOperators sets
-        S_key_dict(dict): dictionary keys match that of anti_commuting_sets. Value gives index of P_s operator
-        N_Qubits(int): number of qubits
-        ground_state_ket (np.array): 1D numpy array of ground state
-        decimal_place_threshold (int): d.p threshold for amplitudes of ground state
-    returns:
-        FCI_Energy(float): Ground state energy
-
-    """
-    
-    ground_state_ket = csc_matrix(np.around(ground_state_ket,decimal_place_threshold).reshape([ground_state_ket.shape[0],1]), dtype=complex) #<- ground state as sparse col vec
-    FCI_Energy=0
-    for key in anti_commuting_sets:
-        AC_set = anti_commuting_sets[key]
-
-        if len(AC_set) < 2:
-            matrix_to_measure = fast_qubit_operator_sparse(AC_set[0], N_Qubits) 
-            active_ket = ground_state_ket.copy()
-        else:
-            S_index = S_key_dict[key]
-
-            X_sk_theta_sk_list, full_normalised_set, Ps, gamma_l = Get_Xsk_op_list(AC_set, S_index, N_Qubits, check_reduction=check_Xsk_ops_reduction, atol=atol, rtol=rtol)
-
-            matrix_to_measure = gamma_l * fast_qubit_operator_sparse(Ps, N_Qubits) 
-            active_ket = Apply_Rsl_to_gs_ket(X_sk_theta_sk_list, 
-                                             ground_state_ket,
-                                             N_Qubits, 
-                                             decimal_place_threshold=decimal_place_threshold)
-
-        exp_val = active_ket.conj().T @ matrix_to_measure @ active_ket
-        FCI_Energy+=exp_val.todense().item(0)
-
-    return FCI_Energy.real
